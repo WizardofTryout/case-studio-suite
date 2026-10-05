@@ -59,6 +59,8 @@ const App = {
     decisionGates: [],
     activeSkills: [],
     inspectedNodeName: null,
+    selectedDrawerBot: "master_consultant",
+    nodeChatHistory: {},
     phaseData: {
       1: { text: "", graph: "", hasRun: false },
       2: { text: "", graph: "", hasRun: false },
@@ -68,8 +70,10 @@ const App = {
   },
 
   async init() {
+    this.initTheme();
     GraphViewer.init();
     this.bindEvents();
+    this.bindDrawerEvents();
     this.renderQuickTriggers(1);
     await this.refreshTelemetry();
     await this.loadProjects();
@@ -221,6 +225,97 @@ const App = {
       }
     });
   },
+
+  // --- Design Theme Switcher (Dark Mode / Light Mode) ---
+
+  initTheme() {
+    const saved = localStorage.getItem("case_studio_theme") || "dark";
+    this.applyTheme(saved);
+
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) {
+      btn.addEventListener("click", () => this.toggleTheme());
+    }
+  },
+
+  toggleTheme() {
+    const isCurrentlyLight = document.documentElement.getAttribute("data-theme") === "light";
+    const nextTheme = isCurrentlyLight ? "dark" : "light";
+    this.applyTheme(nextTheme);
+    localStorage.setItem("case_studio_theme", nextTheme);
+    window.showToast(`Theme gewechselt: ${nextTheme === "light" ? "☀️ Hell" : "🌙 Dunkel"}`, "info");
+  },
+
+  applyTheme(theme) {
+    const isLight = theme === "light";
+    if (isLight) {
+      document.documentElement.setAttribute("data-theme", "light");
+    } else {
+      document.documentElement.removeAttribute("data-theme");
+    }
+
+    const btn = document.getElementById("theme-toggle-btn");
+    if (btn) {
+      btn.innerHTML = isLight
+        ? `<span class="theme-icon">🌙</span> <span class="theme-label">Dunkel</span>`
+        : `<span class="theme-icon">☀️</span> <span class="theme-label">Hell</span>`;
+      btn.setAttribute("title", isLight ? "Zu dunklem Modus wechseln" : "Zu hellem Modus wechseln");
+    }
+
+    if (window.GraphViewer && typeof window.GraphViewer.setTheme === "function") {
+      window.GraphViewer.setTheme(theme);
+    }
+  },
+
+  // --- Docked Node Inspector Side Drawer Events ---
+
+  bindDrawerEvents() {
+    const closeBtn = document.getElementById("drawer-close-btn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", () => this.closeNodeInspector());
+    }
+
+    const refineBtn = document.getElementById("btn-drawer-refine");
+    if (refineBtn) {
+      refineBtn.addEventListener("click", () => this.refineCurrentNode());
+    }
+
+    const researchBtn = document.getElementById("btn-drawer-research");
+    if (researchBtn) {
+      researchBtn.addEventListener("click", () => this.triggerDrawerResearch());
+    }
+
+    const sendChatBtn = document.getElementById("btn-drawer-send-chat");
+    if (sendChatBtn) {
+      sendChatBtn.addEventListener("click", () => this.sendDrawerChat());
+    }
+
+    const chatInput = document.getElementById("drawer-chat-input");
+    if (chatInput) {
+      chatInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          this.sendDrawerChat();
+        }
+      });
+    }
+
+    // Bot selector pills
+    document.querySelectorAll(".bot-pill-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const botRole = btn.dataset.bot;
+        this.selectDrawerBot(botRole);
+      });
+    });
+  },
+
+  selectDrawerBot(botRole) {
+    this.state.selectedDrawerBot = botRole;
+    document.querySelectorAll(".bot-pill-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.bot === botRole);
+    });
+  },
+
 
   async refreshTelemetry() {
     try {
@@ -731,6 +826,7 @@ const App = {
     let profile = {
       name: nodeName,
       category: "System-Komponente",
+      rationale: "Strategischer Baustein im verteilten Gesamtverbund: Dient der funktionalen Kapselung, erhöht die Skalierbarkeit und unterstützt die ganzheitliche Erreichung der Projektziele.",
       protocols: "Standard-Schnittstellen (TCP/IP, REST, gRPC)",
       latency: "< 50ms (System-Default)",
       security: "TLS 1.3 Verschlüsselung, Rollenbasierte Zugriffskontrolle (RBAC)",
@@ -740,6 +836,7 @@ const App = {
 
     if (name.includes("sps") || name.includes("plc") || name.includes("simatic") || name.includes("sensor")) {
       profile.category = "Feldebene & Sensorik (Purdue Level 0/1)";
+      profile.rationale = "Unverzichtbare Basis für Condition Monitoring: Erfasst hochfrequente Vibrationen (2 kHz) und Drehzahl direkt an den Frässpindeln. Ermöglicht erst die Erkennung von Werkzeugverschleiß vor dem Werkzeugbruch und garantiert die deterministische Notabschaltung.";
       profile.protocols = "PROFINET, Industrial Ethernet, OPC UA (PubSub), Modbus TCP, IO-Link";
       profile.latency = "Hard Real-Time: < 1ms bis 10ms (Deterministische Zykluszeit)";
       profile.security = "Physische Abschirmung, Feldbus-Segmentierung, geschützter SPS-Programmspeicher";
@@ -747,6 +844,7 @@ const App = {
       profile.description = "Direkte Erfassung von Prozesssignalen (Schwingung, Temperatur, Drehzahl) und Notabschaltung.";
     } else if (name.includes("edge") || name.includes("ied") || name.includes("ipc") || name.includes("gateway")) {
       profile.category = "Industrial Edge & OT-Ingest (Purdue Level 2/3)";
+      profile.rationale = "Zentraler architektonischer Schlüssel: Entkoppelt das instabile Hallen-WLAN durch lokale 48h-Offline-Pufferung (NVMe/SQLite). Führt KI-Inferenz (ONNX) mit <8ms Latenz direkt an der Linie aus und isoliert nach IEC 62443 das sicherheitskritische OT-Netzwerk vom Enterprise-Netzwerk.";
       profile.protocols = "OPC UA Client/Server, MQTT Sparkplug B, REST/HTTPS, SIMATIC LiveTwin";
       profile.latency = "Soft Real-Time: < 8ms bis 20ms für lokale Vorverarbeitung / KI-Inferenz";
       profile.security = "Dual-Homed Network (LAN 1 OT / LAN 2 Enterprise), mTLS, TPM 2.0 Chip, Secure Boot";
@@ -754,6 +852,7 @@ const App = {
       profile.description = "Ausführung containerisierter KI-Modelle (ONNX/OpenVINO), lokaler 48h-Ringpuffer bei Netzwerkausfall.";
     } else if (name.includes("kafka") || name.includes("stream") || name.includes("broker")) {
       profile.category = "Event-Streaming & Message Broker";
+      profile.rationale = "Robuste Daten-Drehscheibe: Puffert bis zu 10.000 Telemetrie-Events/Sekunde entkoppelt ab und verhindert Datenverlust bei Cloud-Latenzspitzen oder Ausfällen. Versorgt parallele Konsumenten (Snowflake Lakehouse, Alerting, Realtime-Dashboard).";
       profile.protocols = "Apache Kafka Binary Protocol, MQTT 5.0, WebSockets";
       profile.latency = "Near-Real-Time: 10ms bis 50ms End-to-End Latenz";
       profile.security = "SASL/SCRAM, TLS 1.3, Access Control Lists (ACLs), Schema Registry Validierung";
@@ -761,6 +860,7 @@ const App = {
       profile.description = "Entkoppelte, hochskalierbare Pufferung hochfrequenter Telemetriedatenströme.";
     } else if (name.includes("lake") || name.includes("snowflake") || name.includes("storage") || name.includes("dwh")) {
       profile.category = "Enterprise Data Lakehouse & Analytics";
+      profile.rationale = "Strategische Analytics- & Feature-Schicht: Schließt Datensilos auf, ermöglicht flottenweite OEE-Kalkulation über alle 120 Fräsen und speichert das historische Trainingsmaterial für adaptive Verschleißmodelle (dbt Medallion Architecture).";
       profile.protocols = "Snowpipe Streaming API, Apache Iceberg REST Catalog, SQL:2016";
       profile.latency = "Batch / Sub-Second Ingest: 1s bis 60s für Dynamic Tables";
       profile.security = "End-to-End Encryption at Rest & in Transit (AES-256), Column-Level PII Masking";
@@ -768,6 +868,7 @@ const App = {
       profile.description = "Medallion Architecture (Bronze: Raw / Silver: Cleaned / Gold: OEE & Features) für Langzeit-KI.";
     } else if (name.includes("aktor") || name.includes("not-aus") || name.includes("safety")) {
       profile.category = "Sicherheit & Aktorik (Safety Loop)";
+      profile.rationale = "Kompromisslose Arbeitssicherheit & Anlagenschutz: Echte physikalische Not-Aus-Schleife (SIL 3 / PL e). Greift bei Überschreiten kritischer Schwingungsgrenzen innerhalb von <5ms ein – vollkommen unabhängig von Netzwerk- oder Cloud-Zuständen.";
       profile.protocols = "PROFIsafe, Fail-Safe Digital Output, Relaiskontakt";
       profile.latency = "Ultra-Low Latency: < 5ms Reaktionszeit";
       profile.security = "SIL 3 (Safety Integrity Level) / PL e (Performance Level), Redundante Kanäle";
@@ -778,55 +879,242 @@ const App = {
     return profile;
   },
 
-  openNodeInspector(nodeName) {
+  async openNodeInspector(nodeName) {
     this.state.inspectedNodeName = nodeName;
-    const overlay = document.getElementById("node-inspector-overlay");
-    const nameEl = document.getElementById("node-inspector-name");
-    const profileContainer = document.getElementById("node-tech-profile");
-    const qaInput = document.getElementById("node-qa-input");
+    const drawer = document.getElementById("node-inspector-drawer");
+    if (!drawer) return;
 
-    if (!overlay || !nameEl || !profileContainer) return;
+    // Open docked side drawer
+    drawer.style.display = "flex";
 
-    nameEl.innerText = nodeName;
-    if (qaInput) {
-      qaInput.value = "";
-      qaInput.placeholder = `z. B. Wie sichern wir '${nodeName}' gegen Ausfälle ab?`;
+    // Select node in SVG
+    if (window.GraphViewer && typeof window.GraphViewer.selectNodeElement === "function") {
+      window.GraphViewer.selectNodeElement(null, nodeName);
     }
+
+    const titleEl = document.getElementById("drawer-node-title");
+    const catEl = document.getElementById("drawer-node-category");
+    const statusEl = document.getElementById("drawer-node-status");
+    const rationaleEl = document.getElementById("drawer-node-rationale");
+    const techGrid = document.getElementById("drawer-node-tech-grid");
+    const citationsList = document.getElementById("drawer-dms-citations");
+    const chatInput = document.getElementById("drawer-chat-input");
+
+    if (titleEl) titleEl.innerText = nodeName;
 
     const profile = this.getNodeProfile(nodeName);
 
-    profileContainer.innerHTML = `
-      <div class="node-prop-item">
-        <span class="node-prop-label">Kategorie & Ebene</span>
-        <span class="node-prop-val">${profile.category}</span>
-      </div>
-      <div class="node-prop-item">
-        <span class="node-prop-label">⚡ Protokolle & Schnittstellen</span>
-        <span class="node-prop-val">${profile.protocols}</span>
-      </div>
-      <div class="node-prop-item">
-        <span class="node-prop-label">⏱️ Latenz- & Zykluszeit-Garantie</span>
-        <span class="node-prop-val" style="color:var(--cyan); font-weight:600;">${profile.latency}</span>
-      </div>
-      <div class="node-prop-item">
-        <span class="node-prop-label">🛡️ Security & Industriestandards</span>
-        <span class="node-prop-val">${profile.security} (${profile.standards})</span>
-      </div>
-      <div class="node-prop-item">
-        <span class="node-prop-label">Funktionsbeschreibung</span>
-        <span class="node-prop-val" style="color:#cbd5e1;">${profile.description}</span>
-      </div>
-    `;
+    if (catEl) catEl.innerText = profile.category;
+    if (statusEl) statusEl.innerText = "Aktiv im Graph";
 
-    overlay.classList.add("active");
-    if (qaInput) {
-      setTimeout(() => qaInput.focus(), 80);
+    if (rationaleEl) {
+      rationaleEl.innerHTML = `<strong>💡 Warum architektonisch zwingend sinnvoll & Zielergänzung:</strong><br>${this.escapeHtml(profile.rationale)}`;
     }
+
+    if (techGrid) {
+      techGrid.innerHTML = `
+        <div class="drawer-tech-item">
+          <span class="drawer-tech-label">⚡ Protokolle & Schnittstellen</span>
+          <span class="drawer-tech-val">${this.escapeHtml(profile.protocols)}</span>
+        </div>
+        <div class="drawer-tech-item">
+          <span class="drawer-tech-label">⏱️ Latenz- & Zykluszeit-Garantie</span>
+          <span class="drawer-tech-val" style="color:var(--cyan); font-weight:600;">${this.escapeHtml(profile.latency)}</span>
+        </div>
+        <div class="drawer-tech-item">
+          <span class="drawer-tech-label">🛡️ Security & Industriestandards</span>
+          <span class="drawer-tech-val">${this.escapeHtml(profile.security)} (${this.escapeHtml(profile.standards)})</span>
+        </div>
+        <div class="drawer-tech-item">
+          <span class="drawer-tech-label">Funktionsbeschreibung</span>
+          <span class="drawer-tech-val">${this.escapeHtml(profile.description)}</span>
+        </div>
+      `;
+    }
+
+    if (chatInput) {
+      chatInput.value = "";
+      chatInput.placeholder = `Frage zu '${nodeName}' stellen oder Rechercheauftrag erteilen...`;
+    }
+
+    // Render node chat history
+    this.renderDrawerChatHistory(nodeName);
+
+    // Fetch and render DMS evidence
+    if (citationsList) {
+      citationsList.innerHTML = `<div style="color:var(--text-dim); font-size:0.78rem;">Durchsuche Projekt-Dokumente...</div>`;
+      if (this.state.currentProjectId) {
+        try {
+          const res = await API.getNodeEvidence(this.state.currentProjectId, nodeName);
+          const evList = res.evidence || [];
+          if (evList.length === 0) {
+            citationsList.innerHTML = `<div style="color:var(--text-dim); font-size:0.78rem;">Keine spezifischen Dokumentenbelege im DMS gefunden.</div>`;
+          } else {
+            citationsList.innerHTML = evList.map(ev => `
+              <div class="drawer-citation-item">
+                <div class="citation-source">
+                  <span>📄</span> <strong>${this.escapeHtml(ev.document_name)}</strong>
+                </div>
+                <div class="citation-quote">»${this.escapeHtml(ev.snippet)}«</div>
+              </div>
+            `).join("");
+          }
+        } catch (e) {
+          citationsList.innerHTML = `<div style="color:var(--text-dim); font-size:0.78rem;">Dokumenten-Kontext bereitgestellt.</div>`;
+        }
+      }
+    }
+
+    // Smoothly re-fit graph so it centers in the remaining canvas space
+    setTimeout(() => {
+      if (window.GraphViewer && typeof window.GraphViewer.fit === "function") {
+        window.GraphViewer.fit();
+      }
+    }, 80);
   },
 
   closeNodeInspector() {
+    this.state.inspectedNodeName = null;
+    const drawer = document.getElementById("node-inspector-drawer");
+    if (drawer) drawer.style.display = "none";
+
+    // Also close fallback modal if open
     const overlay = document.getElementById("node-inspector-overlay");
     if (overlay) overlay.classList.remove("active");
+
+    if (window.GraphViewer && typeof window.GraphViewer.clearSelection === "function") {
+      window.GraphViewer.clearSelection();
+    }
+
+    // Smoothly re-fit graph to full viewport
+    setTimeout(() => {
+      if (window.GraphViewer && typeof window.GraphViewer.fit === "function") {
+        window.GraphViewer.fit();
+      }
+    }, 80);
+  },
+
+  renderDrawerChatHistory(nodeName) {
+    const container = document.getElementById("drawer-chat-messages");
+    if (!container) return;
+
+    const history = this.state.nodeChatHistory[nodeName] || [];
+    if (history.length === 0) {
+      container.innerHTML = `
+        <div class="drawer-chat-welcome" id="drawer-chat-welcome">
+          💡 Stelle eine gezielte Frage zu diesem Baustein oder erteile einen Rechercheauftrag (z. B. <em>„Welche mTLS-Zertifikate und Offline-NVMe-Pufferzeiten müssen hier nach IEC 62443 konfiguriert werden?“</em>).
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+    history.forEach(m => {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `drawer-msg ${m.role}`;
+      msgDiv.innerHTML = `<strong>${this.escapeHtml(m.sender)}:</strong><br>${this.renderMarkdown(m.content)}`;
+      container.appendChild(msgDiv);
+    });
+    container.scrollTop = container.scrollHeight;
+  },
+
+  async sendDrawerChat() {
+    const nodeName = this.state.inspectedNodeName;
+    if (!nodeName) return;
+
+    const input = document.getElementById("drawer-chat-input");
+    const prompt = input ? input.value.trim() : "";
+    if (!prompt) return;
+
+    const messagesContainer = document.getElementById("drawer-chat-messages");
+    const welcome = document.getElementById("drawer-chat-welcome");
+    if (welcome) welcome.remove();
+
+    if (!this.state.nodeChatHistory[nodeName]) {
+      this.state.nodeChatHistory[nodeName] = [];
+    }
+
+    // Add user message
+    this.state.nodeChatHistory[nodeName].push({
+      role: "user",
+      sender: "Matthias",
+      content: prompt
+    });
+
+    const userMsgEl = document.createElement("div");
+    userMsgEl.className = "drawer-msg user";
+    userMsgEl.innerHTML = `<strong>Matthias:</strong><br>${this.escapeHtml(prompt)}`;
+    messagesContainer.appendChild(userMsgEl);
+
+    input.value = "";
+
+    // Prepare bot message container
+    const botRole = this.state.selectedDrawerBot || "master_consultant";
+    let botSender = "Master-Consultant Lead";
+    if (botRole === "domain_expert") botSender = "Domain Specialist (OT/Edge)";
+    if (botRole === "critic") botSender = "Hallucination Critic";
+
+    const botMsgEl = document.createElement("div");
+    botMsgEl.className = "drawer-msg bot";
+    botMsgEl.innerHTML = `<strong>${botSender}:</strong><br><span class="bot-stream-content">Denke nach...</span>`;
+    messagesContainer.appendChild(botMsgEl);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+    const streamSpan = botMsgEl.querySelector(".bot-stream-content");
+    let accumulatedText = "";
+
+    const btn = document.getElementById("btn-drawer-send-chat");
+    if (btn) btn.disabled = true;
+
+    try {
+      await API.streamSSE(
+        "/api/copilot/node-chat",
+        {
+          project_id: this.state.currentProjectId,
+          session_id: this.state.currentSessionId,
+          node_name: nodeName,
+          prompt: prompt,
+          agent_role: botRole,
+          phase: this.state.currentPhase
+        },
+        (event) => {
+          if (event.type === "token") {
+            accumulatedText += event.content;
+            if (streamSpan) streamSpan.innerHTML = this.renderMarkdown(accumulatedText);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+          }
+        },
+        (err) => {
+          console.warn("Node chat error:", err);
+          if (streamSpan) streamSpan.innerHTML = `<span style="color:var(--rose);">Fehler beim Abruf: ${this.escapeHtml(err.message)}</span>`;
+        },
+        () => {
+          if (btn) btn.disabled = false;
+          this.state.nodeChatHistory[nodeName].push({
+            role: "bot",
+            sender: botSender,
+            content: accumulatedText
+          });
+        }
+      );
+    } catch (e) {
+      if (btn) btn.disabled = false;
+      if (streamSpan) streamSpan.innerText = "Fehler bei der Verbindung.";
+    }
+  },
+
+  triggerDrawerResearch() {
+    const nodeName = this.state.inspectedNodeName;
+    if (!nodeName) return;
+
+    // Switch bot pill to domain_expert
+    this.selectDrawerBot("domain_expert");
+
+    const input = document.getElementById("drawer-chat-input");
+    if (input) {
+      input.value = `Führe eine detaillierte technische Recherche und Sicherheitsanalyse zum Baustein '${nodeName}' durch: Relevante Industrieprotokolle, Latenzgrenzen (<10ms), Pufferzeit bei Offline-Netzwerkausfall und IEC 62443 Zonentrennung.`;
+      input.focus();
+    }
   },
 
   async refineCurrentNode() {

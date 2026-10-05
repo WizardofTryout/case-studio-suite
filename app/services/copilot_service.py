@@ -143,3 +143,72 @@ async def execute_copilot_stream(
     )
     yield f"data: {json.dumps({'type': 'done', 'message_id': msg_record['id'], 'phase': phase})}\n\n"
 
+
+async def execute_node_chat_stream(
+    project_id: str,
+    session_id: str,
+    node_name: str,
+    prompt: str,
+    agent_role: str = "master_consultant",
+    category: Optional[str] = None,
+    phase: int = 1
+) -> AsyncGenerator[str, None]:
+    """
+    Streams a targeted answer or research investigation for a specific architecture node.
+    Supports Master-Consultant, Domain Specialist, or Hallucination Critic perspectives.
+    """
+    context_str = await build_context_prompt(project_id, session_id, phase)
+
+    if agent_role == "domain_expert":
+        role_title = "Domain Specialist (OT/Edge/Cloud)"
+        base_role_prompt = DOMAIN_EXPERT_SYSTEM_PROMPT
+    elif agent_role == "critic":
+        role_title = "Hallucination Critic & Risk Evaluator"
+        base_role_prompt = HALLUCINATION_CRITIC_SYSTEM_PROMPT
+    else:
+        role_title = "Master-Consultant Lead"
+        base_role_prompt = MASTER_CONSULTANT_SYSTEM_PROMPT
+
+    system_instruction = f"""{base_role_prompt}
+
+FOKUS-KNOTEN IM ARCHITEKTUR-GRAPHEN:
+- Baustein-Name: {node_name}
+- Baustein-Kategorie: {category or 'Architektur-Komponente'}
+
+AUFGABE FÜR DIESEN KNOTEN:
+Der Nutzer (Matthias) stellt eine gezielte Detailfrage oder erteilt einen Rechercheauftrag bezüglich des Knotens '{node_name}'.
+Antworte präzise, fundiert und praxisnah aus der Perspektive von {role_title}.
+
+WICHTIGE REGELN:
+1. Erkläre detailliert, warum diese Komponente architektonisch zwingend sinnvoll ist und wie sie das Projektziel des Kunden ergänzt.
+2. STRIKTE ABKÜRZUNGS-REGEL: Jede technische oder fachliche Abkürzung (z.B. SPS, PLC, OPC UA, DWH, IEC, MTLS, TPM, OEE) MUSS bei jedem Auftreten zwingend in runden Klammern vollständig ausgeschrieben und kurz erklärt werden.
+3. Gib konkrete technische Spezifikationen (Latenzen in Millisekunden, Bus-Protokolle, Standards wie IEC 62443, Pufferungszeiten, Redundanz).
+4. Wenn ein Rechercheauftrag erteilt wurde, liefere eine fundierte Gegenüberstellung von Best Practices und eine klare Handlungsempfehlung.
+
+{context_str}
+"""
+
+    contents = [
+        {"role": "user", "parts": [{"text": f"Gezielte Detailfrage / Rechercheauftrag zum Architektur-Knoten '{node_name}':\n{prompt}"}]}
+    ]
+
+    full_text = ""
+    async for chunk in key_pool.stream_generate(
+        contents=contents,
+        system_instruction=system_instruction,
+        temperature=0.3
+    ):
+        full_text += chunk
+        yield f"data: {json.dumps({'type': 'token', 'content': chunk})}\n\n"
+
+    # Save to deliberation messages for complete auditability
+    msg_record = await repositories.create_deliberation_message(
+        session_id=session_id,
+        sender_role=agent_role,
+        sender_name=f"{role_title} [{node_name}]",
+        content=f"**[Knoten-Q&A zu '{node_name}']**\n*Frage: {prompt}*\n\n{full_text}"
+    )
+
+    yield f"data: {json.dumps({'type': 'done', 'node_name': node_name, 'message_id': msg_record['id']})}\n\n"
+
+

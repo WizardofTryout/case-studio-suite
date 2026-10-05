@@ -144,6 +144,18 @@ const API = {
     return await res.json();
   },
 
+  async getNodeEvidence(projectId, nodeName) {
+    try {
+      const res = await fetch(`/api/copilot/projects/${projectId}/nodes/${encodeURIComponent(nodeName)}/evidence`);
+      if (!res.ok) return { evidence: [] };
+      return await res.json();
+    } catch (e) {
+      console.warn("Evidence fetch failed:", e);
+      return { evidence: [] };
+    }
+  },
+
+
   async streamSSE(url, payload, onEvent, onError, onComplete) {
     try {
       const response = await fetch(url, {

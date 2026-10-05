@@ -20,13 +20,30 @@ const GraphViewer = {
   startY: 0,
   svgOriginalWidth: 0,
   svgOriginalHeight: 0,
+  currentTheme: "dark",
 
   init() {
+    this.applyMermaidTheme(this.currentTheme);
+    this.bindControls();
+  },
+
+  applyMermaidTheme(theme) {
+    this.currentTheme = theme;
+    const isLight = theme === "light";
     if (window.mermaid) {
       mermaid.initialize({
         startOnLoad: false,
-        theme: "dark",
-        themeVariables: {
+        theme: isLight ? "neutral" : "dark",
+        themeVariables: isLight ? {
+          darkMode: false,
+          background: "#ffffff",
+          primaryColor: "#0284c7",
+          primaryTextColor: "#0f172a",
+          primaryBorderColor: "#0ea5e9",
+          lineColor: "#475569",
+          secondaryColor: "#7c3aed",
+          tertiaryColor: "#059669"
+        } : {
           darkMode: true,
           background: "#090c12",
           primaryColor: "#00d4ff",
@@ -39,8 +56,13 @@ const GraphViewer = {
         securityLevel: "loose"
       });
     }
+  },
 
-    this.bindControls();
+  setTheme(theme) {
+    this.applyMermaidTheme(theme);
+    if (this.currentMermaidCode) {
+      this.renderGraph(this.currentMermaidCode);
+    }
   },
 
   bindControls() {
@@ -112,7 +134,7 @@ const GraphViewer = {
       e.stopPropagation();
 
       const label = this.extractNodeLabel(nodeEl);
-      this.triggerNodeInspector(label);
+      this.triggerNodeInspector(label, nodeEl);
     });
 
     // Toolbar buttons
@@ -255,12 +277,33 @@ const GraphViewer = {
     return "Baustein";
   },
 
-  triggerNodeInspector(label) {
+  triggerNodeInspector(label, nodeEl) {
+    this.selectNodeElement(nodeEl, label);
     const app = window.App || (typeof App !== "undefined" ? App : null);
     if (app && typeof app.openNodeInspector === "function") {
       app.openNodeInspector(label);
     } else {
       console.warn("App.openNodeInspector is not available for node:", label);
+    }
+  },
+
+  selectNodeElement(nodeEl, label) {
+    const layer = document.getElementById("mermaid-canvas-layer");
+    if (!layer) return;
+    layer.querySelectorAll(".node").forEach(n => n.classList.remove("selected"));
+
+    if (nodeEl) {
+      nodeEl.classList.add("selected");
+    } else if (label) {
+      const match = Array.from(layer.querySelectorAll(".node")).find(n => this.extractNodeLabel(n) === label);
+      if (match) match.classList.add("selected");
+    }
+  },
+
+  clearSelection() {
+    const layer = document.getElementById("mermaid-canvas-layer");
+    if (layer) {
+      layer.querySelectorAll(".node").forEach(n => n.classList.remove("selected"));
     }
   },
 
@@ -356,7 +399,7 @@ const GraphViewer = {
         if (this.hasMoved) return; // ignore if user was panning
         e.preventDefault();
         e.stopPropagation();
-        this.triggerNodeInspector(label);
+        this.triggerNodeInspector(label, node);
       });
     });
   }

@@ -3,10 +3,15 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from app.db import repositories
-from app.services.copilot_service import execute_copilot_stream
+from app.services.copilot_service import (
+    execute_copilot_stream,
+    execute_node_chat_stream
+)
+from app.services.dms_service import find_node_document_evidence
 from app.core.deliberation import run_multi_agent_deliberation
 
 router = APIRouter(prefix="/api/copilot", tags=["copilot"])
+
 
 
 class CopilotStreamRequest(BaseModel):
@@ -132,4 +137,59 @@ async def save_session_phase(session_id: str, phase: int, payload: SavePhaseRequ
         graph_mermaid=payload.graph_mermaid
     )
     return saved
+
+
+class NodeChatRequest(BaseModel):
+    project_id: str
+    session_id: str
+    node_name: str
+    prompt: str = Field(..., min_length=1)
+    agent_role: Optional[str] = "master_consultant"
+    category: Optional[str] = None
+    phase: Optional[int] = 1
+
+
+@router.post("/node-chat")
+async def stream_node_chat(payload: NodeChatRequest):
+    """
+    Dedicated SSE streaming endpoint for Node-specific Q&A and AI research orders.
+    Supports Master-Consultant, Domain Specialist, and Critic perspectives.
+    """
+    proj = await repositories.get_project(payload.project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    sess = await repositories.get_session(payload.session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    return StreamingResponse(
+        execute_node_chat_stream(
+            project_id=payload.project_id,
+            session_id=payload.session_id,
+            node_name=payload.node_name,
+            prompt=payload.prompt,
+            agent_role=payload.agent_role or "master_consultant",
+            category=payload.category,
+            phase=payload.phase or 1
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@router.get("/projects/{project_id}/nodes/{node_name}/evidence")
+async def get_node_evidence(project_id: str, node_name: str):
+    """Extracts relevant textual citations and DMS evidence for a specific node."""
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    evidence = await find_node_document_evidence(project_id, node_name)
+    return {"node_name": node_name, "evidence": evidence}
+
 

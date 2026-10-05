@@ -28,6 +28,9 @@
     </div>
 
     <div class="header-right">
+      <button id="theme-toggle-btn" class="theme-toggle-btn" title="Zwischen Dunkel- und Hell-Modus umschalten">
+        <span class="theme-icon">☀️</span> <span class="theme-label">Hell</span>
+      </button>
       <div id="db-status-chip" class="telemetry-chip" title="SQLite Embedded WAL-Modus Status">
         <span class="telemetry-dot"></span> SQLite: WAL
       </div>
@@ -178,13 +181,102 @@
                 </span>
               </div>
             </div>
-            <div id="mermaid-viewport" class="mermaid-viewport">
-              <div id="mermaid-canvas-layer" class="mermaid-canvas-layer">
-                <div style="color:#64748b; font-size:0.85rem; text-align:center; padding: 40px 20px;">
-                  🗺️ Noch kein Architektur-Graph generiert.<br>
-                  Starte den Case Copilot oder eine Multi-Agenten Debatte!
+            <div class="graph-workspace-row">
+              <div id="mermaid-viewport" class="mermaid-viewport">
+                <div id="mermaid-canvas-layer" class="mermaid-canvas-layer">
+                  <div style="color:#64748b; font-size:0.85rem; text-align:center; padding: 40px 20px;">
+                    🗺️ Noch kein Architektur-Graph generiert.<br>
+                    Starte den Case Copilot oder eine Multi-Agenten Debatte!
+                  </div>
                 </div>
               </div>
+
+              <!-- Docked Node Inspector Side Drawer (Matching Reference Specification) -->
+              <aside id="node-inspector-drawer" class="node-inspector-drawer" style="display: none;">
+                <div class="drawer-header">
+                  <div class="drawer-title-group">
+                    <div class="drawer-node-name" id="drawer-node-title">Baustein-Inspektor</div>
+                    <div class="drawer-badges">
+                      <span class="drawer-badge category" id="drawer-node-category">Architektur-Komponente</span>
+                      <span class="drawer-badge status" id="drawer-node-status">Aktiv im Graph</span>
+                    </div>
+                  </div>
+                  <button id="drawer-close-btn" class="drawer-close-btn" title="Inspektor schließen">&times;</button>
+                </div>
+
+                <div class="drawer-body">
+                  <!-- Rationale & Goal Alignment -->
+                  <div class="drawer-card rationale-card">
+                    <div class="drawer-card-title">
+                      <span>🎯</span> ARCHITEKTONISCHE BEDEUTUNG & ZIELERGÄNZUNG
+                    </div>
+                    <div class="drawer-card-content" id="drawer-node-rationale">
+                      Lade architektonische Begründung...
+                    </div>
+                  </div>
+
+                  <!-- Technical Profile & Standards -->
+                  <div class="drawer-card tech-card">
+                    <div class="drawer-card-title">
+                      <span>⚡</span> TECHNISCHER STECKBRIEF & STANDARDS
+                    </div>
+                    <div class="drawer-tech-grid" id="drawer-node-tech-grid">
+                      <!-- Filled dynamically -->
+                    </div>
+                  </div>
+
+                  <!-- Quick Action Buttons -->
+                  <div class="drawer-actions-row">
+                    <button id="btn-drawer-refine" class="btn btn-primary btn-sm" style="flex:1;">
+                      🤖 KI-Ast hier vertiefen / Im Graphen aufsplitten
+                    </button>
+                    <button id="btn-drawer-research" class="btn btn-secondary btn-sm" style="flex:1;">
+                      🕵️ Spezial-Rechercheauftrag
+                    </button>
+                  </div>
+
+                  <!-- Direct Node Chat & AI Research Window -->
+                  <div class="drawer-card chat-card">
+                    <div class="drawer-card-title" style="justify-content:space-between;">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span>💬</span> FRAGE / RECHERCHEAUFTRAG AN KI
+                      </div>
+                      <!-- Bot Selector -->
+                      <div class="drawer-bot-selector" id="drawer-bot-selector">
+                        <button class="bot-pill-btn active" data-bot="master_consultant" title="Master-Consultant Lead">👑 Lead</button>
+                        <button class="bot-pill-btn" data-bot="domain_expert" title="Domain Expert (OT / Edge / Cloud)">⚡ Expert</button>
+                        <button class="bot-pill-btn" data-bot="critic" title="Hallucination Critic">🛡️ Critic</button>
+                      </div>
+                    </div>
+                    
+                    <div id="drawer-chat-messages" class="drawer-chat-messages">
+                      <div class="drawer-chat-welcome" id="drawer-chat-welcome">
+                        💡 Stelle eine gezielte Frage zu diesem Baustein oder erteile einen Rechercheauftrag an den ausgewählten KI-Bot.
+                      </div>
+                    </div>
+
+                    <div class="drawer-chat-input-row">
+                      <textarea id="drawer-chat-input" class="drawer-chat-textarea" placeholder="Frage zu diesem Baustein oder Rechercheauftrag eingeben... (⌘/Ctrl + Enter)"></textarea>
+                      <div class="drawer-chat-btn-row">
+                        <span class="shortcut-hint">⌘/Ctrl + Enter</span>
+                        <button id="btn-drawer-send-chat" class="btn btn-primary btn-sm">
+                          🚀 Senden
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- DMS Evidence & Citations -->
+                  <div class="drawer-card dms-card">
+                    <div class="drawer-card-title">
+                      <span>📄</span> FUNDSTELLEN & WÖRTLICHE BELEGE (PROJEKT-DMS)
+                    </div>
+                    <div id="drawer-dms-citations" class="drawer-citations-list">
+                      <!-- Filled dynamically -->
+                    </div>
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
 
