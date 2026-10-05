@@ -543,3 +543,44 @@ async def get_active_skills_content(project_id: str) -> List[Dict[str, str]]:
                 logger.error(f"Error reading snapshot file {file_path}: {e}")
 
     return results
+
+
+async def remove_global_skill(skill_key: str, delete_source: bool = False) -> bool:
+    """Removes a skill from library DB and data cache, optionally deleting external source."""
+    skill = await repositories.get_global_skill(skill_key)
+    if not skill:
+        return False
+
+    data_catalog = settings.resolved_data_skills_catalog_dir
+    pkg_dir = data_catalog / skill_key
+    file_md = data_catalog / f"{skill_key}.md"
+    if pkg_dir.exists() and pkg_dir.is_dir():
+        shutil.rmtree(pkg_dir, ignore_errors=True)
+    if file_md.exists() and file_md.is_file():
+        try:
+            file_md.unlink()
+        except Exception:
+            pass
+
+    if delete_source and skill.get("source_origin"):
+        src = Path(skill["source_origin"])
+        if src.exists():
+            try:
+                if src.is_dir():
+                    shutil.rmtree(src, ignore_errors=True)
+                elif src.is_file():
+                    src.unlink()
+            except Exception as e:
+                logger.error(f"Failed to delete source files for {skill_key}: {e}")
+
+    return await repositories.delete_global_skill(skill_key)
+
+
+async def remove_global_skills_batch(skill_keys: List[str], delete_source: bool = False) -> int:
+    """Batch removes skills from library."""
+    count = 0
+    for k in skill_keys:
+        success = await remove_global_skill(k, delete_source=delete_source)
+        if success:
+            count += 1
+    return count

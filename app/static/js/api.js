@@ -203,6 +203,31 @@ const API = {
     return await res.json();
   },
 
+  async deleteSkill(skillKey, deleteSource = false) {
+    const query = deleteSource ? "?delete_source=true" : "";
+    const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}${query}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Löschen fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async deleteSkillsBatch(skillKeys, deleteSource = false) {
+    const res = await fetch("/api/skills/delete-batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skill_keys: skillKeys, delete_source: deleteSource })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Batch-Löschen fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
   async deleteProjectSkill(projectId, skillId) {
     const res = await fetch(`/api/projects/${projectId}/skills/${skillId}`, {
       method: "DELETE"

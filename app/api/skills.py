@@ -170,6 +170,29 @@ async def create_custom_skill(payload: SkillCustomCreateRequest):
         raise HTTPException(status_code=500, detail=f"Failed to create custom skill: {str(e)}")
 
 
+class SkillDeleteBatchRequest(BaseModel):
+    skill_keys: List[str]
+    delete_source: bool = False
+
+
+@router.delete("/skills/{skill_key}")
+async def delete_skill_endpoint(skill_key: str, delete_source: bool = Query(False)):
+    """Deletes a skill from global library and data catalog."""
+    from app.services.skill_service import remove_global_skill
+    success = await remove_global_skill(skill_key, delete_source=delete_source)
+    if not success:
+        raise HTTPException(status_code=404, detail="Skill nicht gefunden")
+    return {"success": True, "deleted_key": skill_key}
+
+
+@router.post("/skills/delete-batch")
+async def delete_skills_batch_endpoint(payload: SkillDeleteBatchRequest):
+    """Batch deletes multiple skills from global library."""
+    from app.services.skill_service import remove_global_skills_batch
+    count = await remove_global_skills_batch(payload.skill_keys, delete_source=payload.delete_source)
+    return {"success": True, "deleted_count": count}
+
+
 # --- Project Snapshots Management ---
 
 @router.get("/skills/catalog")

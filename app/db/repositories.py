@@ -591,6 +591,25 @@ async def toggle_favorite_global_skill(skill_key: str) -> Optional[Dict[str, Any
     return await get_global_skill(skill_key)
 
 
+async def delete_global_skill(skill_key: str) -> bool:
+    async with get_db() as db:
+        await db.execute("DELETE FROM skill_tags WHERE skill_key = ?", (skill_key,))
+        cursor = await db.execute("DELETE FROM global_skills WHERE skill_key = ?", (skill_key,))
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+async def delete_global_skills_batch(skill_keys: List[str]) -> int:
+    if not skill_keys:
+        return 0
+    async with get_db() as db:
+        placeholders = ",".join("?" for _ in skill_keys)
+        await db.execute(f"DELETE FROM skill_tags WHERE skill_key IN ({placeholders})", tuple(skill_keys))
+        cursor = await db.execute(f"DELETE FROM global_skills WHERE skill_key IN ({placeholders})", tuple(skill_keys))
+        await db.commit()
+        return cursor.rowcount
+
+
 async def set_skill_tags(skill_key: str, tags: List[str]) -> None:
     async with get_db() as db:
         await db.execute("DELETE FROM skill_tags WHERE skill_key = ?", (skill_key,))

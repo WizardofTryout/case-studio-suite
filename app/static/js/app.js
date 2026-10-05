@@ -152,6 +152,7 @@ const App = {
     searchDebounceTimer: null,
     scannedSkills: [],
     selectedScanIndices: new Set(),
+    selectedSkillKeys: new Set(),
     editingSkillKey: null,
     editingScope: "global",
     isBuiltIn: false
@@ -1520,7 +1521,7 @@ const App = {
     }
   },
 
-  openAgentTileModal(mode = "refiner", slotIndex = null) {
+  async openAgentTileModal(mode = "refiner", slotIndex = null) {
     this.deliberationState.tileModalMode = mode;
     this.deliberationState.targetSlotIndex = slotIndex;
 
@@ -1534,6 +1535,16 @@ const App = {
     const searchInput = document.getElementById("agent-tile-search");
     if (searchInput) searchInput.value = "";
     this.deliberationState.tileSearchQuery = "";
+
+    // If library is not loaded yet, fetch it from backend
+    if (!this.skillsState.library || this.skillsState.library.length === 0) {
+      try {
+        const skills = await API.getSkillsLibrary();
+        this.skillsState.library = skills || [];
+      } catch (e) {
+        console.warn("Could not preload skills library:", e);
+      }
+    }
 
     this.renderAgentTiles();
 
@@ -1552,35 +1563,39 @@ const App = {
     grid.innerHTML = "";
 
     const library = this.skillsState.library || [];
-    const query = this.deliberationState.tileSearchQuery;
-    const cat = this.deliberationState.tileActiveCategory;
+    const query = (this.deliberationState.tileSearchQuery || "").toLowerCase().trim();
+    const cat = this.deliberationState.tileActiveCategory || "all";
 
     const filtered = library.filter(s => {
+      const skillKey = (s.skill_key || s.id || "").toLowerCase();
       // Exclude lead & critic from specialist catalog selection
-      if (s.skill_key === "base_master_consultant" || s.skill_key === "base_critic") return false;
+      if (skillKey === "base_master_consultant" || skillKey === "base_critic") return false;
+
+      const name = (s.display_name || s.name || skillKey).toLowerCase();
+      const catLower = (s.skill_category || s.category || "").toLowerCase();
+      const tagsList = Array.isArray(s.tags) ? s.tags : (s.tags_csv ? s.tags_csv.split(",").map(t => t.trim()) : []);
+      const tagsLower = tagsList.join(" ").toLowerCase();
+      const descLower = (s.description || "").toLowerCase();
+      const allText = `${skillKey} ${name} ${catLower} ${tagsLower} ${descLower}`;
 
       // Category filter
       if (cat !== "all") {
-        const catLower = (s.category || "").toLowerCase();
-        const tagsLower = (s.tags || []).join(" ").toLowerCase();
-        const nameLower = (s.name || "").toLowerCase();
-        const allText = `${catLower} ${tagsLower} ${nameLower}`;
-
-        if (cat === "ot" && !allText.includes("ot") && !allText.includes("sps") && !allText.includes("edge") && !allText.includes("opc") && !allText.includes("industrial")) return false;
-        if (cat === "cloud" && !allText.includes("cloud") && !allText.includes("kafka") && !allText.includes("snowflake") && !allText.includes("streaming")) return false;
+        if (cat === "ot" && !allText.includes("ot") && !allText.includes("sps") && !allText.includes("edge") && !allText.includes("opc") && !allText.includes("industrial") && !allText.includes("siemens")) return false;
+        if (cat === "cloud" && !allText.includes("cloud") && !allText.includes("kafka") && !allText.includes("snowflake") && !allText.includes("streaming") && !allText.includes("aws") && !allText.includes("gcp")) return false;
         if (cat === "ai" && !allText.includes("ai") && !allText.includes("rag") && !allText.includes("llm") && !allText.includes("agent") && !allText.includes("mcp")) return false;
         if (cat === "siemens" && !allText.includes("siemens") && !allText.includes("tia") && !allText.includes("s7") && !allText.includes("profinet")) return false;
-        if (cat === "science" && !allText.includes("science") && !allText.includes("biotech") && !allText.includes("alphafold") && !allText.includes("chembl") && !allText.includes("pdb")) return false;
+        if (cat === "science" && !allText.includes("science") && !allText.includes("biotech") && !allText.includes("alphafold") && !allText.includes("chembl") && !allText.includes("pdb") && !allText.includes("genom") && !allText.includes("protein")) return false;
         if (cat === "data" && !allText.includes("data") && !allText.includes("sql") && !allText.includes("dbt") && !allText.includes("lakehouse") && !allText.includes("etl")) return false;
-        if (cat === "security" && !allText.includes("security") && !allText.includes("iec") && !allText.includes("purdue") && !allText.includes("audit")) return false;
+        if (cat === "security" && !allText.includes("security") && !allText.includes("iec") && !allText.includes("purdue") && !allText.includes("audit") && !allText.includes("pentest")) return false;
       }
 
       // Query filter
       if (query) {
-        const matchName = s.name.toLowerCase().includes(query);
-        const matchDesc = (s.description || "").toLowerCase().includes(query);
-        const matchTags = (s.tags || []).some(t => t.toLowerCase().includes(query));
-        if (!matchName && !matchDesc && !matchTags) return false;
+        const matchKey = skillKey.includes(query);
+        const matchName = name.includes(query);
+        const matchDesc = descLower.includes(query);
+        const matchTags = tagsList.some(t => t.toLowerCase().includes(query));
+        if (!matchKey && !matchName && !matchDesc && !matchTags) return false;
       }
 
       return true;
@@ -1591,16 +1606,24 @@ const App = {
       return;
     }
 
+    const currentSlots = this.deliberationState.teamSlots || [];
+
     filtered.forEach(skill => {
       const tile = document.createElement("div");
       tile.className = "agent-tile-card";
 
+      const skillKey = skill.skill_key || skill.id || "";
+      const displayName = skill.display_name || skill.name || skillKey;
+      const desc = skill.description || "Hochspezialisierter Fachagent.";
+      const catLower = (skill.skill_category || skill.category || "").toLowerCase();
+      const tagsList = Array.isArray(skill.tags) ? skill.tags : (skill.tags_csv ? skill.tags_csv.split(",").map(t => t.trim()) : []);
+      const tags = tagsList.join(" ").toLowerCase();
+      const nameLower = displayName.toLowerCase();
+
       let domainBadge = "⚡ Spezialist";
       let icon = "⚡";
-      const catLower = (skill.category || "").toLowerCase();
-      const tags = (skill.tags || []).join(" ").toLowerCase();
 
-      if (tags.includes("siemens") || skill.name.toLowerCase().includes("siemens")) {
+      if (tags.includes("siemens") || nameLower.includes("siemens")) {
         domainBadge = "Siemens Ecosystem";
         icon = "⚙️";
       } else if (catLower.includes("industrial") || tags.includes("ot") || tags.includes("edge")) {
@@ -1609,7 +1632,7 @@ const App = {
       } else if (catLower.includes("cloud") || tags.includes("kafka") || tags.includes("snowflake")) {
         domainBadge = "Cloud & Streaming";
         icon = "☁️";
-      } else if (catLower.includes("science") || tags.includes("biotech")) {
+      } else if (catLower.includes("science") || tags.includes("biotech") || tags.includes("chembl") || tags.includes("protein")) {
         domainBadge = "Scientific Biotech";
         icon = "🧬";
       } else if (tags.includes("ai") || tags.includes("mcp") || tags.includes("llm")) {
@@ -1617,25 +1640,31 @@ const App = {
         icon = "🤖";
       }
 
+      const isAlreadyInTeam = currentSlots.some(s => s.skill_key === skillKey);
+      const isCurrentRefiner = this.deliberationState.selectedRefinerSkillKey === skillKey;
+      const isModeSlot = this.deliberationState.tileModalMode === "slot";
+      const isSelected = isModeSlot ? isAlreadyInTeam : isCurrentRefiner;
+
       tile.innerHTML = `
         <div class="tile-header">
-          <div style="display:flex; align-items:center; gap:8px;">
+          <div style="display:flex; align-items:flex-start; gap:8px;">
             <span style="font-size:1.3rem;">${icon}</span>
             <div>
-              <div style="font-weight:700; font-size:0.92rem; color:var(--text);">${this.escapeHtml(skill.name)}</div>
-              <span class="tile-domain-badge">${domainBadge}</span>
+              <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);">${this.escapeHtml(displayName)}</div>
+              <div style="font-size:0.7rem; color:var(--text-dim); font-family:var(--font-mono);">${this.escapeHtml(skillKey)}</div>
+              <span class="brand-badge" style="font-size:0.65rem; margin-top:3px;">${domainBadge}</span>
             </div>
           </div>
         </div>
-        <div class="tile-desc">${this.escapeHtml(skill.description || "Hochspezialisierter Fachagent.")}</div>
-        <div class="tile-footer">
-          <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;">
-            Wählen ➔
+        <div class="tile-desc" style="margin-top:6px; font-size:0.75rem; color:var(--text-muted); line-height:1.4;">${this.escapeHtml(desc)}</div>
+        <div class="tile-footer" style="margin-top:8px;">
+          <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'} btn-sm btn-tile-select" style="width:100%; justify-content:center; padding:6px 10px;">
+            ${isSelected ? '✓ Ausgewählt' : 'Wählen ➔'}
           </button>
         </div>
       `;
 
-      tile.querySelector("button").addEventListener("click", () => {
+      tile.querySelector(".btn-tile-select").addEventListener("click", () => {
         this.selectTileSkill(skill);
       });
 
@@ -1644,35 +1673,41 @@ const App = {
   },
 
   async selectTileSkill(skill) {
+    const skillKey = skill.skill_key || skill.id;
+    const name = skill.display_name || skill.name || skillKey;
+    const desc = skill.description || "Hochspezialisierter Fachagent.";
+    const category = skill.skill_category || skill.category || "domain_specialist";
+
     if (this.deliberationState.tileModalMode === "refiner") {
-      this.deliberationState.selectedRefinerSkillKey = skill.skill_key;
-      this.deliberationState.selectedRefinerName = skill.name;
+      this.deliberationState.selectedRefinerSkillKey = skillKey;
+      this.deliberationState.selectedRefinerName = name;
 
       const badgeName = document.getElementById("refiner-badge-name");
-      if (badgeName) badgeName.textContent = skill.name;
+      if (badgeName) badgeName.textContent = name;
 
       const badgeIcon = document.getElementById("refiner-badge-icon");
       if (badgeIcon) {
-        if (skill.name.toLowerCase().includes("siemens")) badgeIcon.textContent = "⚙️";
-        else if (skill.name.toLowerCase().includes("cloud")) badgeIcon.textContent = "☁️";
-        else if (skill.name.toLowerCase().includes("science") || skill.name.toLowerCase().includes("bio")) badgeIcon.textContent = "🧬";
+        const lower = name.toLowerCase();
+        if (lower.includes("siemens")) badgeIcon.textContent = "⚙️";
+        else if (lower.includes("cloud") || lower.includes("kafka")) badgeIcon.textContent = "☁️";
+        else if (lower.includes("science") || lower.includes("bio") || lower.includes("protein")) badgeIcon.textContent = "🧬";
         else badgeIcon.textContent = "⚡";
       }
 
       this.closeAgentTileModal();
-      window.showToast(`✨ Fachagent "${skill.name}" für Veredelung gewählt!`, "info");
+      window.showToast(`✨ Fachagent "${name}" für Veredelung gewählt!`, "info");
     } else {
       // Slot Mode
       const newSlot = {
         role: "domain_expert",
-        name: skill.name,
-        skill_key: skill.skill_key,
+        name: name,
+        skill_key: skillKey,
         is_fixed: false,
-        category: skill.category || "domain_specialist",
-        description: skill.description || ""
+        category: category,
+        description: desc
       };
 
-      if (this.deliberationState.targetSlotIndex !== null) {
+      if (this.deliberationState.targetSlotIndex !== null && this.deliberationState.targetSlotIndex >= 0) {
         this.deliberationState.teamSlots[this.deliberationState.targetSlotIndex] = newSlot;
       } else {
         this.deliberationState.teamSlots.push(newSlot);
@@ -1681,7 +1716,7 @@ const App = {
       await this.saveDeliberationTeam();
       this.renderDeliberationTeamGrid();
       this.closeAgentTileModal();
-      window.showToast(`🏛️ "${skill.name}" zum Debattenteam hinzugefügt!`, "success");
+      window.showToast(`🏛️ "${name}" zum Debattenteam hinzugefügt!`, "success");
     }
   },
 
@@ -1696,23 +1731,28 @@ const App = {
     try {
       window.showToast("🔍 Analysiere Rohentwurf auf passende Fachdomänen...", "info");
       const res = await API.detectAgents(text, this.state.currentProjectId, 2);
-      if (res && res.agents && res.agents.length > 0) {
-        const top = res.agents.find(a => a.role === "domain_expert" || a.category === "domain_specialist") || res.agents[0];
-        this.deliberationState.selectedRefinerSkillKey = top.skill_key;
-        this.deliberationState.selectedRefinerName = top.name;
+      const detected = (res && res.detected_skills) || (res && res.agents) || [];
+      if (detected.length > 0) {
+        const top = detected[0];
+        const topKey = top.skill_key || top.id;
+        const topName = top.display_name || top.name || topKey;
+
+        this.deliberationState.selectedRefinerSkillKey = topKey;
+        this.deliberationState.selectedRefinerName = topName;
 
         const badgeName = document.getElementById("refiner-badge-name");
-        if (badgeName) badgeName.textContent = top.name;
+        if (badgeName) badgeName.textContent = topName;
 
         const badgeIcon = document.getElementById("refiner-badge-icon");
         if (badgeIcon) {
-          if (top.name.toLowerCase().includes("siemens")) badgeIcon.textContent = "⚙️";
-          else if (top.name.toLowerCase().includes("cloud")) badgeIcon.textContent = "☁️";
-          else if (top.name.toLowerCase().includes("science") || top.name.toLowerCase().includes("bio")) badgeIcon.textContent = "🧬";
+          const lower = topName.toLowerCase();
+          if (lower.includes("siemens")) badgeIcon.textContent = "⚙️";
+          else if (lower.includes("cloud") || lower.includes("kafka")) badgeIcon.textContent = "☁️";
+          else if (lower.includes("science") || lower.includes("bio") || lower.includes("protein")) badgeIcon.textContent = "🧬";
           else badgeIcon.textContent = "⚡";
         }
 
-        window.showToast(`🎯 Top-Fachagent erkannt: ${top.name}`, "success");
+        window.showToast(`🎯 Top-Fachagent erkannt: ${topName}`, "success");
       } else {
         window.showToast("Kein spezifischer Fachagent erkannt, bestehende Auswahl bleibt aktiv.", "info");
       }
@@ -2122,6 +2162,25 @@ const App = {
     if (editorText) {
       editorText.addEventListener("input", () => this.updateEditorPreview());
     }
+
+    // Catalog batch selection and deletion
+    const selectAllSkillsCb = document.getElementById("cb-select-all-skills");
+    if (selectAllSkillsCb) {
+      selectAllSkillsCb.addEventListener("change", (e) => {
+        const skills = this.skillsState.library || [];
+        if (e.target.checked) {
+          skills.forEach(s => this.skillsState.selectedSkillKeys.add(s.skill_key));
+        } else {
+          this.skillsState.selectedSkillKeys.clear();
+        }
+        this.renderSkillsCatalog(skills);
+      });
+    }
+
+    const batchDeleteBtn = document.getElementById("btn-batch-delete-skills");
+    if (batchDeleteBtn) {
+      batchDeleteBtn.addEventListener("click", () => this.deleteSelectedSkills());
+    }
   },
 
   async loadSkillsCatalog() {
@@ -2144,6 +2203,30 @@ const App = {
     }
   },
 
+  updateCatalogBatchToolbar(skills = []) {
+    const countBadge = document.getElementById("selected-skills-count-badge");
+    const batchDeleteBtn = document.getElementById("btn-batch-delete-skills");
+    const selectAllCb = document.getElementById("cb-select-all-skills");
+    
+    const count = this.skillsState.selectedSkillKeys.size;
+    if (countBadge) {
+      countBadge.textContent = `(${count} ausgewählt)`;
+    }
+    if (batchDeleteBtn) {
+      if (count > 0) {
+        batchDeleteBtn.style.display = "inline-flex";
+        batchDeleteBtn.textContent = `🗑️ Ausgewählte löschen (${count})`;
+      } else {
+        batchDeleteBtn.style.display = "none";
+      }
+    }
+    if (selectAllCb && skills && skills.length > 0) {
+      const visibleKeys = skills.map(s => s.skill_key);
+      const allSelected = visibleKeys.length > 0 && visibleKeys.every(k => this.skillsState.selectedSkillKeys.has(k));
+      selectAllCb.checked = allSelected;
+    }
+  },
+
   renderSkillsCatalog(skills) {
     const container = document.getElementById("skills-catalog-list");
     const countBadge = document.getElementById("skill-count-badge");
@@ -2152,6 +2235,8 @@ const App = {
     if (countBadge) {
       countBadge.innerText = `${skills.length} Skills`;
     }
+
+    this.updateCatalogBatchToolbar(skills);
 
     if (!skills || skills.length === 0) {
       container.innerHTML = `
@@ -2170,6 +2255,7 @@ const App = {
       const isFav = !!s.is_favorite;
       const isSnapshotted = !!s.is_snapshotted;
       const originLabel = s.source_type === "system" ? "System" : (s.source_type === "user_created" ? "Custom" : "Importiert");
+      const isSelected = this.skillsState.selectedSkillKeys.has(s.skill_key);
 
       let tagsHtml = "";
       if (s.tags_csv) {
@@ -2179,15 +2265,18 @@ const App = {
 
       card.innerHTML = `
         <div class="skill-card-header">
-          <div class="skill-card-title-group">
-            <div class="skill-card-title">
-              <span>📦</span> ${this.escapeHtml(s.display_name)}
+          <div class="skill-card-title-group" style="display:flex; align-items:flex-start; gap:10px;">
+            <input type="checkbox" class="skill-item-select-cb" data-skill-key="${this.escapeHtml(s.skill_key)}" ${isSelected ? 'checked' : ''} style="accent-color:var(--cyan); width:16px; height:16px; cursor:pointer; margin-top:2px; flex-shrink:0;" />
+            <div>
+              <div class="skill-card-title">
+                <span>📦</span> ${this.escapeHtml(s.display_name || s.name || s.skill_key)}
+              </div>
+              <div class="skill-card-key">${this.escapeHtml(s.skill_key)}</div>
             </div>
-            <div class="skill-card-key">${this.escapeHtml(s.skill_key)}</div>
           </div>
           <div class="skill-card-badges">
             <span class="skill-origin-badge">${originLabel}</span>
-            <span class="brand-badge" style="font-size:0.65rem;">${s.skill_category}</span>
+            <span class="brand-badge" style="font-size:0.65rem;">${this.escapeHtml(s.skill_category || 'Spezialist')}</span>
             <button class="skill-fav-btn ${isFav ? 'is-favorite' : ''}" title="${isFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" onclick="App.toggleSkillFavorite('${s.skill_key}', event)">
               ${isFav ? '⭐' : '☆'}
             </button>
@@ -2200,10 +2289,15 @@ const App = {
 
         ${tagsHtml ? `<div class="skill-tag-chips-row">${tagsHtml}</div>` : ''}
 
-        <div class="skill-card-actions">
-          <button class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px;" onclick="App.openSkillEditor('${s.skill_key}', false)">
-            ✏️ Bearbeiten
-          </button>
+        <div class="skill-card-actions" style="display:flex; align-items:center; justify-content:space-between; margin-top:8px;">
+          <div style="display:flex; gap:6px;">
+            <button class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px;" onclick="App.openSkillEditor('${s.skill_key}', false)">
+              ✏️ Bearbeiten
+            </button>
+            <button class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px; color:var(--rose); border-color:rgba(244,63,94,0.3);" onclick="App.deleteSingleSkill('${s.skill_key}', event)" title="Skill aus Katalog löschen">
+              🗑️ Löschen
+            </button>
+          </div>
           <div>
             ${isSnapshotted 
               ? `<span class="badge-snapshotted">✓ Im Projekt</span>`
@@ -2212,7 +2306,85 @@ const App = {
           </div>
         </div>
       `;
+
+      const cb = card.querySelector(".skill-item-select-cb");
+      if (cb) {
+        cb.addEventListener("change", (e) => {
+          if (e.target.checked) {
+            this.skillsState.selectedSkillKeys.add(s.skill_key);
+          } else {
+            this.skillsState.selectedSkillKeys.delete(s.skill_key);
+          }
+          this.updateCatalogBatchToolbar(this.skillsState.library);
+        });
+      }
+
       container.appendChild(card);
+    });
+  },
+
+  async deleteSingleSkill(skillKey, event) {
+    if (event) event.stopPropagation();
+    const deleteSourceChecked = document.getElementById("cb-delete-source-files")?.checked || false;
+    
+    const targetSkill = (this.skillsState.library || []).find(s => s.skill_key === skillKey);
+    const skillName = targetSkill ? (targetSkill.display_name || targetSkill.name || skillKey) : skillKey;
+
+    const sourceWarnHtml = deleteSourceChecked
+      ? `<div style="color:var(--rose); margin-top:8px; font-weight:600;">⚠️ Achtung: Quellordner auf der Festplatte wird ebenfalls gelöscht!</div>`
+      : `<div style="color:var(--text-muted); margin-top:8px; font-size:0.8rem;">ℹ️ Hinweis: Der Skill wird aus dem Katalog und der Datenbank gelöscht. Originaldateien auf externen Festplatten bleiben erhalten.</div>`;
+
+    this.showConfirmModal({
+      title: "🗑️ Skill löschen?",
+      bodyHtml: `
+        <div>Möchtest Du den Skill <strong>"${this.escapeHtml(skillName)}"</strong> (${this.escapeHtml(skillKey)}) wirklich löschen?</div>
+        ${sourceWarnHtml}
+      `,
+      confirmText: "Endgültig löschen",
+      confirmClass: "btn-danger",
+      onConfirm: async () => {
+        try {
+          await API.deleteSkill(skillKey, deleteSourceChecked);
+          this.skillsState.selectedSkillKeys.delete(skillKey);
+          window.showToast(`Skill "${skillName}" erfolgreich gelöscht!`, "success");
+          await this.loadSkillsCatalog();
+        } catch (err) {
+          window.showToast(`Fehler beim Löschen: ${err.message}`, "error");
+        }
+      }
+    });
+  },
+
+  async deleteSelectedSkills() {
+    const selectedKeys = Array.from(this.skillsState.selectedSkillKeys);
+    if (selectedKeys.length === 0) {
+      window.showToast("Keine Skills zum Löschen ausgewählt!", "warning");
+      return;
+    }
+
+    const deleteSourceChecked = document.getElementById("cb-delete-source-files")?.checked || false;
+    const sourceWarnHtml = deleteSourceChecked
+      ? `<div style="color:var(--rose); margin-top:8px; font-weight:600;">⚠️ Achtung: Quellordner der ${selectedKeys.length} Skills werden ebenfalls von der Festplatte gelöscht!</div>`
+      : `<div style="color:var(--text-muted); margin-top:8px; font-size:0.8rem;">ℹ️ Hinweis: Die Skills werden aus dem Katalog entfernt. Originaldateien auf externen Festplatten bleiben unberührt.</div>`;
+
+    this.showConfirmModal({
+      title: `🗑️ ${selectedKeys.length} Skills löschen?`,
+      bodyHtml: `
+        <div>Möchtest Du wirklich <strong>${selectedKeys.length} ausgewählte Skills</strong> löschen?</div>
+        ${sourceWarnHtml}
+      `,
+      confirmText: `${selectedKeys.length} Skills löschen`,
+      confirmClass: "btn-danger",
+      onConfirm: async () => {
+        try {
+          const res = await API.deleteSkillsBatch(selectedKeys, deleteSourceChecked);
+          this.skillsState.selectedSkillKeys.clear();
+          window.showToast(`✅ ${res.deleted_count || selectedKeys.length} Skills erfolgreich gelöscht!`, "success");
+          await this.loadSkillsCatalog();
+        } catch (err) {
+          window.showToast(`Fehler beim Batch-Löschen: ${err.message}`, "error");
+        }
+      }
     });
   },
 
@@ -2969,6 +3141,36 @@ const App = {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  },
+
+  showConfirmModal({ title, bodyHtml, confirmText = "Bestätigen", confirmClass = "btn-primary", onConfirm }) {
+    const overlay = document.getElementById("generic-modal-overlay");
+    const titleEl = document.getElementById("generic-modal-title");
+    const bodyEl = document.getElementById("generic-modal-body");
+    const cancelBtn = document.getElementById("generic-modal-cancel");
+    const confirmBtn = document.getElementById("generic-modal-confirm");
+    if (!overlay || !titleEl || !bodyEl || !cancelBtn || !confirmBtn) return;
+
+    titleEl.textContent = title;
+    bodyEl.innerHTML = bodyHtml;
+    confirmBtn.textContent = confirmText;
+    confirmBtn.className = `btn ${confirmClass} btn-sm`;
+
+    const cleanup = () => {
+      overlay.classList.remove("active");
+      cancelBtn.onclick = null;
+      confirmBtn.onclick = null;
+    };
+
+    cancelBtn.onclick = () => cleanup();
+    confirmBtn.onclick = async () => {
+      cleanup();
+      if (typeof onConfirm === "function") {
+        await onConfirm();
+      }
+    };
+
+    overlay.classList.add("active");
   }
 };
 

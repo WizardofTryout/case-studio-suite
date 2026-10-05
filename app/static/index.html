@@ -479,6 +479,26 @@
             </div>
           </div>
 
+          <!-- Batch Actions Toolbar -->
+          <div id="skills-batch-toolbar" style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.03); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); padding:6px 12px; font-size:0.8rem; margin-top:2px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-weight:600; color:var(--text-main);">
+                <input type="checkbox" id="cb-select-all-skills" style="accent-color:var(--cyan); width:15px; height:15px; cursor:pointer;" />
+                Alle auswählen
+              </label>
+              <span id="selected-skills-count-badge" style="color:var(--text-muted); font-size:0.75rem;">(0 ausgewählt)</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.75rem; color:var(--text-dim);" title="Standardmäßig deaktiviert. Nur wenn angehakt, werden Originaldateien vom externen Pfad gelöscht.">
+                <input type="checkbox" id="cb-delete-source-files" style="accent-color:var(--rose);" />
+                Auch von Festplatte löschen
+              </label>
+              <button id="btn-batch-delete-skills" class="btn btn-secondary btn-sm" style="display:none; color:var(--rose); border-color:rgba(244,63,94,0.3); padding:3px 10px; font-size:0.78rem;">
+                🗑️ Ausgewählte löschen
+              </button>
+            </div>
+          </div>
+
           <div id="skills-catalog-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
             <div style="color:#64748b; font-size:0.85rem;">Lade Katalog...</div>
           </div>
