@@ -145,13 +145,12 @@ def extract_tags(name: str, desc: str, raw_tags: Any) -> List[str]:
 def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[str, Any]:
     """
     Recursively scans target directory for genuine skills:
-    1. Looks for folders containing SKILL.md.
-    2. Once a folder with SKILL.md is found, it is treated as a leaf skill and child directories
-       (such as references/, scripts/, tests/) are NOT crawled for separate skills.
-    3. Prunes non-skill directories (tests/, docs/, assets/, node_modules/, etc.).
-    4. Rejects any non-markdown files (.sh, .py, etc.) to prevent prompt injection and clutter.
-    5. Loose .md files are ONLY accepted if they have valid YAML frontmatter (name/description)
-       or explicit skill role structures.
+    1. Looks for folders containing SKILL.md (case-insensitive) and registers them as intact packages.
+    2. Once a folder with SKILL.md is found, it is treated as a self-contained skill package.
+       All sub-elements (scripts/, references/, assets/) belong to this package.
+       Child directories are NOT crawled for separate skills.
+    3. Prunes non-skill directories (tests/, docs/, .git/, node_modules/, etc.) when searching.
+    4. Loose .md files are ONLY accepted if they have valid YAML frontmatter or explicit role structures.
     """
     target_path = Path(target_path_str).resolve()
     if not target_path.exists():
@@ -200,16 +199,15 @@ def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[
                     seen_keys.add(skill_item["skill_key"])
                     skills.append(skill_item)
             except Exception as e:
-                logger.error(f"Failed to parse skill file {skill_md_path}: {e}")
-            # CRITICAL: This directory is a self-contained skill!
-            # Do NOT descend into child directories (e.g. references/, scripts/, tests/)!
+                logger.error(f"Failed to parse skill package {skill_md_path}: {e}")
+            # CRITICAL: This directory is a self-contained skill package!
+            # Do NOT descend into child directories (e.g. references/, scripts/, assets/)!
             dirs.clear()
             continue
 
         # Otherwise: check loose .md files in this directory (with strict qualification)
         for f in files:
             lower_name = f.lower()
-            # ONLY .md files, strictly reject .sh, .py, .json, etc.
             if not (lower_name.endswith(".md") or lower_name.endswith(".markdown")):
                 continue
 
@@ -236,6 +234,31 @@ def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[
         "total_found": len(skills),
         "skills": skills
     }
+
+
+def inspect_package_contents(package_dir: Path) -> tuple[List[str], int, int]:
+    """Inspects a package directory to find subfolders, file count and total size."""
+    sub_elements = []
+    total_files = 0
+    total_size = 0
+
+    if not package_dir.exists() or not package_dir.is_dir():
+        return [], 0, 0
+
+    for item in package_dir.iterdir():
+        if item.is_dir() and not item.name.startswith("."):
+            sub_count = sum(1 for p in item.rglob("*") if p.is_file())
+            sub_elements.append(f"{item.name} ({sub_count})")
+        elif item.is_file():
+            total_files += 1
+            total_size += item.stat().st_size
+
+    for p in package_dir.rglob("*"):
+        if p.is_file():
+            total_files += 1
+            total_size += p.stat().st_size
+
+    return sub_elements, total_files, total_size
 
 
 def parse_skill_file(
@@ -308,6 +331,18 @@ def parse_skill_file(
     category = infer_category(display_name, description, raw_cat)
     tags = extract_tags(display_name, description, raw_tags)
 
+    # Calculate package details if folder based
+    is_package = is_folder_based
+    package_path = str(file_path.parent) if is_folder_based else None
+    sub_elements = []
+    total_files = 1
+    total_size = file_size
+
+    if is_folder_based:
+        sub_elements, total_files, total_size = inspect_package_contents(file_path.parent)
+        if total_size == 0:
+            total_size = file_size
+
     rel_path = str(file_path.relative_to(base_dir))
 
     return {
@@ -318,10 +353,15 @@ def parse_skill_file(
         "source_type": "local_folder",
         "source_origin": str(file_path),
         "relative_path": rel_path,
-        "file_size": file_size,
+        "file_size": total_size,
         "version_hash": file_hash,
         "tags": tags,
         "tags_csv": ", ".join(tags),
         "is_folder_based": is_folder_based,
+        "is_package": is_package,
+        "package_path": package_path,
+        "manifest_file": str(file_path),
+        "sub_elements": sub_elements,
+        "total_files": total_files,
         "preview_snippet": body[:400].strip()
     }

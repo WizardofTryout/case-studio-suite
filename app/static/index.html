@@ -511,38 +511,34 @@
       </div>
 
       <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; overflow:hidden;">
-        <!-- Hidden Browser Pickers (Universal Finder / File Explorer) -->
-        <input type="file" id="browser-folder-picker" webkitdirectory directory multiple style="display:none;" />
-        <input type="file" id="browser-file-picker" accept=".md,.markdown" multiple style="display:none;" />
-
         <!-- Source Selection Row -->
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; flex-direction:column; gap:12px;">
           <div>
             <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:8px;">
-              📁 Skills von Deinem System / Datenträger laden:
+              ⚡ Schnellauswahl verifizierter Skill-Repositories:
             </label>
-            <div style="display:flex; flex-wrap:wrap; gap:10px;">
-              <button id="btn-browse-folder" type="button" class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:6px;">
-                📂 Ordner im Finder auswählen...
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="btn btn-secondary btn-sm btn-quick-path" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills" style="display:flex; align-items:center; gap:6px;">
+                🧬 Scientific Agent Skills
               </button>
-              <button id="btn-browse-files" type="button" class="btn btn-secondary btn-sm" style="display:flex; align-items:center; gap:6px;">
-                📄 Einzelne Skill-Dateien (.md)...
+              <button type="button" class="btn btn-secondary btn-sm btn-quick-path" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/googleskills" style="display:flex; align-items:center; gap:6px;">
+                🌐 Google Skills
               </button>
             </div>
-            <div class="skill-security-hint">
-              🛡️ <strong>Sicherer Skill-Filter:</strong> Erkennt automatisch <code>SKILL.md</code>-Pakete und strukturierte Markdown-Skills. Ignoriert Skripte (<code>.sh</code>, <code>.py</code>), Konfigurationen, Readmes, Lizenzen und Sub-Referenzen zum Schutz vor Fehlinterpretationen und Prompt-Injections.
+            <div class="skill-security-hint" style="margin-top:10px;">
+              📦 <strong>Intakter Paket-Import:</strong> Erkennt vollwertige Skill-Pakete mit <code>SKILL.md</code>, Skripten (<code>scripts/</code>), Referenzen (<code>references/</code>) und Assets. Alle Unterdateien bleiben beim Import und der Projekt-Aktivierung 100% vollständig und funktionsfähig erhalten.
             </div>
           </div>
 
-          <!-- Fallback: Server / Container path input -->
+          <!-- Path input -->
           <div>
             <label style="font-size:0.75rem; font-weight:600; color:var(--text-dim); display:block; margin-bottom:4px;">
-              Oder Server-/Container-Pfad scannen:
+              Oder beliebigen Verzeichnispfad scannen:
             </label>
             <div style="display:flex; gap:8px;">
-              <input type="text" id="scan-path-input" class="gate-answer-input" placeholder="z. B. /app/data/skills_catalog..." style="flex:1;" />
-              <button id="btn-start-skill-scan" class="btn btn-secondary btn-sm">
-                🔍 Server-Pfad scannen
+              <input type="text" id="scan-path-input" class="gate-answer-input" placeholder="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills..." style="flex:1;" />
+              <button id="btn-start-skill-scan" class="btn btn-primary btn-sm" style="white-space:nowrap;">
+                🔍 Verzeichnis scannen
               </button>
             </div>
           </div>

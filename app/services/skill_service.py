@@ -99,7 +99,7 @@ async def list_global_skills_with_status(
 
 async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
     """
-    Finds physical file for a skill key.
+    Finds physical file or manifest for a skill key.
     Prioritizes SQLite global_skills metadata (source_origin, relative_path),
     then checks data catalog and system catalog.
     """
@@ -122,7 +122,17 @@ async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
             if cand_sys.exists():
                 return cand_sys
 
-    # 2. Check data_dir first (user modified / imported)
+    # 2. Check for package directory in data_dir
+    pkg_data = data_dir / skill_key
+    if pkg_data.is_dir():
+        for mf in ["SKILL.md", "skill.md", "Skill.md"]:
+            if (pkg_data / mf).exists():
+                return pkg_data / mf
+        mds = list(pkg_data.glob("*.md"))
+        if mds:
+            return mds[0]
+
+    # 3. Check data_dir for single file
     candidate = data_dir / f"{skill_key}.md"
     if candidate.exists():
         return candidate
@@ -131,7 +141,13 @@ async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
     if matches:
         return matches[0]
 
-    # 3. Check system_dir
+    # 4. Check system_dir package or single file
+    pkg_sys = system_dir / skill_key
+    if pkg_sys.is_dir():
+        for mf in ["SKILL.md", "skill.md"]:
+            if (pkg_sys / mf).exists():
+                return pkg_sys / mf
+
     candidate_sys = system_dir / f"{skill_key}.md"
     if candidate_sys.exists():
         return candidate_sys
@@ -140,7 +156,7 @@ async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
     if matches_sys:
         return matches_sys[0]
 
-    # 4. Fallback search across all files in system_dir to match parsed skill_key
+    # 5. Fallback search across all files in system_dir to match parsed skill_key
     if system_dir.exists():
         for f in system_dir.glob("*.md"):
             parsed = parse_skill_file(f, system_dir, is_folder_based=False)
@@ -152,20 +168,46 @@ async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
 
 async def activate_skill_for_project(project_id: str, skill_name: str) -> Dict[str, Any]:
     """
-    Physical Skill-Snapshotting: Copies skill file from catalog into
-    /app/data/projects/{project_id}/skills/{skill_name}.md and registers it in SQLite.
+    Physical Skill-Snapshotting: Copies full skill package or file into
+    /app/data/projects/{project_id}/skills/{skill_name}/ and registers it in SQLite.
     """
-    src_file = await resolve_skill_source_file(skill_name)
-    if not src_file or not src_file.exists():
-        raise FileNotFoundError(f"Skill '{skill_name}' not found in catalog or storage.")
-
-    # Destination in project folder: /app/data/projects/{id}/skills/
+    data_dir = settings.resolved_data_skills_catalog_dir
     proj_skills_dir = settings.resolved_data_dir / "projects" / project_id / "skills"
     proj_skills_dir.mkdir(parents=True, exist_ok=True)
 
-    dest_file = proj_skills_dir / f"{skill_name}.md"
-    shutil.copy2(src_file, dest_file)
-    version_hash = compute_file_hash(dest_file)
+    dest_file = None
+    package_dir = data_dir / skill_name
+
+    # 1. If it's a package directory in data_dir, copy whole folder intact!
+    if package_dir.is_dir():
+        dest_pkg = proj_skills_dir / skill_name
+        if dest_pkg.exists():
+            shutil.rmtree(dest_pkg)
+        shutil.copytree(package_dir, dest_pkg)
+        dest_file = dest_pkg / "SKILL.md"
+        if not dest_file.exists():
+            for f in dest_pkg.glob("*.md"):
+                dest_file = f
+                break
+        if not dest_file or not dest_file.exists():
+            dest_file = dest_pkg / f"{skill_name}.md"
+    else:
+        src_file = await resolve_skill_source_file(skill_name)
+        if not src_file or not src_file.exists():
+            raise FileNotFoundError(f"Skill '{skill_name}' not found in catalog or storage.")
+
+        if src_file.parent != data_dir and src_file.parent.name == skill_name and src_file.parent.is_dir():
+            # Source is an external package directory!
+            dest_pkg = proj_skills_dir / skill_name
+            if dest_pkg.exists():
+                shutil.rmtree(dest_pkg)
+            shutil.copytree(src_file.parent, dest_pkg)
+            dest_file = dest_pkg / src_file.name
+        else:
+            dest_file = proj_skills_dir / f"{skill_name}.md"
+            shutil.copy2(src_file, dest_file)
+
+    version_hash = compute_file_hash(dest_file) if dest_file.exists() else "000000000000"
 
     # Determine category and tags
     db_skill = await repositories.get_global_skill(skill_name)
@@ -193,7 +235,8 @@ async def import_scanned_skills(
 ) -> Dict[str, Any]:
     """
     Batch import of scanned skills into persistent library and/or project snapshots.
-    Supports either reading from server filesystem source_origin OR direct content payload.
+    Supports intact directory copying for packages (scripts/, references/, assets/)
+    and single-file copying for loose markdowns.
     """
     data_catalog = settings.resolved_data_skills_catalog_dir
     data_catalog.mkdir(parents=True, exist_ok=True)
@@ -201,26 +244,61 @@ async def import_scanned_skills(
 
     for item in skills_data:
         skill_key = item["skill_key"]
+        is_package = item.get("is_package", False) or item.get("is_folder_based", False)
+        package_path_str = item.get("package_path", "")
         source_origin_str = item.get("source_origin", "")
         source_origin = Path(source_origin_str) if source_origin_str else None
 
         content = item.get("content", "")
-        if not content and source_origin and source_origin.exists() and source_origin.is_file():
-            try:
-                content = source_origin.read_text(encoding="utf-8", errors="replace")
-            except Exception as e:
-                logger.error(f"Cannot read source file {source_origin}: {e}")
-                continue
-        elif not content and "preview_snippet" in item:
-            content = f"# {item.get('display_name', skill_key)}\n\n{item['preview_snippet']}"
+        relative_path = f"{skill_key}.md"
+        saved_origin_str = str(source_origin) if source_origin else ""
 
-        # 1. Save persistently in /app/data/skills_catalog/
-        target_file = data_catalog / f"{skill_key}.md"
-        try:
-            target_file.write_text(content, encoding="utf-8")
-        except Exception as e:
-            logger.error(f"Failed to write persistent skill file {target_file}: {e}")
-            continue
+        # 1. If it's a full package on disk, copy whole folder intact!
+        if is_package and package_path_str and Path(package_path_str).is_dir():
+            src_pkg = Path(package_path_str)
+            dest_pkg = data_catalog / skill_key
+            if dest_pkg.exists():
+                shutil.rmtree(dest_pkg)
+            shutil.copytree(src_pkg, dest_pkg)
+
+            manifest_file = dest_pkg / "SKILL.md"
+            if not manifest_file.exists():
+                mds = list(dest_pkg.glob("*.md"))
+                manifest_file = mds[0] if mds else dest_pkg / "SKILL.md"
+
+            if manifest_file.exists():
+                content = manifest_file.read_text(encoding="utf-8", errors="replace")
+            relative_path = f"{skill_key}/{manifest_file.name}"
+            saved_origin_str = str(manifest_file)
+        elif source_origin and source_origin.is_dir():
+            dest_pkg = data_catalog / skill_key
+            if dest_pkg.exists():
+                shutil.rmtree(dest_pkg)
+            shutil.copytree(source_origin, dest_pkg)
+            manifest_file = dest_pkg / "SKILL.md"
+            if manifest_file.exists():
+                content = manifest_file.read_text(encoding="utf-8", errors="replace")
+            relative_path = f"{skill_key}/SKILL.md"
+            saved_origin_str = str(manifest_file)
+        else:
+            # Single file copy / write
+            if not content and source_origin and source_origin.exists() and source_origin.is_file():
+                try:
+                    content = source_origin.read_text(encoding="utf-8", errors="replace")
+                except Exception as e:
+                    logger.error(f"Cannot read source file {source_origin}: {e}")
+                    continue
+            elif not content and "preview_snippet" in item:
+                content = f"# {item.get('display_name', skill_key)}\n\n{item['preview_snippet']}"
+
+            target_file = data_catalog / f"{skill_key}.md"
+            try:
+                target_file.write_text(content, encoding="utf-8")
+            except Exception as e:
+                logger.error(f"Failed to write persistent skill file {target_file}: {e}")
+                continue
+            relative_path = f"{skill_key}.md"
+            saved_origin_str = str(target_file)
 
         file_hash = compute_content_hash(content)
 
@@ -231,8 +309,8 @@ async def import_scanned_skills(
             "skill_category": item.get("skill_category", "domain_specialist"),
             "description": item.get("description", ""),
             "source_type": item.get("source_type", "local_folder"),
-            "source_origin": str(source_origin) if source_origin else str(target_file),
-            "relative_path": f"{skill_key}.md",
+            "source_origin": saved_origin_str,
+            "relative_path": relative_path,
             "version_hash": file_hash,
             "tags_csv": item.get("tags_csv", ""),
             "is_favorite": item.get("is_favorite", 0),
@@ -260,7 +338,22 @@ async def get_skill_content(skill_key: str, project_id: Optional[str] = None) ->
     """Retrieve raw markdown and metadata for editor."""
     # Check project snapshot first if valid project_id given
     if project_id and isinstance(project_id, str) and project_id.strip():
-        proj_file = settings.resolved_data_dir / "projects" / project_id / "skills" / f"{skill_key}.md"
+        proj_dir = settings.resolved_data_dir / "projects" / project_id / "skills"
+        proj_pkg = proj_dir / skill_key
+        if proj_pkg.is_dir():
+            manifest = proj_pkg / "SKILL.md"
+            if not manifest.exists():
+                mds = list(proj_pkg.glob("*.md"))
+                manifest = mds[0] if mds else proj_pkg / "SKILL.md"
+            if manifest.exists():
+                return {
+                    "skill_key": skill_key,
+                    "content": manifest.read_text(encoding="utf-8", errors="replace"),
+                    "is_project_snapshot": True,
+                    "file_path": str(manifest)
+                }
+
+        proj_file = proj_dir / f"{skill_key}.md"
         if proj_file.exists():
             return {
                 "skill_key": skill_key,
@@ -272,6 +365,13 @@ async def get_skill_content(skill_key: str, project_id: Optional[str] = None) ->
     # Otherwise check global library
     src_file = await resolve_skill_source_file(skill_key)
     if src_file and src_file.exists():
+        if src_file.is_dir():
+            manifest = src_file / "SKILL.md"
+            if not manifest.exists():
+                mds = list(src_file.glob("*.md"))
+                manifest = mds[0] if mds else src_file / "SKILL.md"
+            src_file = manifest
+
         content = src_file.read_text(encoding="utf-8", errors="replace")
         db_skill = await repositories.get_global_skill(skill_key)
         return {
@@ -295,7 +395,7 @@ async def save_skill_content(
 ) -> Dict[str, Any]:
     """
     Saves edited markdown content.
-    - If editing a project snapshot: updates /app/data/projects/{project_id}/skills/{skill_key}.md
+    - If editing a project snapshot: updates /app/data/projects/{project_id}/skills/{skill_key}.md or SKILL.md
     - If editing a global built-in skill: clones it safely as {skill_key}-custom.md in /app/data/skills_catalog/
     - If editing a custom global skill: overwrites in /app/data/skills_catalog/
     """
@@ -303,7 +403,16 @@ async def save_skill_content(
     if project_id and isinstance(project_id, str) and project_id.strip():
         proj_dir = settings.resolved_data_dir / "projects" / project_id / "skills"
         proj_dir.mkdir(parents=True, exist_ok=True)
-        target_file = proj_dir / f"{skill_key}.md"
+        
+        proj_pkg = proj_dir / skill_key
+        if proj_pkg.is_dir():
+            target_file = proj_pkg / "SKILL.md"
+            if not target_file.exists():
+                mds = list(proj_pkg.glob("*.md"))
+                target_file = mds[0] if mds else proj_pkg / "SKILL.md"
+        else:
+            target_file = proj_dir / f"{skill_key}.md"
+
         target_file.write_text(content, encoding="utf-8")
         version_hash = compute_content_hash(content)
 
@@ -334,7 +443,15 @@ async def save_skill_content(
         if not display_name:
             display_name = f"{db_skill.get('display_name', skill_key)} (Custom)"
 
-    target_file = settings.resolved_data_skills_catalog_dir / f"{save_key}.md"
+    data_cat = settings.resolved_data_skills_catalog_dir
+    pkg_target = data_cat / save_key
+    if pkg_target.is_dir():
+        target_file = pkg_target / "SKILL.md"
+        rel_path = f"{save_key}/SKILL.md"
+    else:
+        target_file = data_cat / f"{save_key}.md"
+        rel_path = f"{save_key}.md"
+
     target_file.write_text(content, encoding="utf-8")
     version_hash = compute_content_hash(content)
 
@@ -345,7 +462,7 @@ async def save_skill_content(
         "description": db_skill.get("description", "") if db_skill else "",
         "source_type": "user_created",
         "source_origin": str(target_file),
-        "relative_path": f"{save_key}.md",
+        "relative_path": rel_path,
         "version_hash": version_hash,
         "tags_csv": tags_csv if tags_csv is not None else (db_skill.get("tags_csv", "") if db_skill else ""),
         "is_favorite": db_skill.get("is_favorite", 0) if db_skill else 0,
@@ -407,12 +524,21 @@ async def get_active_skills_content(project_id: str) -> List[Dict[str, str]]:
         file_path = Path(s["file_path"])
         if file_path.exists():
             try:
-                content = file_path.read_text(encoding="utf-8", errors="replace")
-                results.append({
-                    "skill_name": s["skill_name"],
-                    "skill_category": s["skill_category"],
-                    "content": content
-                })
+                target_f = file_path
+                if file_path.is_dir():
+                    manifest = file_path / "SKILL.md"
+                    if not manifest.exists():
+                        mds = list(file_path.glob("*.md"))
+                        manifest = mds[0] if mds else file_path / "SKILL.md"
+                    target_f = manifest
+
+                if target_f.exists() and target_f.is_file():
+                    content = target_f.read_text(encoding="utf-8", errors="replace")
+                    results.append({
+                        "skill_name": s["skill_name"],
+                        "skill_category": s["skill_category"],
+                        "content": content
+                    })
             except Exception as e:
                 logger.error(f"Error reading snapshot file {file_path}: {e}")
 

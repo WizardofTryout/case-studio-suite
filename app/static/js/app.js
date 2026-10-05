@@ -2014,37 +2014,20 @@ const App = {
       cancelImportBtn.addEventListener("click", () => this.closeSkillImportModal());
     }
 
-    // Browser folder picker (Finder / Native OS)
-    const browseFolderBtn = document.getElementById("btn-browse-folder");
-    const browserFolderPicker = document.getElementById("browser-folder-picker");
-    if (browseFolderBtn && browserFolderPicker) {
-      browseFolderBtn.addEventListener("click", () => {
-        browserFolderPicker.value = "";
-        browserFolderPicker.click();
-      });
-      browserFolderPicker.addEventListener("change", (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-          this.handleBrowserFolderSelected(e.target.files);
+    // Quick-Path buttons (1-click direct scan)
+    const quickPathBtns = document.querySelectorAll(".btn-quick-path");
+    quickPathBtns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const path = btn.dataset.path;
+        const pathInput = document.getElementById("scan-path-input");
+        if (pathInput && path) {
+          pathInput.value = path;
+          this.runSkillScan();
         }
       });
-    }
+    });
 
-    // Browser file picker (individual .md files)
-    const browseFilesBtn = document.getElementById("btn-browse-files");
-    const browserFilePicker = document.getElementById("browser-file-picker");
-    if (browseFilesBtn && browserFilePicker) {
-      browseFilesBtn.addEventListener("click", () => {
-        browserFilePicker.value = "";
-        browserFilePicker.click();
-      });
-      browserFilePicker.addEventListener("change", (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-          this.handleBrowserFilesSelected(e.target.files);
-        }
-      });
-    }
-
-    // Fallback: Start scan button for server path
+    // Start scan button for path input
     const startScanBtn = document.getElementById("btn-start-skill-scan");
     if (startScanBtn) {
       startScanBtn.addEventListener("click", () => this.runSkillScan());
@@ -2325,241 +2308,6 @@ const App = {
     if (modal) modal.classList.remove("active");
   },
 
-  async handleBrowserFolderSelected(fileList) {
-    const files = Array.from(fileList);
-    if (!files.length) return;
-
-    const summaryText = document.getElementById("scan-summary-text");
-    const resultsBox = document.getElementById("scan-results-box");
-    if (resultsBox) resultsBox.style.display = "flex";
-    if (summaryText) summaryText.innerText = `Analysiere ${files.length} Dateien im ausgewählten Ordner...`;
-
-    const IGNORED_PREFIXES = ['readme', 'license', 'contributing', 'changelog', 'agents', 'todo', 'howto', 'index', 'code_of_conduct', 'architecture'];
-    const IGNORED_DIR_PARTS = new Set(['tests', 'test', 'testing', 'docs', 'documentation', 'site', 'scripts', 'assets', 'images', 'references', 'examples', 'build', 'dist', 'node_modules', '.git', '.github', 'venv', '.venv', '__pycache__']);
-
-    // Pass 1: Filter to markdown files and identify directories containing SKILL.md
-    const validMdFiles = [];
-    const skillPackageDirs = new Set();
-
-    for (const f of files) {
-      const relPath = f.webkitRelativePath || f.name;
-      const lowerRel = relPath.toLowerCase();
-      const parts = lowerRel.split('/');
-      const fileName = parts[parts.length - 1];
-      const baseName = fileName.replace(/\.(md|markdown)$/i, '');
-
-      // Strictly markdown only
-      if (!fileName.endsWith('.md') && !fileName.endsWith('.markdown')) {
-        continue;
-      }
-
-      // Skip ignored directory branches (tests, docs, scripts, references, etc.)
-      const hasIgnoredDir = parts.slice(0, -1).some(p => IGNORED_DIR_PARTS.has(p));
-      if (hasIgnoredDir) {
-        continue;
-      }
-
-      // Skip non-skill documentation files
-      if (IGNORED_PREFIXES.some(prefix => baseName.startsWith(prefix))) {
-        continue;
-      }
-
-      validMdFiles.push(f);
-
-      // If this file is SKILL.md, register its parent folder as an atomic skill package
-      if (baseName === 'skill') {
-        const dirPath = parts.slice(0, -1).join('/');
-        skillPackageDirs.add(dirPath);
-      }
-    }
-
-    // Pass 2: Extract qualified skills
-    const qualifiedSkills = [];
-
-    for (const f of validMdFiles) {
-      const relPath = f.webkitRelativePath || f.name;
-      const lowerRel = relPath.toLowerCase();
-      const parts = lowerRel.split('/');
-      const fileName = parts[parts.length - 1];
-      const baseName = fileName.replace(/\.(md|markdown)$/i, '');
-      const dirPath = parts.slice(0, -1).join('/');
-
-      // If this file belongs to a directory (or subdirectory) that has a SKILL.md,
-      // ONLY the SKILL.md itself is accepted as the skill!
-      let belongsToPackage = false;
-      for (const spDir of skillPackageDirs) {
-        if (dirPath === spDir || dirPath.startsWith(spDir + '/')) {
-          belongsToPackage = true;
-          break;
-        }
-      }
-
-      if (belongsToPackage && baseName !== 'skill') {
-        continue; // Suppress sub-markdowns in skill packages
-      }
-
-      try {
-        const text = await f.text();
-
-        // Standalone markdown verification: must have frontmatter OR role structure
-        if (baseName !== 'skill') {
-          const hasFrontmatter = /^---\s*[\r\n]/.test(text);
-          const hasRoleHeading = /(^|\n)##?\s+(Role|Role Definition|Prompt|Prompt-Direktive|Aufgaben|Leitplanken|Skill)/i.test(text);
-          if (!hasFrontmatter && !hasRoleHeading) {
-            continue; // Not a recognized skill structure
-          }
-        }
-
-        const parsed = this.parseClientSkillFile(f.name, relPath, text, f.size);
-        if (parsed) {
-          qualifiedSkills.push(parsed);
-        }
-      } catch (err) {
-        console.warn(`Fehler beim Lesen von ${relPath}:`, err);
-      }
-    }
-
-    this.skillsState.scannedSkills = qualifiedSkills;
-    this.skillsState.selectedScanIndices = new Set(qualifiedSkills.map((_, i) => i));
-
-    if (summaryText) {
-      summaryText.innerText = `${qualifiedSkills.length} Skills erkannt (${files.length} Dateien durchsucht)`;
-    }
-
-    this.renderScanResultsTable();
-    window.showToast(`${qualifiedSkills.length} Skills gefunden & bereit zum Importieren!`, "success");
-  },
-
-  async handleBrowserFilesSelected(fileList) {
-    const files = Array.from(fileList);
-    if (!files.length) return;
-
-    const summaryText = document.getElementById("scan-summary-text");
-    const resultsBox = document.getElementById("scan-results-box");
-    if (resultsBox) resultsBox.style.display = "flex";
-    if (summaryText) summaryText.innerText = `Lese ${files.length} Skill-Dateien...`;
-
-    const qualifiedSkills = [];
-
-    for (const f of files) {
-      if (!f.name.endsWith('.md') && !f.name.endsWith('.markdown')) continue;
-      try {
-        const text = await f.text();
-        const parsed = this.parseClientSkillFile(f.name, f.name, text, f.size);
-        if (parsed) {
-          qualifiedSkills.push(parsed);
-        }
-      } catch (err) {
-        console.warn(`Fehler beim Lesen von ${f.name}:`, err);
-      }
-    }
-
-    this.skillsState.scannedSkills = qualifiedSkills;
-    this.skillsState.selectedScanIndices = new Set(qualifiedSkills.map((_, i) => i));
-
-    if (summaryText) {
-      summaryText.innerText = `${qualifiedSkills.length} Skills bereitgestellt`;
-    }
-
-    this.renderScanResultsTable();
-    window.showToast(`${qualifiedSkills.length} Skills geladen!`, "success");
-  },
-
-  parseClientSkillFile(fileName, relativePath, text, size) {
-    let displayName = "";
-    let description = "";
-    let category = "domain_specialist";
-    let tags = [];
-    let skillKey = "";
-
-    // 1. YAML Frontmatter parsing
-    const fmMatch = text.match(/^---\s*[\r\n]+([\s\S]*?)[\r\n]+---/);
-    if (fmMatch) {
-      const yamlBlock = fmMatch[1];
-      const nameMatch = yamlBlock.match(/^name:\s*(.+)$/m);
-      if (nameMatch) displayName = nameMatch[1].trim().replace(/^["']|["']$/g, '');
-
-      const descMatch = yamlBlock.match(/^description:\s*(.+)$/m);
-      if (descMatch) description = descMatch[1].trim().replace(/^["']|["']$/g, '');
-
-      const catMatch = yamlBlock.match(/^(?:category|skill_category):\s*(.+)$/m);
-      if (catMatch) category = catMatch[1].trim().replace(/^["']|["']$/g, '');
-
-      const tagsMatch = yamlBlock.match(/^tags:\s*(.+)$/m);
-      if (tagsMatch) {
-        const rawTags = tagsMatch[1].trim();
-        if (rawTags.startsWith('[') && rawTags.endsWith(']')) {
-          tags = rawTags.slice(1, -1).split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-        } else {
-          tags = rawTags.split(',').map(t => t.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-        }
-      }
-    }
-
-    // 2. Markdown Title / Heading Fallback
-    if (!displayName) {
-      const h1Match = text.match(/^#\s+(.+)$/m);
-      if (h1Match) {
-        displayName = h1Match[1].trim();
-      } else {
-        const parts = relativePath.split('/');
-        displayName = (parts.length > 1 && parts[parts.length - 1].toLowerCase().startsWith('skill'))
-          ? parts[parts.length - 2]
-          : fileName.replace(/\.(md|markdown)$/i, '');
-      }
-    }
-
-    // 3. First paragraph description
-    if (!description) {
-      const lines = text.split('\n');
-      for (const l of lines) {
-        const t = l.trim();
-        if (t && !t.startsWith('#') && !t.startsWith('---') && !t.startsWith('-') && !t.startsWith('*')) {
-          description = t.slice(0, 220);
-          break;
-        }
-      }
-    }
-
-    // 4. Normalized skill_key
-    const keySource = displayName || fileName.replace(/\.(md|markdown)$/i, '');
-    skillKey = keySource.toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-+|-+$/g, '');
-    if (!skillKey) {
-      skillKey = `skill-${Math.random().toString(36).substring(2, 8)}`;
-    }
-
-    // 5. Category classification
-    const validCategories = ["master_consultant", "domain_specialist", "critic_validator", "research_analyst", "tool_specialist"];
-    if (!validCategories.includes(category)) {
-      const combined = (displayName + " " + relativePath + " " + tags.join(' ')).toLowerCase();
-      if (combined.includes("consultant") || combined.includes("lead") || combined.includes("strategist")) {
-        category = "master_consultant";
-      } else if (combined.includes("critic") || combined.includes("validator") || combined.includes("audit") || combined.includes("security")) {
-        category = "critic_validator";
-      } else if (combined.includes("research") || combined.includes("bio") || combined.includes("genom") || combined.includes("chem") || combined.includes("protein")) {
-        category = "research_analyst";
-      } else if (combined.includes("tool") || combined.includes("cli") || combined.includes("script") || combined.includes("mcp")) {
-        category = "tool_specialist";
-      } else {
-        category = "domain_specialist";
-      }
-    }
-
-    return {
-      skill_key: skillKey,
-      display_name: displayName,
-      skill_category: category,
-      description: description,
-      source_type: "browser_upload",
-      source_origin: relativePath || fileName,
-      tags_csv: tags.join(', '),
-      file_size: size,
-      content: text
-    };
-  },
-
   async runSkillScan() {
     const pathInput = document.getElementById("scan-path-input");
     const path = pathInput ? pathInput.value.trim() : "";
@@ -2617,17 +2365,26 @@ const App = {
       const isChecked = this.skillsState.selectedScanIndices.has(originalIndex);
       const tr = document.createElement("tr");
 
+      const isPkg = s.is_package || s.is_folder_based;
+      const subInfo = s.sub_elements && s.sub_elements.length ? ` (${s.sub_elements.join(', ')})` : '';
+      const pkgBadge = isPkg
+        ? `<span class="badge" style="font-size:0.65rem; background:rgba(6,182,212,0.15); color:var(--cyan); border:1px solid rgba(6,182,212,0.3); margin-left:6px;">📦 Paket${this.escapeHtml(subInfo)}</span>`
+        : `<span class="badge" style="font-size:0.65rem; background:rgba(255,255,255,0.05); color:var(--text-dim); margin-left:6px;">📄 File</span>`;
+
       tr.innerHTML = `
         <td>
           <input type="checkbox" data-idx="${originalIndex}" ${isChecked ? 'checked' : ''} onchange="App.handleScanRowCheckbox(${originalIndex}, this.checked)" />
         </td>
         <td>
-          <strong>${this.escapeHtml(s.display_name)}</strong>
+          <div style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+            <strong>${this.escapeHtml(s.display_name)}</strong>
+            ${pkgBadge}
+          </div>
           <div style="font-size:0.7rem; color:var(--text-dim); font-family:monospace;">${this.escapeHtml(s.skill_key)}</div>
         </td>
         <td><span class="brand-badge" style="font-size:0.65rem;">${s.skill_category}</span></td>
         <td><span style="font-size:0.72rem; color:var(--cyan);">${this.escapeHtml(s.tags_csv || '-')}</span></td>
-        <td style="font-size:0.72rem; color:var(--text-dim);">${Math.round(s.file_size / 1024)} KB</td>
+        <td style="font-size:0.72rem; color:var(--text-dim);">${Math.round((s.file_size || 0) / 1024) || 1} KB</td>
       `;
       tbody.appendChild(tr);
     });
