@@ -110,8 +110,8 @@ class GeminiKeyPool:
             "healthy_keys": healthy,
             "cooldown_keys": cooldown,
             "error_keys": errors,
-            "is_simulation_mode": total == 0,
-            "keys_summary": f"{healthy}/{total} OK" if total > 0 else "0/0 (Simulation)",
+            "is_simulation_mode": False,
+            "keys_summary": f"{healthy}/{total} Aktiv" if total > 0 else "0/0 (Keine Keys)",
             "details": [k.to_dict() for k in self.keys]
         }
 
@@ -191,11 +191,20 @@ class GeminiKeyPool:
         chosen_model = model or settings.default_model
         fallback_model = settings.fallback_model
         
-        # If no keys are registered, run the intelligent built-in simulation engine
+        # Strict Real-Time Mode: No simulation or dummy mock-ups allowed.
         if not self.keys:
-            logger.info("No Gemini API keys configured. Using Case Studio local simulation engine.")
-            async for chunk in self._simulate_stream(contents, system_instruction):
-                yield chunk
+            logger.warning("No Gemini API keys configured. Generation aborted (Simulation disabled).")
+            yield (
+                "⚠️ **Keine aktiven Gemini API-Keys konfiguriert**\n\n"
+                "Es sind derzeit keine Google Gemini API-Schlüssel im System hinterlegt. "
+                "Da Case Studio im Produktivmodus ohne Dummy- oder Simulations-Daten arbeitet, "
+                "kann die Anfrage erst nach Hinterlegung eines Schlüssels verarbeitet werden.\n\n"
+                "👉 **So hinterlegst du deinen API-Key:**\n"
+                "1. Klicke oben rechts in der Kopfzeile auf **🔑 API-Keys**.\n"
+                "2. Trage deinen Google Gemini API-Schlüssel ein.\n"
+                "3. Klicke auf **Validieren & Speichern**.\n\n"
+                "Sobald der Key aktiv ist, kannst du die Abfrage sofort erneut starten."
+            )
             return
 
         models_to_try = [chosen_model]
@@ -287,10 +296,29 @@ class GeminiKeyPool:
                     logger.error(f"Unexpected error with key {key_info.masked_key}: {exc}")
                     continue
 
-        # If all keys failed or exhausted, fallback to simulation response
-        logger.error("All Gemini API keys exhausted or rate-limited. Falling back to internal engine.")
-        async for chunk in self._simulate_stream(contents, system_instruction):
-            yield chunk
+        # All keys failed or are in cooldown: inform user clearly without fake simulation
+        logger.error("All Gemini API keys exhausted or rate-limited.")
+        cooldown_keys = [k for k in self.keys if k.status == KeyStatus.COOLDOWN]
+        if cooldown_keys:
+            earliest = min(k.cooldown_until for k in cooldown_keys)
+            wait_seconds = max(5, int(earliest - time.time()))
+            yield (
+                f"⏳ **Rate-Limit erreicht (Cooldown aktiv)**\n\n"
+                f"Alle konfigurierten API-Schlüssel haben das Google Gemini Rate-Limit erreicht (HTTP 429). "
+                f"Die automatische Abkühlphase läuft.\n\n"
+                f"👉 **Empfohlene Schritte:**\n"
+                f"- Bitte warte ca. **{wait_seconds} Sekunden**, bis der Cooldown abgelaufen ist, und starte die Anfrage dann erneut.\n"
+                f"- Oder klicke oben rechts auf **🔑 API-Keys**, um zusätzliche API-Schlüssel hinzuzufügen und die Last zu verteilen."
+            )
+        else:
+            yield (
+                "❌ **Gemini API-Schlüssel nicht verfügbar**\n\n"
+                "Die hinterlegten API-Schlüssel meldeten Fehler bei der Übertragung (z. B. ungültige Authentifizierung oder Netzwerkfehler).\n\n"
+                "👉 **Empfohlene Schritte:**\n"
+                "1. Klicke oben rechts auf **🔑 API-Keys**.\n"
+                "2. Überprüfe die Gültigkeit deiner hinterlegten Schlüssel mit dem Button **Alle prüfen**.\n"
+                "3. Hinterlege bei Bedarf einen neuen, funktionierenden Gemini API-Key."
+            )
 
     async def generate(
         self,
@@ -302,7 +330,7 @@ class GeminiKeyPool:
         timeout_seconds: float = 60.0
     ) -> str:
         """
-        Non-streaming text generation with multi-key failover and simulation fallback.
+        Non-streaming text generation with multi-key failover and strict live execution.
         """
         chunks = []
         async for chunk in self.stream_generate(
@@ -315,308 +343,6 @@ class GeminiKeyPool:
         ):
             chunks.append(chunk)
         return "".join(chunks)
-
-    async def _simulate_stream(
-
-        self,
-        contents: List[Dict[str, Any]],
-        system_instruction: Optional[str]
-    ) -> AsyncGenerator[str, None]:
-        """Provides rich, contextual consultant responses for all 4 phases when keys are not configured."""
-        last_text = ""
-        for c in contents:
-            parts = c.get("parts", [])
-            for p in parts:
-                if "text" in p:
-                    last_text = p["text"]
-
-        lower_query = last_text.lower()
-        sys_lower = (system_instruction or "").lower()
-
-        # 0. Adaptive Case Trigger Generation
-        if "quick-trigger" in sys_lower or "quick-trigger" in lower_query or "valides json-array" in sys_lower or "adaptive_triggers" in sys_lower:
-            if "gepäck" in lower_query or "flughafen" in lower_query or "terminal" in lower_query or "airport" in lower_query:
-                sim_triggers = [
-                    {"phase": 1, "trigger_index": 0, "label": "🎯 Ziel: Verlust vs. Durchsatz", "prompt": "Kläre das primäre Ziel des Flughafenbetreibers: Geht es um Minimierung verspäteter Gepäckstücke oder um die Maximierung des Spitzenstundendurchsatzes an Terminal 2?"},
-                    {"phase": 1, "trigger_index": 1, "label": "⏱️ Gepäckumlaufzeit <12min", "prompt": "Kläre die zulässige Transferzeit: Wie eng ist das Zeitfenster für Umsteigepassagiere (<12 Minuten) und welche SLAs gelten gegenüber den Fluggesellschaften?"},
-                    {"phase": 1, "trigger_index": 2, "label": "📊 Altsystem: Profibus-Silos", "prompt": "Erfasse den Integrationszustand: Wie sind die vorhandenen Siemens/Profibus-Steuerungen der Gepäckförderanlagen an Terminal 2 vernetzt?"},
-                    {"phase": 1, "trigger_index": 3, "label": "👥 Bundespolizei & Airlines", "prompt": "Identifiziere die Entscheidungsträger: Bundespolizei (Luftsicherheitskontrolle), Terminalleitung, Ground Handling Dienstleister und Airline-Vertreter."},
-                    {"phase": 2, "trigger_index": 0, "label": "⚙️ Förderband & SCADA Ingest", "prompt": "Modelliere die Sensor- und Telemetrieerfassung an den Förderbändern, Lichttastern und Barcode-Scannern über OPC UA und SCADA Gateways."},
-                    {"phase": 2, "trigger_index": 1, "label": "⚡ Event-Hub Telemetrie", "prompt": "Architekturiere die verteilte Event-Streaming-Pipeline für 25.000 Gepäck-Scans und Rollen-Vibrationsdaten pro Minute mit Apache Kafka."},
-                    {"phase": 2, "trigger_index": 2, "label": "❄️ Airport Ops Lakehouse", "prompt": "Entwirf das Airport Operations Lakehouse zur historischen Analyse von Bandstillständen, Gepäckströmen und prognostizierter Belegung."},
-                    {"phase": 2, "trigger_index": 3, "label": "🤖 MCP Gepäckrouting-Agent", "prompt": "Integriere autonome KI-Agenten über MCP zur dynamischen Gepäck-Umleitung bei Bandstillständen und automatisierter Techniker-Alarmierung."},
-                    {"phase": 3, "trigger_index": 0, "label": "🛡️ Weichenausfall: Bypässe", "prompt": "Spezifiziere das Redundanzkonzept bei Ausfall kritischer Sortierweichen: Automatische Umschaltung auf Alternativ-Loops ohne Bandstau."},
-                    {"phase": 3, "trigger_index": 1, "label": "⚖️ Lokale Sortierung vs. Cloud", "prompt": "Analysiere den Trade-Off: Millisekundenschnelle Sortierentscheidungen auf lokalen Edge-Controllern vs. globale Flugplan-Synchronisation in der Cloud."},
-                    {"phase": 3, "trigger_index": 2, "label": "🔒 Kritis & Luftsicherheit", "prompt": "Härte die Fördertechnik-Infrastruktur gemäß BSI-Kritis und Luftsicherheitsgesetz gegen Cyber-Angriffe und Manipulationen."},
-                    {"phase": 3, "trigger_index": 3, "label": "⚡ Deterministischer Nothalt", "prompt": "Gewährleiste, dass Personenschutz-Lichtschranken und Nothalte deterministisch in <15ms schalten und niemals von Cloud-Latenzen abhängen."},
-                    {"phase": 4, "trigger_index": 0, "label": "📈 Verspätetes Gepäck -80%", "prompt": "Quantifiziere den Business Case: 80% weniger Gepäckverluste, Vermeidung von Airline-Konventionalstrafen (€2.1 Mio./Jahr) und ROI in 6.5 Monaten."},
-                    {"phase": 4, "trigger_index": 1, "label": "🗓️ 3-Phasen Terminal-Rollout", "prompt": "Strukturiere den Umsetzungsfahrplan: Phase A (Pilot-Sortierlinie an Gate B, 6 Wo.), Phase B (Gesamtes Terminal 2, 3 Mon.), Phase C (Hub-weiter Rollout, 8 Mon.)."},
-                    {"phase": 4, "trigger_index": 2, "label": "👔 Senior Workstream-Ownership", "prompt": "Definiere drei eigenverantwortliche Workstreams: Fördertechnik & Hardware-Modernisierung, Streaming-Plattform & MCP-Routing, Bodenbetrieb & Sicherheit."},
-                    {"phase": 4, "trigger_index": 3, "label": "🔄 Bodenpersonal-Enablement", "prompt": "Konzipiere das Schulungsprogramm für Gepäckabfertiger und Leitstandpersonal zur vertrauensvollen Zusammenarbeit mit dem KI-Routing."}
-                ]
-            else:
-                from app.services.trigger_service import get_preset_triggers
-                sim_triggers = get_preset_triggers(lower_query)
-
-            yield json.dumps(sim_triggers, ensure_ascii=False, indent=2)
-            return
-
-        # Determine phase (from system instruction or prompt keywords)
-        phase = 1
-        if "phase 4" in sys_lower or "phase 4" in lower_query or "business-value" in lower_query or "roadmap" in lower_query or "roi" in lower_query or "oee" in lower_query:
-            phase = 4
-        elif "phase 3" in sys_lower or "phase 3" in lower_query or "deep dive" in lower_query or "trade-off" in lower_query or "offline-puffer" in lower_query or "iec 62443" in lower_query:
-            phase = 3
-        elif "phase 2" in sys_lower or "phase 2" in lower_query or "architect" in sys_lower or "blueprint" in lower_query or "schichten" in lower_query or "kafka" in lower_query:
-            phase = 2
-
-        # 1. Direct Node Inspector Q&A
-        if "konkrete technische frage zum baustein" in lower_query:
-
-            node_name = "System-Komponente"
-            if "'" in last_text:
-                try:
-                    node_name = last_text.split("'")[1]
-                except Exception:
-                    pass
-            simulated_response = (
-                f"### 🔍 Technische Analyse zum Baustein: {node_name}\n\n"
-                f"Zur Absicherung und Integration von **{node_name}** im industriellen Gesamtverbund:\n\n"
-                f"1. **Schnittstellen & Protokoll-Härtung:** Einsatz von **OPC UA (Open Platform Communications Unified Architecture)** mit signierten Zertifikaten und **TLS (Transport Layer Security 1.3)** Verschlüsselung. Dadurch wird Man-in-the-Middle-Angriffen am Shopfloor vorgebeugt.\n"
-                f"2. **Resilienz & Watchdog:** Dedizierter Hardware-Watchdog überwacht den Container-Dienst. Bei Prozessabsturz erfolgt ein automatischer Warmstart in < 1.5 Sekunden.\n"
-                f"3. **Deterministische Latenz:** Priorisierung im Linux-Kernel über RT-Preempt-Patches (Real-Time Preempt), um Antwortzeiten unter 10ms zuverlässig einzuhalten.\n"
-                f"4. **Ausfallpuffer:** Lokale Ringspeicherung auf NVMe-Flash, um bis zu 48 Stunden Datenverlust bei Netzausfall auszuschließen.\n\n"
-                f"Dieser Baustein ist damit vollständig auditierbar und erfüllt die Anforderungen gemäß **IEC 62443 (Sicherheitsstandard für industrielle Automatisierungssysteme)**."
-            )
-
-        # 2. Sub-Graph Node Refinement
-        elif "detailliere" in lower_query or "verfeinere" in lower_query or "knoten" in lower_query:
-            simulated_response = (
-                "### 🔍 Sub-Graph Detailanalyse: Industrial Edge Device\n\n"
-                "Hier ist die verfeinerte Binnenarchitektur des **IED (Industrial Edge Device - Industrie-PC am Shopfloor)** "
-                "mit seinen containerisierten Workloads und internen Datenpfaden:\n\n"
-                "1. **OT (Operational Technology - Betriebstechnik) Adapter:** Liest zyklisch Prozessdaten über **OPC UA (Open Platform Communications Unified Architecture)** und Feldbusse aus der **SPS (Speicherprogrammierbare Steuerung / Programmable Logic Controller)**.\n"
-                "2. **Lokale KI-Inferenz (ONNX Runtime / OpenVINO):** Berechnet Fast-Fourier-Transformationen (FFT) der Schwingungsdaten in <8ms.\n"
-                "3. **Ringpuffer-Speicher:** Lokale SQLite-Datenbank sichert Telemetriedaten bei Netzwerkausfall bis zu 48 Stunden.\n"
-                "4. **Security Isolation:** Vollständige Netztrennung zwischen Fabriknetz (LAN 1) und Unternehmensnetz (LAN 2) gemäß **IEC 62443 (Sicherheitsstandard für industrielle Automatisierungssysteme)**.\n\n"
-                "```mermaid\n"
-                "graph TD\n"
-                "    SPS[SPS: SIMATIC S7] -->|OPC UA PubSub| Adapter[OT Ingest Adapter]\n"
-                "    Adapter --> Engine[Edge AI Inference Engine: ONNX]\n"
-                "    Engine -->|Anomalie-Signal <10ms| Safety[Lokale Notabschaltung]\n"
-                "    Engine --> Buffer[Lokaler 48h Ringpuffer]\n"
-                "    Buffer --> Publisher[MQTT / TLS 1.3 Publisher]\n"
-                "    Publisher --> Cloud[Cloud IoT Gateway]\n"
-                "```\n\n"
-                "Dieser detaillierte Sub-Graph ist nun im System hinterlegt."
-            )
-
-        # 3. Resolved Customer Fact
-        elif "kundenfakt geklärt" in lower_query or "12ms" in lower_query or "not-aus" in lower_query or "zykluszeit" in lower_query:
-            simulated_response = (
-                "### 🎯 Nachgeschärfter Architektur-Pfad (Kundenfakt eingearbeitet)\n\n"
-                "Der bestätigte Kundenfakt (**Latenzgrenze < 12ms für Not-Aus**) schließt reines Cloud-Streaming für die "
-                "Steuerungsebene definitiv aus. Die Architektur wird hiermit deterministisch verzweigt:\n\n"
-                "1. **Hard Real-Time Control Loop (<12ms):** Die Schwingungsanalyse und Grenzwertabschaltung läuft vollständig lokal auf dem "
-                "**IED (Industrial Edge Device - Industrie-PC am Shopfloor)** über **OPC UA (Open Platform Communications Unified Architecture)**. "
-                "Kein Umweg über externe Netzwerke!\n"
-                "2. **Asynchroner Telemetrie-Uplink:** Erst aggregierte Kennwerte (RMS-Vibrationswerte, Peak-to-Peak) werden via **MQTT (Message Queuing Telemetry Transport)** "
-                "mit **TLS (Transport Layer Security 1.3)** an das **Cloud IoT (Internet of Things) Gateway** und die nachgelagerte **Kafka (Apache Kafka - Verteilte Event-Streaming-Plattform)** übergeben.\n"
-                "3. **Long-Term Analytics:** Speicherung in **Snowflake / Iceberg Lakehouse (Offene Tabellenformat-Architektur)** für Predictive Maintenance und OEE-Trends (Overall Equipment Effectiveness / Gesamtanlageneffektivität).\n\n"
-                "```mermaid\n"
-                "graph TD\n"
-                "    SPS[SPS: SIMATIC S7-1500 / Sensorik] -->|PROFINET / OPC UA <5ms| Edge[Industrial Edge Device: IPC227E]\n"
-                "    Edge -->|Hard Real-Time Not-Aus <12ms| Actuator[CNC-Aktor / Not-Aus]\n"
-                "    Edge -->|Lokaler 48h Ringpuffer| LocalBuffer[Flash Storage / SQLite]\n"
-                "    Edge -->|MQTT / TLS 1.3 Asynchron| Gateway[Cloud IoT Gateway]\n"
-                "    Gateway --> Kafka[Apache Kafka Stream]\n"
-                "    Kafka --> Lake[Snowflake / Iceberg Lakehouse]\n"
-                "```\n\n"
-                "✅ **Architekturpfad erfolgreich freigeschaltet und gehärtet.**"
-            )
-
-        # 4. Phase 2: Architect & 4-Layer Blueprint
-        elif phase == 2:
-            simulated_response = (
-                "### 🏗️ Phase 2: End-to-End 4-Schichten Architektur-Blueprint\n\n"
-                "Aufbauend auf den geklärten Fakten und Kundenanforderungen aus Phase 1 präsentiere ich den "
-                "skalierbaren **4-Schichten Architektur-Blueprint** für die Industrial AI Transformation:\n\n"
-                "#### 1. Schicht: OT & Feldebene (Purdue Level 0/1)\n"
-                "- Anbindung der **SPS (Speicherprogrammierbare Steuerung / Programmable Logic Controller - SIMATIC S7-1500)** über **PROFINET (Industrial Ethernet Standard)**.\n"
-                "- Bereitstellung hochfrequenter Körperschall- und Vibrationsdaten via **OPC UA PubSub (Open Platform Communications Unified Architecture Publish-Subscribe)**.\n\n"
-                "#### 2. Schicht: Industrial Edge & Ingest (Purdue Level 2)\n"
-                "- **IED (Industrial Edge Device - Industrie-PC Siemens IPC227E)** direkt an der Fräszelle.\n"
-                "- Lokale Vorverarbeitung mit **ONNX Runtime (Open Neural Network Exchange Laufzeitumgebung)** für Fast-Fourier-Transformationen in <8ms.\n"
-                "- **48h Offline-Puffer:** Lokale SQLite-Datenbank sichert Daten bei Hallen-WLAN-Ausfall.\n\n"
-                "#### 3. Schicht: Enterprise Streaming & Integration (Purdue Level 3/DMZ)\n"
-                "- Asynchroner Upload über **Cloud IoT Gateway (Internet of Things Gateway)** mit **mTLS (Mutual Transport Layer Security)**.\n"
-                "- Hochverfügbarer **Kafka (Apache Kafka - Verteilte Event-Streaming-Plattform)** Cluster mit schema-validierten Avro/JSON Events.\n\n"
-                "#### 4. Schicht: Lakehouse & KI-Orchestrierung (Cloud Enterprise)\n"
-                "- **Snowflake / Apache Iceberg Lakehouse** für historische Daten und Modell-Retraining.\n"
-                "- Autonome **MCP (Model Context Protocol)** Agenten für automatische Ersatzteil- und Wartungsdisposition.\n\n"
-                "```mermaid\n"
-                "graph TD\n"
-                "    subgraph Layer1[\"1. OT & Feldebene (Purdue Level 0/1)\"]\n"
-                "        SPS[\"SIMATIC S7-1500 SPS\"]\n"
-                "        Sensors[\"Vibrations- & Temperatursensoren\"]\n"
-                "        Sensors -->|IO-Link / 10kHz| SPS\n"
-                "    end\n\n"
-                "    subgraph Layer2[\"2. Industrial Edge Ingest (Purdue Level 2)\"]\n"
-                "        IED[\"Industrial Edge Device (Siemens IPC)\"]\n"
-                "        SPS -->|OPC UA PubSub <5ms| IED\n"
-                "        AI_Inference[\"Edge AI Engine (ONNX Runtime)\"]\n"
-                "        RingBuffer[\"Lokaler 48h NVMe / SQLite Puffer\"]\n"
-                "        IED --> AI_Inference\n"
-                "        AI_Inference -->|Hard Real-Time <12ms| SafetyActuator[\"CNC-Aktor / Not-Aus\"]\n"
-                "        AI_Inference --> RingBuffer\n"
-                "    end\n\n"
-                "    subgraph Layer3[\"3. Streaming & Integration (Purdue Level 3/DMZ)\"]\n"
-                "        Gateway[\"Cloud IoT Gateway (mTLS)\"]\n"
-                "        Kafka[\"Apache Kafka Event Broker\"]\n"
-                "        RingBuffer -->|MQTT / TLS 1.3 Asynchron| Gateway\n"
-                "        Gateway --> Kafka\n"
-                "    end\n\n"
-                "    subgraph Layer4[\"4. Enterprise Lakehouse & AI (Cloud Enterprise)\"]\n"
-                "        Lakehouse[\"Snowflake / Apache Iceberg Lakehouse\"]\n"
-                "        MCPAgents[\"MCP-Agenten & Predictive Maintenance\"]\n"
-                "        Dashboard[\"Grafana / PowerBI Dashboard\"]\n"
-                "        Kafka -->|Snowpipe Streaming| Lakehouse\n"
-                "        Lakehouse --> MCPAgents\n"
-                "        Lakehouse --> Dashboard\n"
-                "    end\n"
-                "```\n\n"
-                "[DECISION_GATE]\n"
-                "Thema: Datenaufbewahrungs-Richtlinie & Lakehouse Retention\n"
-                "Fehlender Fakt: Sollen hochfrequente Roh-Wellenformen in Snowflake gespeichert werden oder nur aggregierte 1Hz-Statistiken?\n"
-                "Empfohlene Rueckfrage: Wie sieht die Aufbewahrungsrichtlinie für Sensordaten aus – genügt dem Kunden die Speicherung aggregierter Kennwerte oder wird ein Rohdaten-Archiv benötigt?\n"
-                "[/DECISION_GATE]\n"
-            )
-
-        # 5. Phase 3: Deep Dive & Trade-Offs
-        elif phase == 3:
-            simulated_response = (
-                "### 🔬 Phase 3: Deep-Dive, Resilienz & Sicherheits-Architektur\n\n"
-                "In dieser Phase analysieren wir die kritischen technischen Trade-Offs, Ausfallszenarien und Sicherheitszonen "
-                "gemäß **IEC 62443 (Sicherheitsstandard für industrielle Automatisierungssysteme)**:\n\n"
-                "#### 1. Trade-Off: Edge-Inferenz vs. Cloud-Inferenz\n"
-                "- **Edge-Inferenz (Favorit für Linie):** Deterministische Zykluszeit (<8ms), keine laufenden Cloud-Kosten für Gigabytes an Rohdaten, 100% Autonomie bei Netzausfall.\n"
-                "- **Cloud-Rolle:** Ausschließlich asynchrones Modell-Retraining und Flottenvergleich über aggregierte RMS-Vibrationswerte.\n\n"
-                "#### 2. Resilienz-Konzept: 48-Stunden Offline-Pufferung\n"
-                "- Bei Netzwerkausfall schaltet der lokale **MQTT (Message Queuing Telemetry Transport)** Publisher auf dem **IED (Industrial Edge Device)** in den Puffer-Modus.\n"
-                "- Speicherung im Ringpuffer (lokale SQLite-Datenbank im WAL-Modus) auf Flash-Speicher.\n"
-                "- **Re-Sync:** Sobald das Hallen-WLAN wiederhergestellt ist, erfolgt ein sanfter, ratenbegrenzter Upload (Rate Limiting), um das **Cloud IoT Gateway** nicht zu fluten.\n\n"
-                "#### 3. Physische Netztrennung & Härtung\n"
-                "- Dual-Homed Hardware: LAN 1 (OT-Netz, IP-Bereich 192.168.1.x) hat keinen Gateway-Eintrag ins Internet.\n"
-                "- LAN 2 (DMZ / IT) kommuniziert ausschließlich über **mTLS (Mutual Transport Layer Security)** mit dem Cloud IoT Gateway.\n"
-                "- **Deterministik-Garantie:** Not-Aus-Abschaltungen werden NIEMALS über probabilistische Sprachmodelle oder externe APIs getriggert, sondern über fest im Edge-Container kompilierte C++/Rust-Schwellenwert-Logik!\n\n"
-                "```mermaid\n"
-                "graph TD\n"
-                "    subgraph OT_Zone[\"OT Sicherheitszone (IEC 62443 Conduits)\"]\n"
-                "        CNC[\"CNC-Werkzeugspindel\"] -->|Schwingungsamplitude| SPS[\"SPS: SIMATIC S7\"]\n"
-                "        SPS -->|Feldbus <1ms| IED[\"Industrial Edge Device (Dual-Homed)\"]\n"
-                "    end\n\n"
-                "    subgraph Fallback_Logic[\"Failover & Offline-Resilienz (48h Puffer)\"]\n"
-                "        IED -->|Lokale Inferenz <8ms| Decision{\"Grenzwert > 4.5g?\"}\n"
-                "        Decision -->|JA: Hard Real-Time| EmergencyStop[\"Sofortiger Not-Aus (<12ms)\"]\n"
-                "        Decision -->|NEIN: Normalbetrieb| Aggregator[\"Feature Extractor (RMS / FFT)\"]\n"
-                "        Aggregator --> LocalQueue[\"Lokaler NVMe Ringpuffer (SQLite WAL)\"]\n"
-                "    end\n\n"
-                "    subgraph Uplink_Channel[\"Netzwerk-Uplink & Re-Sync\"]\n"
-                "        LocalQueue --> NetworkCheck{\"Hallennetz verfügbar?\"}\n"
-                "        NetworkCheck -->|JA| Uplink[\"MQTT / TLS 1.3 mTLS Uplink\"]\n"
-                "        NetworkCheck -->|NEIN (Netzausfall)| Cache[\"Puffern bis zu 48h (FIFO)\"]\n"
-                "        Cache -->|Nach Reconnect| RateLimitSync[\"Rate-Limited Re-Sync\"]\n"
-                "        RateLimitSync --> Uplink\n"
-                "        Uplink --> CloudBroker[\"Apache Kafka Ingestion\"]\n"
-                "    end\n"
-                "```\n\n"
-                "[DECISION_GATE]\n"
-                "Thema: Not-Aus Integrationspfad (Hardware-Relais vs. PROFIsafe)\n"
-                "Fehlender Fakt: Unterstützt die vorhandene SPS PROFIsafe oder muss ein potentialfreier Relaiskontakt nachgerüstet werden?\n"
-                "Empfohlene Rueckfrage: Wie soll die lokale Notabschaltung physikalisch angebunden werden – über PROFIsafe oder über ein direktes Sicherheitsrelais?\n"
-                "[/DECISION_GATE]\n"
-            )
-
-        # 6. Phase 4: Value & Implementation Roadmap
-        elif phase == 4:
-            simulated_response = (
-                "### 💰 Phase 4: Business Value, ROI & 3-Phasen Rollout-Roadmap\n\n"
-                "Zur Vorbereitung der Entscheidungsvorlage für die Werkleitung und das C-Level präsentieren wir die "
-                "quantitative Wirtschaftlichkeitsrechnung und den Umsetzungsfahrplan:\n\n"
-                "#### 1. Quantitativer Business Case & ROI\n"
-                "- **OEE-Steigerung:** Anstieg der **OEE (Overall Equipment Effectiveness / Gesamtanlageneffektivität)** von 74.2% auf **77.6% (+3.4 Prozentpunkte)** an 120 CNC-Fräsen.\n"
-                "- **Ausschuss- und Bruchreduktion:** Reduktion von Werkzeugbruch und Ausschuss um 65% = **€1.417.000 jährliche Netto-Einsparung (OPEX)**.\n"
-                "- **Investitionskosten (CAPEX):** €420.000 einmalig für Edge-Boxen, Körperschallsensoren und Systemintegration.\n"
-                "- **Amortisationszeit (Payback Period / ROI): 8.2 Monate** – weit unter dem branchenüblichen Zielkorridor von 18 Monaten!\n\n"
-                "#### 2. 3-Phasen Implementierungs-Roadmap\n"
-                "1. **Phase A: PoC (Proof of Concept) & Validierung (Woche 1-6):**\n"
-                "   - Installation an 2 Pilot-CNC-Fräsen mit IED und Körperschall-Sensorik.\n"
-                "   - Nachweis der <12ms Not-Aus Abschaltung unter realen Lastbedingungen.\n"
-                "2. **Phase B: Pilotlinie & Integration (Monat 2-4):**\n"
-                "   - Rollout auf Fertigungslinie 1 (24 Fräsmaschinen).\n"
-                "   - Anbindung an das Kafka-Cluster und Snowflake Lakehouse.\n"
-                "3. **Phase C: Flottenweiter Rollout & Skalierung (Monat 5-9):**\n"
-                "   - Rollout auf alle 120 Fräsen im Werk.\n"
-                "   - Aktivierung automatisierter **MCP (Model Context Protocol)** Wartungsagenten.\n\n"
-                "#### 3. Senior Workstream-Ownership\n"
-                "- **Workstream 1 (OT & Edge Hardware):** Senior OT Automation Specialist.\n"
-                "- **Workstream 2 (Cloud Platform & Lakehouse):** Lead Cloud Solution Architect.\n"
-                "- **Workstream 3 (Change Management & Werker-Enablement):** Operational Excellence Lead.\n\n"
-                "```mermaid\n"
-                "graph LR\n"
-                "    subgraph PhaseA[\"Phase A: PoC (Woche 1-6)\"]\n"
-                "        PoC1[\"2 Pilot-Fräsen ausrüsten\"] --> PoC2[\"Edge Inferenz <12ms validieren\"]\n"
-                "        PoC2 --> PoC3[\"Gate: Zuverlässigkeit >99.9%\"]\n"
-                "    end\n\n"
-                "    subgraph PhaseB[\"Phase B: Pilotlinie (Monat 2-4)\"]\n"
-                "        Pilot1[\"Fertigungslinie 1 (24 Fräsen)\"] --> Pilot2[\"Kafka & Snowflake Lakehouse\"]\n"
-                "        Pilot2 --> Pilot3[\"Gate: Ausschussreduktion >50%\"]\n"
-                "    end\n\n"
-                "    subgraph PhaseC[\"Phase C: Full Scale (Monat 5-9)\"]\n"
-                "        Scale1[\"Alle 120 Maschinen ausgerollt\"] --> Scale2[\"MCP-Wartungsagenten aktiv\"]\n"
-                "        Scale2 --> Scale3[\"ROI erreicht (+3.4% OEE / 1.4M€ Einsparung)\"]\n"
-                "    end\n\n"
-                "    PhaseA --> PhaseB --> PhaseC\n"
-                "```\n\n"
-                "🏆 **Die Case-Studie ist damit vollständig ausgearbeitet, quantitativ belegt und präsentationsreif.**"
-            )
-
-        # 7. Phase 1 Default (Clarify & Scoping)
-        else:
-            simulated_response = (
-                "### 🏛️ Phase 1: Strategische Scoping-Analyse & Klärung\n\n"
-                "Basierend auf den bisherigen Anforderungen und den vorliegenden Systemrandbedingungen "
-                "nehmen wir eine strukturierte Problem- und Zielabgrenzung vor:\n\n"
-                "1. **OT (Operational Technology - Betriebstechnik) Ingest & Latenz-Garantie (<20ms):** Einsatz von "
-                "**IED (Industrial Edge Device - Industrie-PC am Shopfloor)** direkt an der "
-                "**SPS (Speicherprogrammierbare Steuerung / Programmable Logic Controller)** für deterministisches Vorfiltern und Notabschaltungen über "
-                "**OPC UA (Open Platform Communications Unified Architecture)**.\n"
-                "2. **Cloud Streaming Pipeline:** Asynchroner Upload hochfrequenter Telemetriedaten via "
-                "**MQTT (Message Queuing Telemetry Transport)** und **Kafka (Apache Kafka - Verteilte Event-Streaming-Plattform)** zur Langzeitanalyse und Modell-Retraining.\n"
-                "3. **Governance & EU AI Act (Künstliche Intelligenz Verordnung der Europäischen Union) Compliance:** Lokale Audit-Logs und transparente Modellüberwachung.\n\n"
-                "```mermaid\n"
-                "graph TD\n"
-                "    SPS[SPS: SIMATIC S7 / Sensorik] -->|OPC UA <10ms| Edge[Industrial Edge Device]\n"
-                "    Edge -->|Real-time Control <20ms| Actuator[CNC-Aktor / Not-Aus]\n"
-                "    Edge -->|MQTT / TLS 1.3| Gateway[Cloud IoT Gateway]\n"
-                "    Gateway --> Kafka[Apache Kafka Stream]\n"
-                "    Kafka --> Lake[Snowflake / Iceberg Lakehouse]\n"
-                "```\n\n"
-                "[DECISION_GATE]\n"
-                "Thema: SPS-Zykluszeit & Bandbreitenlimitierung unklar\n"
-                "Fehlender Fakt: Exakte SPS-Zykluszeit und Verfügbarkeit des Hallennetzwerks für Not-Aus\n"
-                "Empfohlene Rueckfrage: Wie hoch ist die maximale tolerierbare Reaktionszeit für Not-Aus an der Fräse – sprechen wir von <20ms oder reicht Near-Realtime?\n"
-                "[/DECISION_GATE]\n\n"
-                "> 🚨 **Master-Consultant Decision Gate:**\n"
-                "> Bitte klären Sie mit dem Kunden zwingend die SPS-Zykluszeit (<20ms) und die Bandbreitenlimitierung der Produktionshallen, "
-                "um die Dimensionierung des lokalen Edge-Speichers festzulegen!"
-            )
-
-        words = simulated_response.split(" ")
-        for i, word in enumerate(words):
-            yield word + (" " if i < len(words) - 1 else "")
-            await asyncio.sleep(0.015)
-
 
 
 # Global singleton instance of GeminiKeyPool

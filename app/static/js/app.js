@@ -450,12 +450,15 @@ const App = {
       }
 
       if (keyChip) {
-        const pool = data.gemini_pool;
+        const pool = data.gemini_pool || {};
         let dotClass = "telemetry-dot";
-        if (pool.cooldown_keys > 0) dotClass += " warning";
-        if (pool.healthy_keys === 0 && pool.total_keys > 0) dotClass += " error";
+        if (pool.total_keys === 0 || pool.healthy_keys === 0) {
+          dotClass += " error";
+        } else if (pool.cooldown_keys > 0) {
+          dotClass += " warning";
+        }
 
-        keyChip.innerHTML = `<span class="${dotClass}"></span> Keys: ${pool.keys_summary}`;
+        keyChip.innerHTML = `<span class="${dotClass}"></span> Keys: ${pool.keys_summary || "0/0 (Keine Keys)"}`;
       }
     } catch (e) {
       console.warn("Telemetry refresh failed:", e);
@@ -2853,7 +2856,7 @@ const App = {
       if (keys.length === 0) {
         listContainer.innerHTML = `
           <div style="color:var(--text-dim); font-size:0.82rem; padding:10px; text-align:center; background:rgba(0,0,0,0.15); border-radius:6px;">
-            ℹ️ Noch keine persistenten Schlüssel gespeichert. Die App läuft im internen Simulations-Modus oder mit Schlüsseln aus .env.
+            ⚠️ Keine aktiven Schlüssel gespeichert. Bitte trage unten deine Google Gemini API-Keys ein, um Live-Analysen durchzuführen.
           </div>
         `;
         return;
