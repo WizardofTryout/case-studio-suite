@@ -8,6 +8,8 @@ services:
       - "3088:8000"
     volumes:
       - ./data:/app/data
+      - ./app:/app/app
+      - ./skills_catalog:/app/skills_catalog
     env_file:
       - path: .env
         required: false

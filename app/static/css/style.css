@@ -1026,6 +1026,64 @@ body {
   overflow: visible !important;
 }
 
+/* Light mode overrides for Mermaid Viewport & SVG Elements */
+[data-theme="light"] .mermaid-viewport {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
+}
+
+[data-theme="light"] .mermaid-canvas-layer {
+  background: transparent !important;
+}
+
+[data-theme="light"] .mermaid-viewport svg {
+  background-color: transparent !important;
+}
+
+[data-theme="light"] svg .node rect,
+[data-theme="light"] svg .node circle,
+[data-theme="light"] svg .node polygon,
+[data-theme="light"] svg .node path {
+  fill: #ffffff !important;
+  stroke: #0284c7 !important;
+  stroke-width: 1.5px !important;
+}
+
+[data-theme="light"] svg .node .nodeLabel,
+[data-theme="light"] svg .node text {
+  fill: #0f172a !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] svg .edgePath .path {
+  stroke: #475569 !important;
+  stroke-width: 1.5px !important;
+}
+
+[data-theme="light"] svg .edgeLabel {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  fill: #334155 !important;
+}
+
+[data-theme="light"] svg .edgeLabel rect {
+  fill: #ffffff !important;
+  stroke: #cbd5e1 !important;
+}
+
+[data-theme="light"] svg marker path {
+  fill: #475569 !important;
+  stroke: #475569 !important;
+}
+
+[data-theme="light"] svg .cluster rect {
+  fill: #f8fafc !important;
+  stroke: #cbd5e1 !important;
+}
+
+
 /* Multi-Agent Deliberation Chat */
 .deliberation-layout {
   display: flex;

@@ -427,7 +427,19 @@ const App = {
       await this.switchPhase(curPhase);
       
       const graphToRender = this.state.phaseData[curPhase]?.graph || activeSession.architecture_graph_mermaid || "";
-      GraphViewer.renderGraph(graphToRender);
+      await GraphViewer.renderGraph(graphToRender);
+
+      // Auto-open inspector drawer for primary node so KI-Ast functions are immediately visible
+      setTimeout(() => {
+        if (graphToRender) {
+          const layer = document.getElementById("mermaid-canvas-layer");
+          const firstNode = layer ? layer.querySelector(".node") : null;
+          if (firstNode && window.GraphViewer) {
+            const label = window.GraphViewer.extractNodeLabel(firstNode);
+            this.openNodeInspector(label);
+          }
+        }
+      }, 300);
     } else {
       await this.switchPhase(1);
       GraphViewer.renderGraph("");
@@ -965,6 +977,9 @@ const App = {
       }
     }
 
+    const toggleBtn = document.getElementById("btn-toggle-inspector");
+    if (toggleBtn) toggleBtn.classList.add("active");
+
     // Smoothly re-fit graph so it centers in the remaining canvas space
     setTimeout(() => {
       if (window.GraphViewer && typeof window.GraphViewer.fit === "function") {
@@ -977,6 +992,9 @@ const App = {
     this.state.inspectedNodeName = null;
     const drawer = document.getElementById("node-inspector-drawer");
     if (drawer) drawer.style.display = "none";
+
+    const toggleBtn = document.getElementById("btn-toggle-inspector");
+    if (toggleBtn) toggleBtn.classList.remove("active");
 
     // Also close fallback modal if open
     const overlay = document.getElementById("node-inspector-overlay");
@@ -992,6 +1010,24 @@ const App = {
         window.GraphViewer.fit();
       }
     }, 80);
+  },
+
+  toggleNodeInspector() {
+    const drawer = document.getElementById("node-inspector-drawer");
+    const isVisible = drawer && drawer.style.display !== "none";
+    if (isVisible) {
+      this.closeNodeInspector();
+    } else {
+      let targetNode = this.state.inspectedNodeName;
+      if (!targetNode) {
+        const layer = document.getElementById("mermaid-canvas-layer");
+        const firstNode = layer ? layer.querySelector(".node") : null;
+        if (firstNode && window.GraphViewer) {
+          targetNode = window.GraphViewer.extractNodeLabel(firstNode);
+        }
+      }
+      this.openNodeInspector(targetNode || "Industrial Edge Device: IPC227E");
+    }
   },
 
   renderDrawerChatHistory(nodeName) {

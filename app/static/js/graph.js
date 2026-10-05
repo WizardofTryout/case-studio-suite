@@ -71,7 +71,10 @@ const GraphViewer = {
 
     // Pan / Drag via pointer events
     viewport.addEventListener("pointerdown", (e) => {
-      // Only left mouse button or touch
+      // If clicking directly on or inside a node, let node listener handle it!
+      if (e.target.closest(".node")) {
+        return;
+      }
       if (e.button !== 0 && e.pointerType === "mouse") return;
 
       this.isDragging = true;
@@ -79,22 +82,21 @@ const GraphViewer = {
       this.dragStartPos = { x: e.clientX, y: e.clientY };
       this.startX = e.clientX - this.panX;
       this.startY = e.clientY - this.panY;
-
-      viewport.classList.add("grabbing");
-      try {
-        viewport.setPointerCapture(e.pointerId);
-      } catch (err) {}
     });
 
     viewport.addEventListener("pointermove", (e) => {
       if (!this.isDragging) return;
       const dist = Math.hypot(e.clientX - this.dragStartPos.x, e.clientY - this.dragStartPos.y);
-      if (dist > 4) {
+      if (dist > 8) {
         this.hasMoved = true;
+        viewport.classList.add("grabbing");
+        try {
+          viewport.setPointerCapture(e.pointerId);
+        } catch (err) {}
+        this.panX = e.clientX - this.startX;
+        this.panY = e.clientY - this.startY;
+        this.applyTransform();
       }
-      this.panX = e.clientX - this.startX;
-      this.panY = e.clientY - this.startY;
-      this.applyTransform();
     });
 
     const endDrag = (e) => {
@@ -120,12 +122,9 @@ const GraphViewer = {
       this.zoomAtPoint(factor, mouseX, mouseY);
     }, { passive: false });
 
-    // Delegated node click listener
+    // Delegated node click listener (fallback)
     viewport.addEventListener("click", (e) => {
-      if (this.hasMoved) {
-        // User panned/dragged, do not trigger node click
-        return;
-      }
+      if (this.hasMoved) return;
 
       const nodeEl = e.target.closest(".node");
       if (!nodeEl) return;
@@ -143,12 +142,19 @@ const GraphViewer = {
     const btnFit = document.getElementById("btn-zoom-fit");
     const btnReset = document.getElementById("btn-zoom-reset");
     const btnFullscreen = document.getElementById("btn-graph-fullscreen");
+    const btnToggle = document.getElementById("btn-toggle-inspector");
 
     if (btnIn) btnIn.addEventListener("click", () => this.zoom(1.2));
     if (btnOut) btnOut.addEventListener("click", () => this.zoom(0.83));
     if (btnFit) btnFit.addEventListener("click", () => this.fit());
     if (btnReset) btnReset.addEventListener("click", () => this.resetZoom());
     if (btnFullscreen) btnFullscreen.addEventListener("click", () => this.toggleFullscreen());
+    if (btnToggle) btnToggle.addEventListener("click", () => {
+      const app = window.App || (typeof App !== "undefined" ? App : null);
+      if (app && typeof app.toggleNodeInspector === "function") {
+        app.toggleNodeInspector();
+      }
+    });
 
     // Escape key closes fullscreen
     document.addEventListener("keydown", (e) => {
@@ -330,8 +336,22 @@ const GraphViewer = {
     }
 
     try {
+      const isLight = document.documentElement.getAttribute("data-theme") === "light" || this.currentTheme === "light";
+      this.currentTheme = isLight ? "light" : "dark";
+      this.applyMermaidTheme(this.currentTheme);
+
+      // Clean out existing theme directives
+      let cleanedCode = this.currentMermaidCode.replace(/%%\{init:[\s\S]*?\}%%\n?/g, "").trim();
+
+      // Explicitly inject theme directive
+      const themeDirective = isLight
+        ? `%%{init: {'theme': 'neutral', 'themeVariables': {'darkMode': false, 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#0284c7', 'lineColor': '#475569', 'primaryTextColor': '#0f172a', 'primaryColor': '#ffffff', 'primaryBorderColor': '#0284c7'}}}%%\n`
+        : `%%{init: {'theme': 'dark', 'themeVariables': {'darkMode': true, 'background': '#090c12', 'mainBkg': '#151a26', 'nodeBorder': '#38bdf8', 'lineColor': '#64748b', 'primaryTextColor': '#f8fafc', 'primaryColor': '#151a26', 'primaryBorderColor': '#00d4ff'}}}%%\n`;
+
+      const codeWithTheme = themeDirective + cleanedCode;
+
       const id = "mermaid-svg-" + Date.now();
-      const { svg } = await mermaid.render(id, this.currentMermaidCode);
+      const { svg } = await mermaid.render(id, codeWithTheme);
       layer.innerHTML = svg;
 
       const svgEl = layer.querySelector("svg");
@@ -395,13 +415,23 @@ const GraphViewer = {
       const label = this.extractNodeLabel(node);
       node.setAttribute("title", `🔍 Klicke für Details & Q&A zu: ${label}`);
 
+      // Stop pointerdown from initiating pan/drag on node
+      node.addEventListener("pointerdown", (e) => {
+        e.stopPropagation();
+      });
+
       node.addEventListener("click", (e) => {
-        if (this.hasMoved) return; // ignore if user was panning
         e.preventDefault();
         e.stopPropagation();
         this.triggerNodeInspector(label, node);
       });
     });
+
+    // Auto-restore selected node halo if inspector is open
+    const app = window.App || (typeof App !== "undefined" ? App : null);
+    if (app && app.state && app.state.inspectedNodeName) {
+      this.selectNodeElement(null, app.state.inspectedNodeName);
+    }
   }
 };
 

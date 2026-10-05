@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
-  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.2">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -176,9 +176,9 @@
                 <button id="btn-zoom-fit" class="graph-tool-btn" title="Ganzes Diagramm einpassen">📐 Fit</button>
                 <button id="btn-zoom-reset" class="graph-tool-btn" title="100% Zoom">⟲ 100%</button>
                 <button id="btn-graph-fullscreen" class="graph-tool-btn" title="Vollbild umschalten">⛶ Vollbild</button>
-                <span class="node-click-hint" title="Klicke auf beliebige Knoten im Diagramm für Details und gezielte Q&A">
-                  💡 Klickbarer Knoten-Inspektor
-                </span>
+                <button id="btn-toggle-inspector" class="graph-tool-btn active" title="Knoten-Inspektor & KI-Ast-Funktionen ein-/ausblenden">
+                  🔍 KI-Ast & Inspektor
+                </button>
               </div>
             </div>
             <div class="graph-workspace-row">
@@ -455,9 +455,9 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/graph.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/toast.js?v=2.2"></script>
+  <script src="/static/js/api.js?v=2.2"></script>
+  <script src="/static/js/graph.js?v=2.2"></script>
+  <script src="/static/js/app.js?v=2.2"></script>
 </body>
 </html>
