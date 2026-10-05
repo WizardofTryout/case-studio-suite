@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=3.2.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.3.0">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -24,6 +24,9 @@
           <option value="">Lade Projekte...</option>
         </select>
         <button id="btn-new-project" class="btn btn-secondary btn-sm" title="Neues Projekt anlegen">＋ Neu</button>
+        <button id="btn-open-projects-manager" class="btn btn-secondary btn-sm" title="Alle Projekte verwalten & löschen" style="gap:5px; font-weight:600;">
+          <span>🗂️</span> <span>Übersicht</span>
+        </button>
       </div>
     </div>
 
@@ -630,6 +633,8 @@
         </button>
       </div>
     </div>
+  </div>
+
   <!-- Gemini Key-Manager Modal (Live-Validation, Encrypted Persistence, Multi-Field UX) -->
   <div id="key-manager-modal-overlay" class="modal-overlay">
     <div class="modal-card key-manager-modal-card">
@@ -827,14 +832,62 @@
     </div>
   </div>
 
+  <!-- Projects Overview & Management Modal -->
+  <div id="projects-manager-modal-overlay" class="modal-overlay">
+    <div class="modal-card projects-manager-modal-card" style="max-width:860px; width:92%;">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+            <span>🗂️ Fallstudien- & Projekt-Management</span>
+            <span id="pm-total-count-badge" class="brand-badge" style="font-size:0.7rem;">0 Projekte</span>
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+            Verwalte alle gespeicherten Kunden-Cases, erstelle neue Projekte oder lösche nicht mehr benötigte Fallstudien.
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-projects-manager">&times;</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; max-height:70vh; overflow-y:auto; padding-right:4px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+          <input type="text" id="pm-search-input" class="gate-answer-input" placeholder="🔍 Projekt suchen (Name, Industrie, Persona)..." style="flex:1; min-width:240px;" />
+          <button id="btn-pm-create-new" class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
+            ➕ Neues Projekt anlegen
+          </button>
+        </div>
+
+        <div class="pm-table-wrapper" style="overflow-x:auto; border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+          <table class="pm-projects-table" style="width:100%; border-collapse:collapse; font-size:0.84rem;">
+            <thead>
+              <tr style="background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border-subtle); text-align:left;">
+                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Projektname & Kunde</th>
+                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Domäne / Industrie</th>
+                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Angelegt am</th>
+                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Zuletzt bearbeitet</th>
+                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted); text-align:right;">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="pm-projects-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button id="btn-close-projects-manager-footer" class="btn btn-secondary btn-sm">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.2.0"></script>
-  <script src="/static/js/api.js?v=3.2.0"></script>
-  <script src="/static/js/graph.js?v=3.2.0"></script>
-  <script src="/static/js/app.js?v=3.2.0"></script>
+  <script src="/static/js/toast.js?v=3.3.0"></script>
+  <script src="/static/js/api.js?v=3.3.0"></script>
+  <script src="/static/js/graph.js?v=3.3.0"></script>
+  <script src="/static/js/app.js?v=3.3.0"></script>
 </body>
 </html>
 

@@ -274,20 +274,37 @@
 }
 
 /* Light Theme Message Cards & Copilot Stream */
-[data-theme="light"] .message-card {
+[data-theme="light"] .copilot-output-container,
+[data-theme="light"] .copilot-output-container *,
+[data-theme="light"] .copilot-chat-stream,
+[data-theme="light"] .copilot-chat-stream *,
+[data-theme="light"] .message-card,
+[data-theme="light"] .message-card * {
   color: #0f172a !important;
 }
 
 [data-theme="light"] .message-card.user {
-  background: rgba(16, 185, 129, 0.08) !important;
-  border-color: rgba(16, 185, 129, 0.35) !important;
-  color: #0f172a !important;
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(16, 185, 129, 0.4) !important;
+}
+
+[data-theme="light"] .message-card.user .msg-sender {
+  color: #047857 !important;
+}
+
+[data-theme="light"] .message-card.user .msg-body,
+[data-theme="light"] .message-card.user .msg-body * {
+  color: #064e3b !important;
+  font-weight: 500;
 }
 
 [data-theme="light"] .message-card.master_consultant {
-  background: rgba(124, 58, 237, 0.04) !important;
-  border-color: rgba(124, 58, 237, 0.25) !important;
-  color: #0f172a !important;
+  background: rgba(124, 58, 237, 0.05) !important;
+  border-color: rgba(124, 58, 237, 0.28) !important;
+}
+
+[data-theme="light"] .message-card.master_consultant .msg-sender {
+  color: #6d28d9 !important;
 }
 
 [data-theme="light"] .msg-body,
@@ -295,17 +312,31 @@
 [data-theme="light"] .stream-content *,
 [data-theme="light"] .markdown-body,
 [data-theme="light"] .markdown-body * {
-  color: #0f172a;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .stream-content h1,
+[data-theme="light"] .stream-content h2,
+[data-theme="light"] .stream-content h3,
+[data-theme="light"] .stream-content h4,
+[data-theme="light"] .markdown-body h1,
+[data-theme="light"] .markdown-body h2,
+[data-theme="light"] .markdown-body h3,
+[data-theme="light"] .markdown-body h4 {
+  color: #000000 !important;
+  font-weight: 700 !important;
 }
 
 [data-theme="light"] .markdown-body strong,
 [data-theme="light"] .stream-content strong {
   color: #000000 !important;
-  font-weight: 700;
+  font-weight: 700 !important;
 }
 
 [data-theme="light"] .markdown-body p,
-[data-theme="light"] .markdown-body li {
+[data-theme="light"] .markdown-body li,
+[data-theme="light"] .stream-content p,
+[data-theme="light"] .stream-content li {
   color: #1e293b !important;
 }
 
@@ -1646,7 +1677,7 @@ body {
   height: 100vh;
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(8px);
-  z-index: 1000;
+  z-index: 2500;
   align-items: center;
   justify-content: center;
 }
@@ -2647,12 +2678,31 @@ svg .node.selected text {
 
 [data-theme="light"] .modal-card,
 [data-theme="light"] .skill-import-modal-card,
-[data-theme="light"] .skill-editor-modal-card {
+[data-theme="light"] .skill-editor-modal-card,
+[data-theme="light"] .key-manager-modal-card,
+[data-theme="light"] .projects-manager-modal-card,
+[data-theme="light"] .agent-tile-modal-card {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
   box-shadow: 0 25px 60px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
 }
+
+.pm-projects-table tr {
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.15s ease;
+}
+.pm-projects-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+[data-theme="light"] .pm-projects-table tr:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+.pm-projects-table td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
 
 [data-theme="light"] .modal-title {
   color: #0f172a !important;

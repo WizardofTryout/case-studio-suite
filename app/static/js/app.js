@@ -300,6 +300,49 @@ const App = {
       saveKeyManagerBtn.addEventListener("click", () => this.saveKeyManager());
     }
 
+    const kmOverlay = document.getElementById("key-manager-modal-overlay");
+    if (kmOverlay) {
+      kmOverlay.addEventListener("click", (e) => {
+        if (e.target === kmOverlay) this.closeKeyManagerModal();
+      });
+    }
+
+    // Projects Manager Modal controls
+    const openProjectsBtn = document.getElementById("btn-open-projects-manager");
+    if (openProjectsBtn) {
+      openProjectsBtn.addEventListener("click", () => this.showProjectsModal());
+    }
+
+    const closeProjectsBtn = document.getElementById("btn-close-projects-manager");
+    if (closeProjectsBtn) {
+      closeProjectsBtn.addEventListener("click", () => this.closeProjectsModal());
+    }
+
+    const closeProjectsFooterBtn = document.getElementById("btn-close-projects-manager-footer");
+    if (closeProjectsFooterBtn) {
+      closeProjectsFooterBtn.addEventListener("click", () => this.closeProjectsModal());
+    }
+
+    const pmSearchInput = document.getElementById("pm-search-input");
+    if (pmSearchInput) {
+      pmSearchInput.addEventListener("input", (e) => this.loadAndRenderProjectsTable(e.target.value));
+    }
+
+    const pmCreateNewBtn = document.getElementById("btn-pm-create-new");
+    if (pmCreateNewBtn) {
+      pmCreateNewBtn.addEventListener("click", () => {
+        this.closeProjectsModal();
+        this.promptNewProject();
+      });
+    }
+
+    const pmOverlay = document.getElementById("projects-manager-modal-overlay");
+    if (pmOverlay) {
+      pmOverlay.addEventListener("click", (e) => {
+        if (e.target === pmOverlay) this.closeProjectsModal();
+      });
+    }
+
     // Document Upload
     const fileInput = document.getElementById("doc-file-input");
     if (fileInput) {
@@ -2812,7 +2855,124 @@ const App = {
           }
         );
       }
+    );
+  },
 
+  // --- Project Overview & Management View ---
+
+  async showProjectsModal() {
+    const modal = document.getElementById("projects-manager-modal-overlay");
+    if (!modal) return;
+    modal.classList.add("active");
+    await this.loadAndRenderProjectsTable();
+  },
+
+  closeProjectsModal() {
+    const modal = document.getElementById("projects-manager-modal-overlay");
+    if (modal) modal.classList.remove("active");
+  },
+
+  async loadAndRenderProjectsTable(filter = "") {
+    const tbody = document.getElementById("pm-projects-tbody");
+    const countBadge = document.getElementById("pm-total-count-badge");
+    if (!tbody) return;
+
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-dim);">Lade Projekte...</td></tr>`;
+
+    try {
+      const projects = await API.getProjects();
+      const query = (filter || "").trim().toLowerCase();
+      const filtered = projects.filter(p => {
+        if (!query) return true;
+        const name = (p.name || "").toLowerCase();
+        const ind = (p.industry || "").toLowerCase();
+        const persona = (p.persona_profile || "").toLowerCase();
+        return name.includes(query) || ind.includes(query) || persona.includes(query);
+      });
+
+      if (countBadge) countBadge.innerText = `${projects.length} Projekte`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="5" style="text-align:center; padding:24px; color:var(--text-dim);">
+              Keine passenden Projekte gefunden.
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = "";
+      filtered.forEach(p => {
+        const isCurrent = p.id === this.state.currentProjectId;
+        const tr = document.createElement("tr");
+        tr.id = `pm-row-${p.id}`;
+        if (isCurrent) {
+          tr.style.background = "rgba(0, 212, 255, 0.06)";
+        }
+
+        const createdAt = p.created_at ? new Date(p.created_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) : "–";
+        const updatedAt = p.updated_at ? new Date(p.updated_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) : "–";
+
+        tr.innerHTML = `
+          <td style="padding:10px 12px;">
+            <div style="font-weight:600; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+              <span>📁</span>
+              <span>${this.escapeHtml(p.name)}</span>
+              ${isCurrent ? `<span class="brand-badge" style="font-size:0.65rem; background:var(--cyan); color:#000;">Aktiv</span>` : ""}
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+              ${this.escapeHtml(p.persona_profile || "Keine Persona")}
+            </div>
+          </td>
+          <td style="padding:10px 12px; color:var(--text-main);">
+            <span class="tag-pill" style="font-size:0.72rem; padding:2px 8px;">#${this.escapeHtml(p.industry || "cross_domain")}</span>
+          </td>
+          <td style="padding:10px 12px; color:var(--text-dim); font-size:0.8rem; font-family:monospace;">
+            ${createdAt}
+          </td>
+          <td style="padding:10px 12px; color:var(--text-dim); font-size:0.8rem; font-family:monospace;">
+            ${updatedAt}
+          </td>
+          <td style="padding:10px 12px; text-align:right;">
+            <div style="display:flex; justify-content:flex-end; gap:6px;">
+              <button type="button" class="btn btn-secondary btn-xs" title="Dieses Projekt laden" onclick="App.selectProjectFromManager('${p.id}')">
+                🎯 Öffnen
+              </button>
+              <button type="button" class="btn btn-secondary btn-xs" style="color:var(--rose);" title="Projekt löschen" onclick="App.confirmDeleteProject('${p.id}', '${this.escapeHtml(p.name)}')">
+                🗑️ Löschen
+              </button>
+            </div>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--rose); padding:16px;">Fehler: ${this.escapeHtml(err.message)}</td></tr>`;
+    }
+  },
+
+  async selectProjectFromManager(projectId) {
+    await this.selectProject(projectId);
+    this.closeProjectsModal();
+    window.showToast("Projekt geladen!", "success");
+  },
+
+  confirmDeleteProject(projectId, projectName) {
+    window.showConfirmModal(
+      "Projekt löschen",
+      `Möchtest du das Projekt <strong>${projectName}</strong> mit allen Dokumenten, Phasen und Daten wirklich unwiderruflich löschen?`,
+      async () => {
+        try {
+          await API.deleteProject(projectId);
+          window.showToast(`Projekt '${projectName}' gelöscht.`, "info");
+          await this.loadProjects();
+          await this.loadAndRenderProjectsTable();
+        } catch (err) {
+          window.showToast(`Fehler beim Löschen: ${err.message}`, "error");
+        }
+      }
     );
   },
 
@@ -3121,6 +3281,7 @@ const App = {
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
     // Headers
+    html = html.replace(/^#### (.*$)/gim, '<h4>$1</h4>');
     html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
     html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
     html = html.replace(/^# (.*$)/gim, '<h1>$1</h1>');

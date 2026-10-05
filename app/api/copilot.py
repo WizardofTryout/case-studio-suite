@@ -186,9 +186,20 @@ async def stream_node_chat(payload: NodeChatRequest):
     )
 
 
-@router.get("/projects/{project_id}/nodes/{node_name}/evidence")
+@router.get("/projects/{project_id}/evidence")
+async def get_node_evidence_query(project_id: str, node_name: str = ""):
+    """Extracts relevant textual citations and DMS evidence for a specific node via query parameter."""
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    evidence = await find_node_document_evidence(project_id, node_name)
+    return {"node_name": node_name, "evidence": evidence}
+
+
+@router.get("/projects/{project_id}/nodes/{node_name:path}/evidence")
 async def get_node_evidence(project_id: str, node_name: str):
-    """Extracts relevant textual citations and DMS evidence for a specific node."""
+    """Extracts relevant textual citations and DMS evidence for a specific node (supports encoded slashes)."""
     proj = await repositories.get_project(project_id)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")

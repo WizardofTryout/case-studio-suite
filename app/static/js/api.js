@@ -316,7 +316,7 @@ const API = {
 
   async getNodeEvidence(projectId, nodeName) {
     try {
-      const res = await fetch(`/api/copilot/projects/${projectId}/nodes/${encodeURIComponent(nodeName)}/evidence`);
+      const res = await fetch(`/api/copilot/projects/${projectId}/evidence?node_name=${encodeURIComponent(nodeName)}`);
       if (!res.ok) return { evidence: [] };
       return await res.json();
     } catch (e) {
