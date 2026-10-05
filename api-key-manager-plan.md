@@ -1,4 +1,10 @@
-# 🔑 Case Studio Suite – API-Key-Manager Redesign (Ein Feld pro Key, Live-Validierung, Persistenz)
+# 🔑 Case Studio Suite – API-Key-Manager Redesign (Ein Feld pro Key, Live-Validierung, verschlüsselte Persistenz)
+
+> [!IMPORTANT]
+> **Reihenfolge:** Diesen Plan erst umsetzen, **nachdem** der Agent der Adaptive Case Trigger Engine committet hat (gleiche Dateien: `schema.py`, `repositories.py`, `gemini_pool.py`, `api.js`, `index.html`). Nie zwei Agenten parallel im selben Working-Tree.
+
+> [!CAUTION]
+> **Keys niemals im Klartext speichern.** Siehe Abschnitt 3.5 (Verschlüsselung).
 **Datei:** `api-key-manager-plan.md`  
 **Projekt:** Case Studio Suite (Docker, Port `3088`)  
 **Vorbild:** Legal Studio – „Gemini API-Schlüssel Pool“ (Key-Liste mit Status-Badge, Papierkorb, Feld „Neuen Schlüssel… + Hinzufügen & Prüfen“)
@@ -75,11 +81,15 @@ Hinweis: HTTP 429 gilt als **gültig**, nur temporär limitiert.
 ```sql
 CREATE TABLE IF NOT EXISTS api_keys (
     id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',   -- vorbereitet für Mehrmandanten
     provider TEXT DEFAULT 'gemini',
-    key_value TEXT UNIQUE NOT NULL,
-    last_status TEXT,            -- ok | invalid | rate_limited
+    key_encrypted TEXT NOT NULL,                 -- Fernet-Geheimtext, NIE Klartext
+    key_fingerprint TEXT NOT NULL,               -- SHA-256(key)[:16] zur Duplikaterkennung
+    masked_key TEXT NOT NULL,                    -- z. B. AIza…lLpw für die Anzeige
+    last_status TEXT,                            -- ok | invalid | rate_limited
     last_checked_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tenant_id, key_fingerprint)
 );
 ```
 
@@ -91,6 +101,22 @@ CREATE TABLE IF NOT EXISTS api_keys (
 
 ### 3.4 Pool-Anbindung (`app/core/gemini_pool.py`)
 `reload_keys()` existiert bereits und behält Status bestehender Keys. Ergänzen: Methode zum Entfernen eines Keys und Übernahme des `last_status` in `KeyInfo` (ERROR bei ungültig).
+
+### 3.5 Verschlüsselung im Ruhezustand (Encryption-at-Rest)
+Um die API-Schlüssel auch bei Datenbank-Kopien oder lokalen Backups maximal zu schützen, werden alle Keys vor dem Schreiben in SQLite verschlüsselt:
+- **Krypto-Standard:** AES-128-CBC / HMAC über `cryptography.fernet.Fernet`.
+- **Master-Key-Ermittlung:**
+  1. Aus der Umgebungsvariable `APP_SECRET_KEY` (in `.env`, die nicht im Git ist).
+  2. Falls nicht gesetzt: Automatisches Generieren eines Schlüssels (`Fernet.generate_key()`) und persistentes Speichern in `/app/data/.master_key` (Dateirechte `0600`).
+- **Ablauf beim Speichern:**
+  1. Plain-Key (z. B. `AIzaSy...`) wird validiert.
+  2. `key_fingerprint = hashlib.sha256(key.encode()).hexdigest()[:16]` (zur Duplikatsprüfung ohne Klartext).
+  3. `key_encrypted = fernet.encrypt(key.encode()).decode()`
+  4. `masked_key = f"{key[:4]}...{key[-4:]}"`
+  5. In SQLite wird **nur** `key_encrypted`, `key_fingerprint` und `masked_key` gespeichert.
+- **Ablauf beim Laden:**
+  - Beim Container-Start oder `reload_keys()` liest das Backend `key_encrypted` aus der DB, entschlüsselt mit dem Master-Key direkt in den Arbeitsspeicher von `GeminiKeyPool`.
+  - **Klartext-Keys existieren ausschließlich flüchtig im RAM.**
 
 ---
 
@@ -121,18 +147,24 @@ CREATE TABLE IF NOT EXISTS api_keys (
 Lies als verbindliche Arbeitsgrundlage:
 /Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/api-key-manager-plan.md
 
-Setze den Redesign des Gemini Key-Managers um:
+Setze den Redesign des Gemini Key-Managers mit Live-Validierung und verschlüsselter Persistenz um:
 
-1. BACKEND (app/api/health.py oder neues app/api/keys.py, app/core/gemini_pool.py, app/db):
-   - Neue Tabelle api_keys (Schema siehe Plan) und Repository-Funktionen.
-   - POST /api/keys/validate (Live-Test gegen Gemini-API, Timeout 8s, 429 = gültig/rate_limited, Key nie loggen).
-   - GET /api/keys (nur maskiert), POST /api/keys (validieren+speichern+Pool reload), DELETE /api/keys/{id}.
-   - /api/keys/update bleibt als Alias.
-   - Beim Start Keys aus DB + .env (GEMINI_API_KEYS) dedupliziert in den Pool laden -> Keys überleben Container-Neustart.
-   - Pool: Methode zum Entfernen eines Keys; ungültige Keys als ERROR markieren.
+1. VERSCHLÜSSELUNG & BACKEND (app/core/crypto.py, app/api/keys.py, app/core/gemini_pool.py, app/db):
+   - Krypto-Modul 'app/core/crypto.py' mit Fernet:
+     * Liest Master-Key aus 'APP_SECRET_KEY' oder erzeugt '/app/data/.master_key' (0600).
+     * Bietet 'encrypt_key(plain: str) -> str' und 'decrypt_key(encrypted: str) -> str'.
+   - Neue Tabelle 'api_keys' in SQLite mit Spalten:
+     'id', 'tenant_id' (DEFAULT 'default'), 'provider', 'key_encrypted', 'key_fingerprint', 'masked_key', 'last_status', 'last_checked_at'.
+   - Endpunkte:
+     * POST /api/keys/validate: Test-Call gegen Gemini-API (Timeout 8s, 429 = gültig/rate_limited, Key NIE loggen).
+     * GET /api/keys: Liefert NUR maskierte Keys (id, masked_key, status, last_checked_at, cooldown).
+     * POST /api/keys: Validiert Key, verschlüsselt ihn, speichert in SQLite und lädt Pool neu.
+     * DELETE /api/keys/{id}: Löscht Key aus DB und entfernt ihn aus dem RAM-Pool.
+     * POST /api/keys/update: Abwärtskompatibler Alias.
+   - Beim Container-Start: Keys aus DB entschlüsseln + aus .env (GEMINI_API_KEYS) dedupliziert in den Pool laden.
 
 2. FRONTEND (app/static/js/app.js, api.js, css/style.css):
-   - Ersetze das Komma-Textfeld im Key-Manager-Modal (aktuell um Zeile 2826 in app.js) durch:
+   - Ersetze das Komma-Textfeld im Key-Manager-Modal durch:
      * Liste gespeicherter Keys (maskiert, Status-Badge, Papierkorb, Inline-Bestätigung ohne window.confirm).
      * Dynamische Eingabezeilen: ein Feld pro Key mit ＋-Button, der eine neue Zeile ausrollt.
      * Live-Prüfung pro Zeile (blur/paste/debounce): ⏳ -> grüner Haken oder rotes X mit Kurzgrund.
@@ -141,11 +173,11 @@ Setze den Redesign des Gemini Key-Managers um:
    - Header-Chip "Keys: X/Y OK" nach Änderungen sofort aktualisieren.
    - Glassmorphism-Stil, Null native Popups, eindeutige Element-IDs.
 
-3. SICHERHEIT: Keine Klartext-Keys in API-Antworten/Logs, data/ nicht ins Git, Rate-Limit für /api/keys/validate.
+3. SICHERHEIT: Keine Klartext-Keys in API-Antworten oder Logs. data/ bleibt im .gitignore.
 
 REGELN (Human-in-the-Loop): Kein aufwändiges automatisches Testen. Container neu bauen
 (docker compose up -d --build case-studio-suite), mit Conventional Commits
-(feat(keys): per-key manager with live validation and persistence) auf main und develop pushen,
+(feat(keys): encrypted per-key manager with live validation and persistence) auf main und develop pushen,
 danach kurze Test-Checkliste für den Browser (http://localhost:3088) melden.
 ```
 
