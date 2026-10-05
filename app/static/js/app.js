@@ -169,6 +169,7 @@ const App = {
     await this.refreshTelemetry();
     await this.loadProjects();
     await this.loadSkillsCatalog();
+    await this.initModelSelector();
     
     // Auto-refresh telemetry every 20 seconds
     setInterval(() => this.refreshTelemetry(), 20000);
@@ -1506,13 +1507,16 @@ const App = {
       let icon = "⚡";
       if (slot.role === "master_consultant") {
         icon = "👑";
-        badgeHtml = `<span class="badge-fixed">[Pflicht / Lead]</span>`;
+        card.classList.add("slot-lead");
+        badgeHtml = `<span class="team-slot-badge slot-lead">👑 Lead-Architekt</span>`;
       } else if (slot.role === "critic") {
         icon = "🛡️";
-        badgeHtml = `<span class="badge-fixed">[Qualitätswächter]</span>`;
+        card.classList.add("slot-critic");
+        badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Qualitätswächter</span>`;
       } else {
         icon = "⚡";
-        badgeHtml = `<span class="badge-specialist">[Fachspezialist]</span>`;
+        card.classList.add("slot-expert");
+        badgeHtml = `<span class="team-slot-badge slot-specialist">⚡ Fachspezialist</span>`;
       }
 
       let actionsHtml = "";
@@ -1587,20 +1591,27 @@ const App = {
     if (searchInput) searchInput.value = "";
     this.deliberationState.tileSearchQuery = "";
 
-    // If library is not loaded yet, fetch it from backend
-    if (!this.skillsState.library || this.skillsState.library.length === 0) {
+    // 1. Immediately open modal overlay so user gets instant UI feedback
+    const overlay = document.getElementById("agent-tile-modal-overlay");
+    if (overlay) overlay.classList.add("active");
+
+    const grid = document.getElementById("agent-tiles-grid");
+    if (grid && (!Array.isArray(this.skillsState.library) || this.skillsState.library.length === 0)) {
+      grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:35px; color:var(--text-muted);"><div class="spinner-small" style="margin:0 auto 10px;"></div>Fachagenten-Katalog wird geladen...</div>`;
+    }
+
+    // 2. Preload library if not already loaded or if empty
+    if (!Array.isArray(this.skillsState.library) || this.skillsState.library.length === 0) {
       try {
         const skills = await API.getSkillsLibrary();
-        this.skillsState.library = skills || [];
+        this.skillsState.library = Array.isArray(skills) ? skills : [];
       } catch (e) {
         console.warn("Could not preload skills library:", e);
+        this.skillsState.library = [];
       }
     }
 
     this.renderAgentTiles();
-
-    const overlay = document.getElementById("agent-tile-modal-overlay");
-    if (overlay) overlay.classList.add("active");
   },
 
   closeAgentTileModal() {
@@ -1613,7 +1624,7 @@ const App = {
     if (!grid) return;
     grid.innerHTML = "";
 
-    const library = this.skillsState.library || [];
+    const library = Array.isArray(this.skillsState.library) ? this.skillsState.library : [];
     const query = (this.deliberationState.tileSearchQuery || "").toLowerCase().trim();
     const cat = this.deliberationState.tileActiveCategory || "all";
 
@@ -1773,9 +1784,15 @@ const App = {
 
   async autoscanRefiner() {
     const inputEl = document.getElementById("deliberation-input");
-    const text = inputEl ? inputEl.value.trim() : "";
+    let text = inputEl ? inputEl.value.trim() : "";
     if (!text) {
-      window.showToast("Bitte gib zuerst einen Rohentwurf in das Prompt-Feld ein!", "warning");
+      const copilotPrompt = document.getElementById("copilot-prompt");
+      if (copilotPrompt && copilotPrompt.value.trim()) {
+        text = copilotPrompt.value.trim();
+      }
+    }
+    if (!text) {
+      window.showToast("Bitte gib zuerst eine Problemstellung oder These ein, um passende Fachagenten zu ermitteln!", "warning");
       return;
     }
 
@@ -2981,6 +2998,14 @@ const App = {
   async showKeyPoolModal() {
     const modal = document.getElementById("key-manager-modal-overlay");
     if (!modal) return;
+
+    // Sync active model in select
+    const modelSelect = document.getElementById("km-model-select");
+    const savedModel = localStorage.getItem("case_studio_gemini_model");
+    if (modelSelect && savedModel) {
+      modelSelect.value = savedModel;
+    }
+
     modal.classList.add("active");
 
     await this.loadAndRenderSavedKeys();
@@ -2990,6 +3015,39 @@ const App = {
       container.innerHTML = "";
       this.addKeyInputRow("");
     }
+  },
+
+  async initModelSelector() {
+    const select = document.getElementById("km-model-select");
+    if (!select) return;
+
+    const savedModel = localStorage.getItem("case_studio_gemini_model") || "gemini-3.8-flash";
+    select.value = savedModel;
+
+    try {
+      const res = await API.getActiveModel();
+      if (res && res.model) {
+        if (!localStorage.getItem("case_studio_gemini_model")) {
+          select.value = res.model;
+          localStorage.setItem("case_studio_gemini_model", res.model);
+        } else if (savedModel !== res.model) {
+          await API.setActiveModel(savedModel);
+        }
+      }
+    } catch (e) {
+      console.warn("Could not sync active model:", e);
+    }
+
+    select.addEventListener("change", async (e) => {
+      const newModel = e.target.value;
+      localStorage.setItem("case_studio_gemini_model", newModel);
+      try {
+        await API.setActiveModel(newModel);
+        window.showToast(`✨ Gemini Engine auf "${newModel}" umgestellt!`, "info");
+      } catch (err) {
+        window.showToast(`Modell-Fehler: ${err.message}`, "error");
+      }
+    });
   },
 
   closeKeyManagerModal() {
@@ -3089,7 +3147,6 @@ const App = {
       <input type="password" class="km-input-field" placeholder="AIzaSy..." autocomplete="off" value="${this.escapeHtml(initialValue)}" />
       <button type="button" class="km-action-btn km-toggle-pw-btn" title="Klartext anzeigen / verbergen">👁️</button>
       <div class="km-row-status" style="min-width:90px; text-align:right;"></div>
-      <button type="button" class="km-action-btn km-btn-add-next" title="Neues Feld darunter einfügen">➕</button>
       <button type="button" class="km-action-btn km-btn-remove-row" title="Zeile entfernen">🗑️</button>
     `;
 
@@ -3097,17 +3154,11 @@ const App = {
 
     const input = row.querySelector(".km-input-field");
     const toggleBtn = row.querySelector(".km-toggle-pw-btn");
-    const addNextBtn = row.querySelector(".km-btn-add-next");
     const removeBtn = row.querySelector(".km-btn-remove-row");
 
     // Toggle password visibility
     toggleBtn.addEventListener("click", () => {
       input.type = input.type === "password" ? "text" : "password";
-    });
-
-    // Add next row
-    addNextBtn.addEventListener("click", () => {
-      this.addKeyInputRow("");
     });
 
     // Remove row

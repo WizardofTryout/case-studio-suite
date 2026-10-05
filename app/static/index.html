@@ -290,7 +290,7 @@
           </div>
 
           <!-- Decision Gates Container -->
-          <div class="live-graph-box" style="flex: 1; min-height: 220px;">
+          <div class="live-graph-box decision-gates-container" style="flex: 1; min-height: 280px; display: flex; flex-direction: column;">
             <div class="box-header">
               <div class="box-title" style="color:var(--amber);">
                 <span>🚨</span> Master-Consultant Decision Gates
@@ -652,6 +652,27 @@
       </div>
 
       <div class="modal-body" style="display:flex; flex-direction:column; gap:16px; max-height:68vh; overflow-y:auto; padding-right:4px;">
+        <!-- Section 0: Curated Gemini Model Selection -->
+        <div class="km-section" style="background: rgba(0, 212, 255, 0.04); border-color: rgba(0, 212, 255, 0.25);">
+          <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>✨ Aktive Google Gemini Engine / Modell</span>
+            <span style="font-size:0.72rem; color:var(--cyan); font-weight:600;">Direkte Key-Ausführung</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+            <select id="km-model-select" class="gate-answer-input" style="flex:1; font-weight:600; font-family:var(--font-mono); font-size:0.86rem; padding:8px 12px; cursor:pointer;">
+              <option value="gemini-3.8-flash">⚡ gemini-3.8-flash (Ultralight &amp; Realtime)</option>
+              <option value="gemini-3.5-flash-lite">⚡ gemini-3.5-flash-lite (Hochverfügbar, unempfindlich gegen Bursts)</option>
+              <option value="gemini-3.5-flash">⚡ gemini-3.5-flash (Ausgewogen &amp; Schnell)</option>
+              <option value="gemini-3.1-pro">🧠 gemini-3.1-pro (Complex Reasoning &amp; Deep Architecture)</option>
+              <option value="gemini-2.5-pro">🧠 gemini-2.5-pro (Standard Reasoning Lead)</option>
+              <option value="gemini-2.5-flash">⚡ gemini-2.5-flash (Standard Fallback)</option>
+            </select>
+          </div>
+          <div style="font-size:0.73rem; color:var(--text-muted); margin-top:6px;">
+            💡 Dieses Modell wird für alle Copilot-Phasen, Spezialisten-Recherchen und Multi-Agenten Debatten verwendet.
+          </div>
+        </div>
+
         <!-- Section 1: Gespeicherte Keys -->
         <div class="km-section">
           <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center;">

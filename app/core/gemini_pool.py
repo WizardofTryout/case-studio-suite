@@ -64,7 +64,15 @@ class GeminiKeyPool:
         self.keys: List[KeyInfo] = [KeyInfo(k) for k in raw_keys]
         self._current_index = 0
         self._lock = asyncio.Lock()
-        logger.info(f"GeminiKeyPool initialized with {len(self.keys)} API keys.")
+        self.current_model: str = settings.default_model
+        logger.info(f"GeminiKeyPool initialized with {len(self.keys)} API keys (model: {self.current_model}).")
+
+    def set_model(self, model_name: str) -> None:
+        """Update active Gemini model/engine dynamically."""
+        if model_name and isinstance(model_name, str):
+            clean = model_name.strip()
+            self.current_model = clean
+            logger.info(f"GeminiKeyPool active model updated to: {self.current_model}")
 
     def reload_keys(self, new_keys: List[str]) -> None:
         """Update keys at runtime if configured via environment or UI."""
@@ -188,7 +196,7 @@ class GeminiKeyPool:
         Streams generation using Gemini REST API with SSE.
         Features automatic failover (<50ms) on HTTP 429 and fallback model support.
         """
-        chosen_model = model or settings.default_model
+        chosen_model = model or self.current_model or settings.default_model
         fallback_model = settings.fallback_model
         
         # Strict Real-Time Mode: No simulation or dummy mock-ups allowed.

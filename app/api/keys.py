@@ -236,3 +236,28 @@ async def update_keys_legacy_endpoint(payload: KeyUpdateRequest):
         "message": f"{len(cleaned_keys)} Keys aktualisiert und verschlüsselt gespeichert",
         "pool_status": key_pool.get_pool_status()
     }
+
+
+class KeyModelRequest(BaseModel):
+    model: str
+
+
+@router.get("/keys/model")
+async def get_active_model():
+    """Returns the currently active Gemini model in the key pool."""
+    return {
+        "status": "ok",
+        "model": key_pool.current_model
+    }
+
+
+@router.post("/keys/model")
+async def set_active_model(payload: KeyModelRequest):
+    """Sets the active Gemini model for all subsequent Copilot, Deliberation and Refiner calls."""
+    if not payload.model or not payload.model.strip():
+        raise HTTPException(status_code=400, detail="Modellname darf nicht leer sein.")
+    key_pool.set_model(payload.model.strip())
+    return {
+        "status": "ok",
+        "model": key_pool.current_model
+    }

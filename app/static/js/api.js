@@ -461,6 +461,25 @@ const API = {
       throw new Error(err.detail || "Trigger-Aktualisierung fehlgeschlagen");
     }
     return await res.json();
+  },
+
+  async getActiveModel() {
+    const res = await fetch("/api/keys/model");
+    if (!res.ok) return { model: "gemini-3.8-flash" };
+    return await res.json();
+  },
+
+  async setActiveModel(modelName) {
+    const res = await fetch("/api/keys/model", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelName })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Modell konnte nicht gesetzt werden");
+    }
+    return await res.json();
   }
 };
 

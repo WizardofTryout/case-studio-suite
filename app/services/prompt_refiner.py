@@ -13,7 +13,9 @@ Du bist der technische Prompt-Veredeler und Leit-Architekt für High-End-Archite
 Deine Aufgabe ist es, den stichpunktartigen, unpräzisen oder informellen Rohentwurf des Nutzers in eine geschärfte, hochprofessionelle Architektur-Diskussionsthese zu transformieren.
 
 RICHTLINIEN FÜR DIE VEREDELUNG (STRENG EINHALTEN):
-1. **Intention bewahren:** Behalte die fachliche Kernintention des Nutzers zu 100 % bei.
+1. **Intention & Chat-Kontext bewahren:** 
+   - Behalte die fachliche Kernintention des Nutzers zu 100 % bei.
+   - Wenn ein bisheriger Diskussionsverlauf vorliegt, beziehe dich eng darauf und führe die Debatte logisch und technisch weiter.
 2. **Präzise technische Kennwerte & Metriken einfügen:**
    - Realistische Latenzzahlen (z. B. '<10ms deterministisch am Edge' vs. '>200ms Cloud-Roundtrip').
    - Abtastraten & Datenvolumina (z. B. '2kHz Schwingungs-Rohdaten', '1-Sekunden-RMS-Aggregation').
@@ -38,10 +40,19 @@ async def enhance_user_prompt(
 ) -> Dict[str, Any]:
     """
     Enriches a user's rough draft with domain-specific engineering depth,
-    relevant protocols, latency thresholds, and standards using the chosen specialist skill.
+    relevant protocols, latency thresholds, and standards using the chosen specialist skill
+    and referencing the live deliberation chat thread.
     """
     if not draft_prompt or not draft_prompt.strip():
         raise ValueError("Der Rohentwurf darf nicht leer sein.")
+
+    # Strict check: Require active API keys to prevent overwriting with warning notices
+    if not key_pool.keys:
+        raise ValueError(
+            "Keine aktiven Gemini API-Keys im System gespeichert. "
+            "Bitte klicke oben rechts auf '🔑 API-Keys', trage deinen Google Gemini Schlüssel ein "
+            "und klicke auf '💾 Gültige Schlüssel speichern'."
+        )
 
     # 1. Fetch skill metadata and full content
     skill_meta = await repositories.get_global_skill(skill_key)
@@ -62,7 +73,26 @@ async def enhance_user_prompt(
         except Exception as e:
             logger.warning(f"Context build skipped: {e}")
 
-    # 3. Assemble refinement prompt
+    # 3. Build live Deliberation chat history context
+    chat_context_str = ""
+    if session_id:
+        try:
+            messages = await repositories.list_deliberation_messages(session_id)
+            if messages:
+                history_lines = []
+                for msg in messages[-8:]:
+                    content = (msg.get("content") or "").strip()
+                    # Skip internal warning banners
+                    if "Keine aktiven Gemini API-Keys" in content or not content:
+                        continue
+                    sender = msg.get("sender") or msg.get("agent_role") or "Teilnehmer"
+                    history_lines.append(f"- [{sender}]: {content[:400]}")
+                if history_lines:
+                    chat_context_str = "--- BISHERIGER CHAT- & DISKUSSIONSVERLAUF (AKTUELLE DEBATTE):\n" + "\n".join(history_lines) + "\n"
+        except Exception as e:
+            logger.warning(f"Could not load chat history for prompt refiner: {e}")
+
+    # 4. Assemble refinement prompt
     instruction_prompt = f"""
 {PROMPT_REFINER_SYSTEM_INSTRUCTION}
 
@@ -70,13 +100,14 @@ async def enhance_user_prompt(
 Skill: {skill_name} (Kennung: {skill_key})
 {skill_content[:1500]}
 
+{chat_context_str}
 --- PROJEKT- & DMS-FALLAKTEN-KONTEXT (FALLS VORHANDEN):
 {context_str[:2000]}
 
 --- NUTZER-ROHENTWURF / AUSGANGSTHESE:
 \"\"\"{draft_prompt.strip()}\"\"\"
 
-VEREDLE DIESEN ENTWURF JETZT ZU EINER HOCHPRÄZISEN DISKUSSIONSTHESE:
+VEREDLE DIESEN ENTWURF JETZT ZU EINER HOCHPRÄZISEN DISKUSSIONSTHESE (BERÜCKSICHTIGE DEN BISHERIGEN CHATVERLAUF UND FACHAGENTEN):
 """
 
     refined_text = ""
@@ -92,7 +123,7 @@ VEREDLE DIESEN ENTWURF JETZT ZU EINER HOCHPRÄZISEN DISKUSSIONSTHESE:
     if refined_text.startswith('"""') and refined_text.endswith('"""'):
         refined_text = refined_text[3:-3].strip()
 
-    # 4. Persist in database if session_id provided
+    # 5. Persist in database if session_id provided
     if session_id:
         try:
             await repositories.create_prompt_refinement(

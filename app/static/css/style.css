@@ -942,9 +942,11 @@ body {
 .decision-gates-panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 280px;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  padding-right: 6px;
 }
 
 .decision-gate-card {
@@ -1342,12 +1344,53 @@ body {
 }
 
 .team-slot-badge {
-  font-size: 0.62rem;
+  font-family: var(--font-sans) !important;
+  font-size: 0.68rem;
   font-weight: 700;
   text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 4px;
+  letter-spacing: 0.03em;
+  padding: 3px 8px;
+  border-radius: 9999px;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.team-slot-badge.slot-lead {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.team-slot-badge.slot-critic {
+  background: rgba(244, 63, 94, 0.15);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.4);
+}
+
+.team-slot-badge.slot-specialist {
+  background: rgba(0, 212, 255, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 212, 255, 0.4);
+}
+
+[data-theme="light"] .team-slot-badge.slot-lead {
+  background: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fcd34d !important;
+}
+
+[data-theme="light"] .team-slot-badge.slot-critic {
+  background: #ffe4e6 !important;
+  color: #be123c !important;
+  border-color: #fda4af !important;
+}
+
+[data-theme="light"] .team-slot-badge.slot-specialist {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
 }
 
 .team-slot-desc {
