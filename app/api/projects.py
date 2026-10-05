@@ -41,6 +41,12 @@ async def create_new_project(payload: ProjectCreateRequest):
         current_phase=1,
         case_summary=f"Projektstart: {proj['name']} ({proj['industry']})"
     )
+    # Pre-seed adaptive triggers based on domain preset
+    try:
+        from app.services import trigger_service
+        await trigger_service.get_or_init_project_triggers(proj["id"])
+    except Exception:
+        pass
     return proj
 
 
@@ -72,3 +78,74 @@ async def delete_project_by_id(project_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"message": "Project deleted successfully", "id": project_id}
+
+
+# --- Adaptive Quick-Triggers Endpoints ---
+
+class GenerateTriggersRequest(BaseModel):
+    case_text: Optional[str] = None
+
+
+class UpdateTriggerRequest(BaseModel):
+    phase: int
+    trigger_index: int
+    label: str
+    prompt: str
+
+
+@router.get("/{project_id}/triggers")
+async def get_project_triggers(project_id: str):
+    """
+    Returns the current adaptive quick-triggers for all 4 phases of the project.
+    Initializes from domain preset if not yet initialized.
+    """
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    from app.services import trigger_service
+    triggers = await trigger_service.get_or_init_project_triggers(project_id)
+    return {
+        "project_id": project_id,
+        "triggers": triggers
+    }
+
+
+@router.post("/{project_id}/triggers/generate")
+async def generate_adaptive_triggers_endpoint(project_id: str, payload: Optional[GenerateTriggersRequest] = None):
+    """
+    Live Case-Adaptation: Generates 16 case-specific quick-triggers tailored to the project/text.
+    """
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    from app.services import trigger_service
+    case_text = payload.case_text if payload else None
+    triggers = await trigger_service.generate_adaptive_triggers(project_id, case_text)
+    return {
+        "project_id": project_id,
+        "triggers": triggers
+    }
+
+
+@router.put("/{project_id}/triggers")
+async def update_trigger_endpoint(project_id: str, payload: UpdateTriggerRequest):
+    """
+    Update a single trigger manually.
+    """
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    updated = await repositories.update_project_trigger(
+        project_id=project_id,
+        phase=payload.phase,
+        trigger_index=payload.trigger_index,
+        label=payload.label,
+        prompt=payload.prompt
+    )
+    if not updated:
+        raise HTTPException(status_code=400, detail="Failed to update trigger")
+    return updated
+

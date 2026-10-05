@@ -275,7 +275,32 @@ class GeminiKeyPool:
         async for chunk in self._simulate_stream(contents, system_instruction):
             yield chunk
 
+    async def generate(
+        self,
+        contents: List[Dict[str, Any]],
+        system_instruction: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: float = 0.4,
+        max_output_tokens: int = 4096,
+        timeout_seconds: float = 60.0
+    ) -> str:
+        """
+        Non-streaming text generation with multi-key failover and simulation fallback.
+        """
+        chunks = []
+        async for chunk in self.stream_generate(
+            contents=contents,
+            system_instruction=system_instruction,
+            model=model or settings.fallback_model,
+            temperature=temperature,
+            max_output_tokens=max_output_tokens,
+            timeout_seconds=timeout_seconds
+        ):
+            chunks.append(chunk)
+        return "".join(chunks)
+
     async def _simulate_stream(
+
         self,
         contents: List[Dict[str, Any]],
         system_instruction: Optional[str]
@@ -291,6 +316,34 @@ class GeminiKeyPool:
         lower_query = last_text.lower()
         sys_lower = (system_instruction or "").lower()
 
+        # 0. Adaptive Case Trigger Generation
+        if "quick-trigger" in sys_lower or "quick-trigger" in lower_query or "valides json-array" in sys_lower or "adaptive_triggers" in sys_lower:
+            if "gepäck" in lower_query or "flughafen" in lower_query or "terminal" in lower_query or "airport" in lower_query:
+                sim_triggers = [
+                    {"phase": 1, "trigger_index": 0, "label": "🎯 Ziel: Verlust vs. Durchsatz", "prompt": "Kläre das primäre Ziel des Flughafenbetreibers: Geht es um Minimierung verspäteter Gepäckstücke oder um die Maximierung des Spitzenstundendurchsatzes an Terminal 2?"},
+                    {"phase": 1, "trigger_index": 1, "label": "⏱️ Gepäckumlaufzeit <12min", "prompt": "Kläre die zulässige Transferzeit: Wie eng ist das Zeitfenster für Umsteigepassagiere (<12 Minuten) und welche SLAs gelten gegenüber den Fluggesellschaften?"},
+                    {"phase": 1, "trigger_index": 2, "label": "📊 Altsystem: Profibus-Silos", "prompt": "Erfasse den Integrationszustand: Wie sind die vorhandenen Siemens/Profibus-Steuerungen der Gepäckförderanlagen an Terminal 2 vernetzt?"},
+                    {"phase": 1, "trigger_index": 3, "label": "👥 Bundespolizei & Airlines", "prompt": "Identifiziere die Entscheidungsträger: Bundespolizei (Luftsicherheitskontrolle), Terminalleitung, Ground Handling Dienstleister und Airline-Vertreter."},
+                    {"phase": 2, "trigger_index": 0, "label": "⚙️ Förderband & SCADA Ingest", "prompt": "Modelliere die Sensor- und Telemetrieerfassung an den Förderbändern, Lichttastern und Barcode-Scannern über OPC UA und SCADA Gateways."},
+                    {"phase": 2, "trigger_index": 1, "label": "⚡ Event-Hub Telemetrie", "prompt": "Architekturiere die verteilte Event-Streaming-Pipeline für 25.000 Gepäck-Scans und Rollen-Vibrationsdaten pro Minute mit Apache Kafka."},
+                    {"phase": 2, "trigger_index": 2, "label": "❄️ Airport Ops Lakehouse", "prompt": "Entwirf das Airport Operations Lakehouse zur historischen Analyse von Bandstillständen, Gepäckströmen und prognostizierter Belegung."},
+                    {"phase": 2, "trigger_index": 3, "label": "🤖 MCP Gepäckrouting-Agent", "prompt": "Integriere autonome KI-Agenten über MCP zur dynamischen Gepäck-Umleitung bei Bandstillständen und automatisierter Techniker-Alarmierung."},
+                    {"phase": 3, "trigger_index": 0, "label": "🛡️ Weichenausfall: Bypässe", "prompt": "Spezifiziere das Redundanzkonzept bei Ausfall kritischer Sortierweichen: Automatische Umschaltung auf Alternativ-Loops ohne Bandstau."},
+                    {"phase": 3, "trigger_index": 1, "label": "⚖️ Lokale Sortierung vs. Cloud", "prompt": "Analysiere den Trade-Off: Millisekundenschnelle Sortierentscheidungen auf lokalen Edge-Controllern vs. globale Flugplan-Synchronisation in der Cloud."},
+                    {"phase": 3, "trigger_index": 2, "label": "🔒 Kritis & Luftsicherheit", "prompt": "Härte die Fördertechnik-Infrastruktur gemäß BSI-Kritis und Luftsicherheitsgesetz gegen Cyber-Angriffe und Manipulationen."},
+                    {"phase": 3, "trigger_index": 3, "label": "⚡ Deterministischer Nothalt", "prompt": "Gewährleiste, dass Personenschutz-Lichtschranken und Nothalte deterministisch in <15ms schalten und niemals von Cloud-Latenzen abhängen."},
+                    {"phase": 4, "trigger_index": 0, "label": "📈 Verspätetes Gepäck -80%", "prompt": "Quantifiziere den Business Case: 80% weniger Gepäckverluste, Vermeidung von Airline-Konventionalstrafen (€2.1 Mio./Jahr) und ROI in 6.5 Monaten."},
+                    {"phase": 4, "trigger_index": 1, "label": "🗓️ 3-Phasen Terminal-Rollout", "prompt": "Strukturiere den Umsetzungsfahrplan: Phase A (Pilot-Sortierlinie an Gate B, 6 Wo.), Phase B (Gesamtes Terminal 2, 3 Mon.), Phase C (Hub-weiter Rollout, 8 Mon.)."},
+                    {"phase": 4, "trigger_index": 2, "label": "👔 Senior Workstream-Ownership", "prompt": "Definiere drei eigenverantwortliche Workstreams: Fördertechnik & Hardware-Modernisierung, Streaming-Plattform & MCP-Routing, Bodenbetrieb & Sicherheit."},
+                    {"phase": 4, "trigger_index": 3, "label": "🔄 Bodenpersonal-Enablement", "prompt": "Konzipiere das Schulungsprogramm für Gepäckabfertiger und Leitstandpersonal zur vertrauensvollen Zusammenarbeit mit dem KI-Routing."}
+                ]
+            else:
+                from app.services.trigger_service import get_preset_triggers
+                sim_triggers = get_preset_triggers(lower_query)
+
+            yield json.dumps(sim_triggers, ensure_ascii=False, indent=2)
+            return
+
         # Determine phase (from system instruction or prompt keywords)
         phase = 1
         if "phase 4" in sys_lower or "phase 4" in lower_query or "business-value" in lower_query or "roadmap" in lower_query or "roi" in lower_query or "oee" in lower_query:
@@ -302,6 +355,7 @@ class GeminiKeyPool:
 
         # 1. Direct Node Inspector Q&A
         if "konkrete technische frage zum baustein" in lower_query:
+
             node_name = "System-Komponente"
             if "'" in last_text:
                 try:

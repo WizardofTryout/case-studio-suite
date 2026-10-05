@@ -706,4 +706,84 @@ async def list_prompt_refinements(session_id: str) -> List[Dict[str, Any]]:
             return [dict(r) for r in rows]
 
 
+# --- Adaptive Case Triggers ---
+
+async def get_project_triggers(project_id: str) -> List[Dict[str, Any]]:
+    """Retrieve all adaptive quick triggers for a project ordered by phase and index."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, project_id, phase, trigger_index, label, prompt, is_custom, created_at
+            FROM project_adaptive_triggers
+            WHERE project_id = ?
+            ORDER BY phase ASC, trigger_index ASC
+            """,
+            (project_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def save_project_triggers(project_id: str, triggers: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Saves or updates a set of adaptive triggers for a project.
+    Triggers list contains dicts with {phase, trigger_index, label, prompt, is_custom?}.
+    """
+    async with get_db() as db:
+        for t in triggers:
+            t_id = t.get("id") or str(uuid.uuid4())
+            phase = int(t["phase"])
+            trigger_index = int(t["trigger_index"])
+            label = str(t["label"]).strip()
+            prompt = str(t["prompt"]).strip()
+            is_custom = int(t.get("is_custom", 0))
+
+            await db.execute(
+                """
+                INSERT INTO project_adaptive_triggers (id, project_id, phase, trigger_index, label, prompt, is_custom)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(project_id, phase, trigger_index) DO UPDATE SET
+                    label = excluded.label,
+                    prompt = excluded.prompt,
+                    is_custom = excluded.is_custom,
+                    created_at = CURRENT_TIMESTAMP
+                """,
+                (t_id, project_id, phase, trigger_index, label, prompt, is_custom)
+            )
+        await db.commit()
+    return await get_project_triggers(project_id)
+
+
+async def update_project_trigger(
+    project_id: str,
+    phase: int,
+    trigger_index: int,
+    label: str,
+    prompt: str
+) -> Optional[Dict[str, Any]]:
+    """Updates a single trigger (marking it is_custom=1)."""
+    t_id = str(uuid.uuid4())
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO project_adaptive_triggers (id, project_id, phase, trigger_index, label, prompt, is_custom)
+            VALUES (?, ?, ?, ?, ?, ?, 1)
+            ON CONFLICT(project_id, phase, trigger_index) DO UPDATE SET
+                label = excluded.label,
+                prompt = excluded.prompt,
+                is_custom = 1,
+                created_at = CURRENT_TIMESTAMP
+            """,
+            (t_id, project_id, phase, trigger_index, label.strip(), prompt.strip())
+        )
+        await db.commit()
+    
+    triggers = await get_project_triggers(project_id)
+    for t in triggers:
+        if t["phase"] == phase and t["trigger_index"] == trigger_index:
+            return t
+    return None
+
+
+
 

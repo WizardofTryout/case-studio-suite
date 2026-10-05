@@ -348,5 +348,43 @@ const API = {
       if (typeof onError === "function") onError(err);
       else console.error("SSE stream failed:", err);
     }
+  },
+
+  // --- Adaptive Case Triggers ---
+
+  async getProjectTriggers(projectId) {
+    const res = await fetch(`/api/projects/${projectId}/triggers`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Triggers konnten nicht geladen werden");
+    }
+    return await res.json();
+  },
+
+  async generateAdaptiveTriggers(projectId, caseText) {
+    const res = await fetch(`/api/projects/${projectId}/triggers/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ case_text: caseText })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Trigger-Generierung fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async updateProjectTrigger(projectId, triggerData) {
+    const res = await fetch(`/api/projects/${projectId}/triggers`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(triggerData)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Trigger-Aktualisierung fehlgeschlagen");
+    }
+    return await res.json();
   }
 };
+

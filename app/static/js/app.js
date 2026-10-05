@@ -3,49 +3,97 @@
  */
 
 const App = {
-  PHASE_TRIGGERS: {
-    1: [
-      { label: "🎯 Ziel: OPEX vs. Qualität", prompt: "Kläre das Hauptziel des Kunden: Geht es primär um OPEX-Senkung durch weniger Werkzeugbruch oder um kompromisslose Fertigungsqualität?" },
-      { label: "📊 Datenlage: Silos vs. DWH", prompt: "Prüfe die vorhandene Datenlage: Liegen die Sensordaten aktuell in proprietären Maschinensilos oder existiert bereits ein angebundenes DWH (Data Warehouse)?" },
-      { label: "⏱️ Latenzvorgaben", prompt: "Kläre die maximal tolerierbare Latenz an der Linie (<20ms) und Not-Aus-Szenarien für die Frässpindeln." },
-      { label: "👥 Budget & Stakeholder", prompt: "Erfasse das freigegebene Budget (CAPEX/OPEX) sowie die relevanten Entscheidungsträger (Werkleitung, IT-Leitung, Betriebsrat)." }
-    ],
-    2: [
-      { label: "⚙️ OT/Edge Schicht", prompt: "Detailliere die OT- und Edge-Schicht: Anbindung der SIMATIC SPS über PROFINET und OPC UA an ein Industrial Edge Device (IED)." },
-      { label: "⚡ Kafka Streaming Ingest", prompt: "Modelliere die hochverfügbare Event-Streaming-Pipeline mit Apache Kafka und Kafka Connect für 10.000 Telemetrie-Events/Sekunde." },
-      { label: "❄️ Snowflake / dbt Layer", prompt: "Entwirf die analytische Speicherschicht in Snowflake unter Verwendung von Apache Iceberg und dbt für Medallion-Tabellen (Bronze/Silver/Gold)." },
-      { label: "🤖 MCP-Agenten-Orchestrierung", prompt: "Integriere autonome KI-Agenten über das MCP (Model Context Protocol) zur automatisierten Anomalieerkennung und Wartungsdisposition." }
-    ],
-    3: [
-      { label: "⚖️ Edge vs. Cloud Trade-Off", prompt: "Analysiere den Trade-Off zwischen Edge-Inferenz (<10ms Latenz, keine Cloud-Kosten) und zentralem Cloud-Training mit globalem Modell-Abgleich." },
-      { label: "🛡️ 48h Offline-Puffer bei Netzausfall", prompt: "Spezifiziere das Failover-Konzept bei vollständigem Hallennetzwerk-Ausfall: Lokaler NVMe/SQLite 48h-Ringpuffer auf dem Edge Device mit Re-Sync." },
-      { label: "🔒 IEC 62443 Security", prompt: "Härte die Architektur nach IEC 62443: Zonentrennung (Purdue Level 2 vs. Level 3), Dual-Homed Network Adapter, mTLS und TPM 2.0 Chip." },
-      { label: "⚡ Deterministik vs. LLM", prompt: "Beweise, warum sicherheitskritische Not-Abschaltungen deterministisch im Millisekundenbereich laufen müssen und niemals von probabilistischen LLMs abhängen dürfen." }
-    ],
-    4: [
-      { label: "📈 OEE & ROI Berechnung", prompt: "Kalkuliere den konkreten Business Case: OEE-Steigerung um 3.4%, Reduktion des Ausschusses um 65% und ROI in 8.5 Monaten bei €450k Investition." },
-      { label: "🗓️ 3-Phasen-Roadmap (PoC->Pilot->Scale)", prompt: "Definiere den zeitlichen Phasenplan: 6 Wochen PoC an 2 Maschinen, 3 Monate Pilotlinie (24 Maschinen), Rollout auf alle 120 Anlagen in 9 Monaten." },
-      { label: "👔 Senior Workstream-Ownership", prompt: "Strukturiere die Verantwortlichkeiten in 3 Workstreams (OT-Integration, Cloud-Data-Plattform, Shopfloor-Enablement) mit klaren Deliverables." },
-      { label: "🔄 Change Management", prompt: "Entwickle das Change Management Konzept: Schulung der Maschinenbediener, Betriebsrat-Freigabe für Werker-Assistenz und kontinuierliche Modellvalidierung." }
-    ]
+
+  // Dynamic quick-triggers per phase, loaded from API (SQLite) per project
+  triggerStore: { 1: [], 2: [], 3: [], 4: [] },
+
+  getCaseTopic() {
+    const proj = (this.state.projects || []).find(p => p.id === this.state.currentProjectId);
+    const name = proj ? proj.name : "den aktuellen Case";
+    const ta = document.getElementById("copilot-prompt");
+    const text = ta ? ta.value.trim().replace(/\s+/g, " ") : "";
+    const snippet = text ? ` (Problemstellung: ${text.slice(0, 220)}${text.length > 220 ? "…" : ""})` : "";
+    return `${name}${snippet}`;
   },
 
-  PHASE_TRANSITIONS: {
-    1: {
-      btnLabel: "➔ Phase 1 abschließen & Architektur-Blueprint in Phase 2 generieren",
-      prompt: "Basiert auf den geklärten Fakten und Kundenanforderungen aus Phase 1 (Clarify): Bitte erstelle nun den vollständigen 4-Schichten Architektur-Blueprint in Phase 2 (Architect) mit OT/Edge Ingest, Apache Kafka Event-Streaming, Snowflake Lakehouse und Agenten-Orchestrierung. Modelliere den zugehörigen Mermaid-Echtzeit-Graphen."
-    },
-    2: {
-      btnLabel: "➔ Architektur bestätigen & Deep-Dive / Trade-Offs in Phase 3 analysieren",
-      prompt: "Basierend auf dem freigegebenen Architektur-Blueprint aus Phase 2: Führe nun den detaillierten Deep-Dive in Phase 3 (Deep Dive) durch. Analysiere kritische Trade-Offs (Edge vs. Cloud, 48h Offline-Puffer bei Netzausfall, IEC 62443 Security-Zonen und deterministische SPS-Anbindung vs. LLM). Aktualisiere den Architektur-Graphen entsprechend."
-    },
-    3: {
-      btnLabel: "➔ Deep Dive abschließen & Business-Value / Roadmap in Phase 4 berechnen",
-      prompt: "Basierend auf den analysierten Trade-Offs und Sicherheitskonzepten aus Phase 3: Berechne nun in Phase 4 (Value & Roadmap) den konkreten Business Value. Ermittle die OEE-Steigerung (Overall Equipment Effectiveness), erstelle eine quantitative ROI-Kalkulation und definiere eine 3-Phasen-Implementierungs-Roadmap (PoC -> Pilot -> Scale) inklusive Change Management und Workstream-Ownership."
-    },
-    4: {
-      btnLabel: "🏆 Case-Studie finalisieren & Executive Summary kopieren",
-      action: "copySummary"
+  getResolvedFacts() {
+    const gates = this.state.decisionGates || [];
+    const facts = gates
+      .filter(g => g.status === "resolved" && g.customer_answer)
+      .slice(0, 5)
+      .map(g => `${g.topic}: ${g.customer_answer}`);
+    return facts.length ? ` Bereits geklärte Fakten: ${facts.join("; ")}.` : "";
+  },
+
+  getMcpLabel() {
+    const mcp = (this.triggerStore[2] || []).find(t => /mcp/i.test(t.label));
+    return mcp ? mcp.label.replace(/^[^\p{L}\p{N}]+/u, "").trim() : "MCP-Agenten-Orchestrierung";
+  },
+
+  getPhaseTransition(phase) {
+    const topic = this.getCaseTopic();
+    const facts = this.getResolvedFacts();
+    const mcp = this.getMcpLabel();
+    const map = {
+      1: {
+        btnLabel: "➔ Phase 1 abschließen & Architektur-Blueprint in Phase 2 generieren",
+        prompt: `Basierend auf den geklärten Anforderungen für ${topic}.${facts} Erstelle nun den vollständigen 4-Schichten Architektur-Blueprint in Phase 2 (Architect): Schicht 1 Datenerfassung/Ingest der case-spezifischen Quellsysteme, Schicht 2 Streaming/Integration, Schicht 3 Daten-Plattform/Lakehouse und Schicht 4 MCP-Agenten-Orchestrierung (${mcp}). Zeichne den zugehörigen Mermaid-Graphen.`
+      },
+      2: {
+        btnLabel: "➔ Architektur bestätigen & Deep-Dive / Trade-Offs in Phase 3 analysieren",
+        prompt: `Basierend auf dem freigegebenen Architektur-Blueprint aus Phase 2 für ${topic}.${facts} Führe nun den Deep-Dive in Phase 3 durch: kritische Trade-Offs (dezentral/Edge vs. zentral/Cloud), Ausfall- und Offline-Resilienz, branchenspezifische Security- und Compliance-Anforderungen sowie deterministische Steuerung vs. KI. Aktualisiere den Architektur-Graphen.`
+      },
+      3: {
+        btnLabel: "➔ Deep Dive abschließen & Business-Value / Roadmap in Phase 4 berechnen",
+        prompt: `Basierend auf den analysierten Trade-Offs und Sicherheitskonzepten aus Phase 3 für ${topic}.${facts} Berechne nun in Phase 4 (Value & Roadmap) den konkreten Business Value mit branchenüblichen KPIs, eine quantitative ROI-Kalkulation und eine 3-Phasen-Roadmap (PoC -> Pilot -> Scale) inklusive Change Management und Workstream-Ownership.`
+      },
+      4: {
+        btnLabel: "🏆 Case-Studie finalisieren & Executive Summary kopieren",
+        action: "copySummary"
+      }
+    };
+    return map[phase];
+  },
+
+  async loadProjectTriggers(projectId) {
+    try {
+      const data = await API.getProjectTriggers(projectId);
+      this.applyTriggers(data.triggers || []);
+    } catch (err) {
+      console.warn("Triggers konnten nicht geladen werden:", err);
+      this.applyTriggers([]);
+    }
+  },
+
+  applyTriggers(list) {
+    const store = { 1: [], 2: [], 3: [], 4: [] };
+    list.forEach(t => {
+      if (store[t.phase]) store[t.phase][t.trigger_index] = { label: t.label, prompt: t.prompt };
+    });
+    for (let p = 1; p <= 4; p++) store[p] = store[p].filter(Boolean);
+    this.triggerStore = store;
+    this.renderQuickTriggers(this.state.currentPhase || 1);
+  },
+
+  async adaptTriggersToCase() {
+    const pid = this.state.currentProjectId;
+    if (!pid) return;
+    const ta = document.getElementById("copilot-prompt");
+    const caseText = ta ? ta.value.trim() : "";
+    if (!caseText) {
+      window.showToast("Bitte zuerst die Problemstellung des Cases in das Textfeld eingeben.", "warning");
+      return;
+    }
+    const btn = document.getElementById("btn-adapt-triggers");
+    if (btn) { btn.classList.add("is-loading"); btn.innerText = "⏳ Passe an…"; }
+    try {
+      const data = await API.generateAdaptiveTriggers(pid, caseText);
+      this.applyTriggers(data.triggers || []);
+      window.showToast("Triggers wurden an den Case angepasst.", "success");
+    } catch (err) {
+      window.showToast(`Anpassung fehlgeschlagen: ${err.message}`, "error");
+    } finally {
+      if (btn) { btn.classList.remove("is-loading"); btn.innerText = "🔄 Triggers an Case anpassen"; }
     }
   },
 
@@ -200,6 +248,12 @@ const App = {
     const clearChatBtn = document.getElementById("btn-clear-chat");
     if (clearChatBtn) {
       clearChatBtn.addEventListener("click", () => this.clearChat());
+    }
+
+    // Adaptive Triggers
+    const adaptBtn = document.getElementById("btn-adapt-triggers");
+    if (adaptBtn) {
+      adaptBtn.addEventListener("click", () => this.adaptTriggersToCase());
     }
 
     // Quick Triggers
@@ -493,6 +547,7 @@ const App = {
     await this.loadDecisionGates();
     await this.loadMessages();
     await this.loadDeliberationTeam();
+    await this.loadProjectTriggers(projectId);
   },
 
   switchTab(tabId) {
@@ -573,7 +628,7 @@ const App = {
     if (!container) return;
 
     container.innerHTML = "";
-    const triggers = this.PHASE_TRIGGERS[phase] || [];
+    const triggers = this.triggerStore[phase] || [];
     triggers.forEach(t => {
       const chip = document.createElement("span");
       chip.className = "trigger-chip";
@@ -594,7 +649,7 @@ const App = {
     const existing = container.querySelector(".phase-transition-card");
     if (existing) existing.remove();
 
-    const transition = this.PHASE_TRANSITIONS[phase];
+    const transition = this.getPhaseTransition(phase);
     if (!transition) return;
 
     const card = document.createElement("div");
@@ -626,7 +681,7 @@ const App = {
     window.showToast(`Wechsle in Phase ${nextPhase} und starte Synthese...`, "info");
     await this.switchPhase(nextPhase);
 
-    const transition = this.PHASE_TRANSITIONS[fromPhase];
+    const transition = this.getPhaseTransition(fromPhase);
     if (transition && transition.prompt) {
       await this.runCopilotWithPrompt(transition.prompt, false);
     }
@@ -2787,11 +2842,20 @@ const App = {
       "",
       async (name) => {
         if (!name) return;
-        const created = await API.createProject(name, "industrial_ot", "Lead Evaluator");
-        window.showToast(`Projekt '${name}' angelegt!`, "success");
-        await this.loadProjects();
-        await this.selectProject(created.id);
+        window.showPromptModal(
+          "Branche wählen",
+          "Branche (Industrie, Energie, Logistik, Cloud, MedTech, Smart Building – leer = universell):",
+          "",
+          async (industry) => {
+            const ind = (industry || "").trim() || "cross_domain";
+            const created = await API.createProject(name, ind, "Lead Evaluator");
+            window.showToast(`Projekt '${name}' angelegt!`, "success");
+            await this.loadProjects();
+            await this.selectProject(created.id);
+          }
+        );
       }
+
     );
   },
 

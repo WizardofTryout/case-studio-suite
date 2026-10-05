@@ -131,6 +131,19 @@ CREATE TABLE IF NOT EXISTS prompt_refinements (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 12. DYNAMISCHE CASE-TRIGGER PRO PROJEKT & PHASE
+CREATE TABLE IF NOT EXISTS project_adaptive_triggers (
+    id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    phase INTEGER NOT NULL,          -- 1, 2, 3, 4
+    trigger_index INTEGER NOT NULL,  -- 0, 1, 2, 3
+    label TEXT NOT NULL,             -- z. B. '🤖 MCP Gepäckrouting-Agent'
+    prompt TEXT NOT NULL,            -- Vollständiger Prompt-Text
+    is_custom INTEGER DEFAULT 0,     -- 1 wenn manuell editiert
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(project_id, phase, trigger_index)
+);
+
 -- Performance indices on foreign keys and skill search
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
@@ -144,5 +157,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_tags_tag ON skill_tags(tag_name);
 CREATE INDEX IF NOT EXISTS idx_skill_tags_skill ON skill_tags(skill_key);
 CREATE INDEX IF NOT EXISTS idx_delib_teams_session ON session_deliberation_teams(session_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_refinements_session ON prompt_refinements(session_id);
+CREATE INDEX IF NOT EXISTS idx_triggers_project ON project_adaptive_triggers(project_id);
 """
+
 

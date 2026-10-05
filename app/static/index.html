@@ -98,7 +98,10 @@
             <textarea id="copilot-prompt" class="prompt-textarea" placeholder="z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8 % Ausschuss durch Werkzeugverschleiß. Hohe Vibrationen, aber das Hallen-WLAN ist instabil..."></textarea>
             
             <!-- Quick-Triggers Toolbar -->
-            <div style="font-size:0.75rem; color:#64748b; font-weight:600; margin-top:2px;">Situative Quick-Triggers:</div>
+            <div style="display:flex; align-items:center; gap:10px; margin-top:2px;">
+              <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Situative Quick-Triggers:</span>
+              <button id="btn-adapt-triggers" class="btn btn-secondary btn-xs">🔄 Triggers an Case anpassen</button>
+            </div>
             <div id="quick-triggers-container" class="quick-triggers">
               <!-- Dynamically populated per phase by App.updatePhaseUI -->
             </div>
