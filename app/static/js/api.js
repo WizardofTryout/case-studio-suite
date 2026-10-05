@@ -17,6 +17,57 @@ const API = {
     return await res.json();
   },
 
+  async validateKey(key) {
+    const res = await fetch("/api/keys/validate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key })
+    });
+    return await res.json();
+  },
+
+  async getApiKeys(tenantId = "default") {
+    const res = await fetch(`/api/keys?tenant_id=${encodeURIComponent(tenantId)}`);
+    return await res.json();
+  },
+
+  async saveApiKey(key, tenantId = "default") {
+    const res = await fetch("/api/keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ key, tenant_id: tenantId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fehler beim Speichern des Keys");
+    }
+    return await res.json();
+  },
+
+  async saveApiKeysBatch(keys, tenantId = "default") {
+    const res = await fetch("/api/keys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keys, tenant_id: tenantId })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fehler beim Speichern der Keys");
+    }
+    return await res.json();
+  },
+
+  async deleteApiKey(keyId, tenantId = "default") {
+    const res = await fetch(`/api/keys/${keyId}?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fehler beim Löschen des Keys");
+    }
+    return await res.json();
+  },
+
   async getProjects() {
     const res = await fetch("/api/projects");
     return await res.json();

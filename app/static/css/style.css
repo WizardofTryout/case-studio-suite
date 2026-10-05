@@ -2794,3 +2794,159 @@ svg .node.selected text {
 
 .btn-xs { padding: 3px 10px; font-size: 0.72rem; border-radius: 6px; }
 .btn-xs.is-loading { opacity: 0.6; pointer-events: none; }
+
+/* Key Manager Modal & Dynamic Input Rows */
+.key-manager-modal-card {
+  max-width: 780px !important;
+  max-height: 85vh !important;
+}
+
+.km-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+[data-theme="light"] .km-section {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.km-section-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.km-saved-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.km-saved-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  transition: all 0.2s ease;
+}
+
+.km-saved-row:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-active);
+}
+
+[data-theme="light"] .km-saved-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .km-saved-row:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
+.km-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  animation: kmSlideDown 0.2s ease-out;
+}
+
+@keyframes kmSlideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+[data-theme="light"] .km-input-row {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+.km-input-field {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-main);
+  font-family: monospace;
+  font-size: 0.84rem;
+  outline: none;
+}
+
+.km-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.km-status-valid {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.km-status-invalid {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.km-status-ratelimit {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.km-status-checking {
+  background: rgba(6, 182, 212, 0.15);
+  color: #06b6d4;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+
+.km-action-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-dim);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.km-action-btn:hover {
+  color: var(--text-main);
+  border-color: var(--cyan);
+  background: rgba(6, 182, 212, 0.1);
+}
+
+.km-btn-danger:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}

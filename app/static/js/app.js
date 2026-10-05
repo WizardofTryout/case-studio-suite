@@ -268,10 +268,30 @@ const App = {
       });
     });
 
-    // Key Pool telemetry click
+    // Key Pool telemetry click & Modal controls
     const keyChip = document.getElementById("key-pool-telemetry");
     if (keyChip) {
       keyChip.addEventListener("click", () => this.showKeyPoolModal());
+    }
+
+    const closeKeyManagerBtn = document.getElementById("btn-close-key-manager");
+    if (closeKeyManagerBtn) {
+      closeKeyManagerBtn.addEventListener("click", () => this.closeKeyManagerModal());
+    }
+
+    const closeKeyManagerFooterBtn = document.getElementById("btn-close-key-manager-footer");
+    if (closeKeyManagerFooterBtn) {
+      closeKeyManagerFooterBtn.addEventListener("click", () => this.closeKeyManagerModal());
+    }
+
+    const addKeyRowBtn = document.getElementById("btn-add-key-row");
+    if (addKeyRowBtn) {
+      addKeyRowBtn.addEventListener("click", () => this.addKeyInputRow(""));
+    }
+
+    const saveKeyManagerBtn = document.getElementById("btn-save-key-manager");
+    if (saveKeyManagerBtn) {
+      saveKeyManagerBtn.addEventListener("click", () => this.saveKeyManager());
     }
 
     // Document Upload
@@ -2616,57 +2636,286 @@ const App = {
     );
   },
 
+  // --- Encrypted API Key Manager with Live Validation (Multi-Field UX) ---
+
   async showKeyPoolModal() {
-    const data = await API.getHealth();
-    const pool = data.gemini_pool;
-    
-    let keysHtml = pool.details.map((k, i) => `
-      <div style="display:flex; justify-content:space-between; align-items:center; padding:8px; background:rgba(0,0,0,0.3); border-radius:6px; font-family:monospace; font-size:0.82rem;">
-        <div>Key #${i+1}: <strong>${k.masked_key}</strong></div>
-        <div style="display:flex; gap:8px;">
-          <span class="gate-badge ${k.status === 'HEALTHY' ? 'resolved' : 'pending'}">${k.status}</span>
-          ${k.cooling_remaining_seconds > 0 ? `<span style="color:#f59e0b;">(Cooldown: ${k.cooling_remaining_seconds}s)</span>` : ''}
-        </div>
-      </div>
-    `).join("");
+    const modal = document.getElementById("key-manager-modal-overlay");
+    if (!modal) return;
+    modal.classList.add("active");
 
-    if (!keysHtml) {
-      keysHtml = `<div style="color:#64748b; font-size:0.85rem;">Keine Keys konfiguriert. Läuft im internen Simulations-Modus.</div>`;
+    await this.loadAndRenderSavedKeys();
+
+    const container = document.getElementById("km-new-keys-container");
+    if (container) {
+      container.innerHTML = "";
+      this.addKeyInputRow("");
     }
+  },
 
-    const modalBody = `
-      <div style="display:flex; flex-direction:column; gap:12px;">
-        <p style="font-size:0.86rem; color:#cbd5e1;">
-          Der Gemini Key-Pool unterstützt automatische Round-Robin-Rotation und unterbrechungsfreien Sofort-Failover (&lt;50ms) bei HTTP 429.
-        </p>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          ${keysHtml}
-        </div>
-        <div style="margin-top:10px;">
-          <label style="font-size:0.82rem; color:#94a3b8; display:block; margin-bottom:4px;">
-            Neue Keys hinzufügen (kommagetrennt):
-          </label>
-          <input type="text" id="modal-key-input" class="gate-answer-input" placeholder="AIzaSy..., AIzaSy..." style="width:100%;" />
-        </div>
-      </div>
+  closeKeyManagerModal() {
+    const modal = document.getElementById("key-manager-modal-overlay");
+    if (modal) modal.classList.remove("active");
+  },
+
+  async loadAndRenderSavedKeys() {
+    const listContainer = document.getElementById("km-saved-keys-list");
+    const countSpan = document.getElementById("km-saved-count");
+    const poolBadge = document.getElementById("km-pool-badge");
+    if (!listContainer) return;
+
+    listContainer.innerHTML = `<div style="color:var(--text-dim); font-size:0.8rem; padding:8px;">Lade gespeicherte Schlüssel...</div>`;
+
+    try {
+      const res = await API.getApiKeys();
+      const keys = res.keys || [];
+      const pool = res.pool_status || {};
+
+      if (countSpan) countSpan.innerText = keys.length;
+      if (poolBadge) poolBadge.innerText = pool.keys_summary || `${pool.healthy_keys || 0}/${pool.total_keys || 0} OK`;
+
+      if (keys.length === 0) {
+        listContainer.innerHTML = `
+          <div style="color:var(--text-dim); font-size:0.82rem; padding:10px; text-align:center; background:rgba(0,0,0,0.15); border-radius:6px;">
+            ℹ️ Noch keine persistenten Schlüssel gespeichert. Die App läuft im internen Simulations-Modus oder mit Schlüsseln aus .env.
+          </div>
+        `;
+        return;
+      }
+
+      listContainer.innerHTML = "";
+      keys.forEach((k) => {
+        const row = document.createElement("div");
+        row.className = "km-saved-row";
+        row.id = `km-saved-row-${k.id}`;
+
+        let statusHtml = `<span class="km-status-badge km-status-valid">● Aktiv</span>`;
+        if (k.status === "rate_limited" || k.status === "cooldown") {
+          statusHtml = `<span class="km-status-badge km-status-ratelimit">🟠 Rate-Limit (${k.cooldown_remaining_seconds || 60}s)</span>`;
+        } else if (k.status === "invalid" || k.status === "error") {
+          statusHtml = `<span class="km-status-badge km-status-invalid">✖ Ungültig</span>`;
+        }
+
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span style="font-size:1rem;">🔑</span>
+            <span style="font-family:monospace; font-weight:600; color:var(--text-main);">${this.escapeHtml(k.masked_key)}</span>
+            ${statusHtml}
+          </div>
+          <div id="km-del-zone-${k.id}" style="display:flex; align-items:center; gap:6px;">
+            <button type="button" class="km-action-btn km-btn-danger" title="Schlüssel löschen" onclick="App.confirmDeleteSavedKey('${k.id}')">
+              🗑️
+            </button>
+          </div>
+        `;
+        listContainer.appendChild(row);
+      });
+    } catch (err) {
+      listContainer.innerHTML = `<div style="color:var(--rose); font-size:0.82rem;">Fehler beim Laden der Schlüssel: ${this.escapeHtml(err.message)}</div>`;
+    }
+  },
+
+  confirmDeleteSavedKey(keyId) {
+    const zone = document.getElementById(`km-del-zone-${keyId}`);
+    if (!zone) return;
+    zone.innerHTML = `
+      <span style="font-size:0.75rem; color:var(--rose); margin-right:4px;">Löschen?</span>
+      <button type="button" class="btn btn-danger btn-xs" onclick="App.deleteSavedKey('${keyId}')">Ja</button>
+      <button type="button" class="btn btn-secondary btn-xs" onclick="App.loadAndRenderSavedKeys()">Nein</button>
+    `;
+  },
+
+  async deleteSavedKey(keyId) {
+    try {
+      await API.deleteApiKey(keyId);
+      window.showToast("Schlüssel erfolgreich gelöscht.", "success");
+      await this.loadAndRenderSavedKeys();
+      await this.refreshTelemetry();
+    } catch (err) {
+      window.showToast(`Löschen fehlgeschlagen: ${err.message}`, "error");
+    }
+  },
+
+  addKeyInputRow(initialValue = "") {
+    const container = document.getElementById("km-new-keys-container");
+    if (!container) return;
+
+    const rowId = `key-row-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+    const row = document.createElement("div");
+    row.className = "km-input-row";
+    row.id = rowId;
+    row.dataset.valid = "neutral";
+
+    row.innerHTML = `
+      <input type="password" class="km-input-field" placeholder="AIzaSy..." autocomplete="off" value="${this.escapeHtml(initialValue)}" />
+      <button type="button" class="km-action-btn km-toggle-pw-btn" title="Klartext anzeigen / verbergen">👁️</button>
+      <div class="km-row-status" style="min-width:90px; text-align:right;"></div>
+      <button type="button" class="km-action-btn km-btn-add-next" title="Neues Feld darunter einfügen">➕</button>
+      <button type="button" class="km-action-btn km-btn-remove-row" title="Zeile entfernen">🗑️</button>
     `;
 
-    window.showConfirmModal(
-      "Gemini Pro Round-Robin Key Manager",
-      modalBody,
-      async () => {
-        const input = document.getElementById("modal-key-input");
-        const val = input ? input.value.trim() : "";
-        if (val) {
-          const keys = val.split(",").map(k => k.trim()).filter(k => k);
-          await API.updateKeys(keys);
-          window.showToast(`${keys.length} API-Key(s) im Pool registriert!`, "success");
-          await this.refreshTelemetry();
+    container.appendChild(row);
+
+    const input = row.querySelector(".km-input-field");
+    const toggleBtn = row.querySelector(".km-toggle-pw-btn");
+    const addNextBtn = row.querySelector(".km-btn-add-next");
+    const removeBtn = row.querySelector(".km-btn-remove-row");
+
+    // Toggle password visibility
+    toggleBtn.addEventListener("click", () => {
+      input.type = input.type === "password" ? "text" : "password";
+    });
+
+    // Add next row
+    addNextBtn.addEventListener("click", () => {
+      this.addKeyInputRow("");
+    });
+
+    // Remove row
+    removeBtn.addEventListener("click", () => {
+      const allRows = container.querySelectorAll(".km-input-row");
+      if (allRows.length > 1) {
+        row.remove();
+      } else {
+        input.value = "";
+        row.dataset.valid = "neutral";
+        row.querySelector(".km-row-status").innerHTML = "";
+      }
+    });
+
+    // Paste handler (automatic multi-key split)
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasteText = (e.clipboardData || window.clipboardData).getData("text");
+      this.handleKeyPaste(row, pasteText);
+    });
+
+    // Live validation debounce
+    let debounceTimer = null;
+    input.addEventListener("input", () => {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        this.validateKeyRow(row, input.value.trim());
+      }, 400);
+    });
+
+    input.addEventListener("blur", () => {
+      clearTimeout(debounceTimer);
+      this.validateKeyRow(row, input.value.trim());
+    });
+
+    if (initialValue) {
+      this.validateKeyRow(row, initialValue.trim());
+    } else {
+      input.focus();
+    }
+  },
+
+  handleKeyPaste(targetRow, text) {
+    if (!text) return;
+    const parts = text.split(/[\s,;]+/).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+
+    // Fill current row with first part
+    const targetInput = targetRow.querySelector(".km-input-field");
+    if (targetInput) {
+      targetInput.value = parts[0];
+      this.validateKeyRow(targetRow, parts[0]);
+    }
+
+    // Add subsequent rows for the remaining keys
+    for (let i = 1; i < parts.length; i++) {
+      this.addKeyInputRow(parts[i]);
+    }
+  },
+
+  async validateKeyRow(row, plainKey) {
+    const statusDiv = row.querySelector(".km-row-status");
+    if (!statusDiv) return;
+
+    if (!plainKey) {
+      statusDiv.innerHTML = "";
+      row.dataset.valid = "neutral";
+      return;
+    }
+
+    // Format pre-check
+    if (plainKey.length < 10) {
+      statusDiv.innerHTML = `<span class="km-status-badge km-status-invalid" title="Key zu kurz">❌ Format ungültig</span>`;
+      row.dataset.valid = "false";
+      return;
+    }
+
+    statusDiv.innerHTML = `<span class="km-status-badge km-status-checking">⏳ Prüfe...</span>`;
+    row.dataset.valid = "checking";
+
+    try {
+      const res = await API.validateKey(plainKey);
+      if (res.valid && res.status === "ok") {
+        statusDiv.innerHTML = `<span class="km-status-badge km-status-valid" title="Key betriebsbereit">✅ Gültig</span>`;
+        row.dataset.valid = "true";
+      } else if (res.valid && res.status === "rate_limited") {
+        statusDiv.innerHTML = `<span class="km-status-badge km-status-ratelimit" title="Key gültig, aktuell Rate-Limit (429)">🟠 Rate-Limit</span>`;
+        row.dataset.valid = "true";
+      } else {
+        statusDiv.innerHTML = `<span class="km-status-badge km-status-invalid" title="${this.escapeHtml(res.message || 'Ungültig')}">❌ ${this.escapeHtml(res.message || 'Ungültig')}</span>`;
+        row.dataset.valid = "false";
+      }
+    } catch (err) {
+      statusDiv.innerHTML = `<span class="km-status-badge km-status-invalid" title="Netzwerkfehler">⚠️ Prüffehler</span>`;
+      row.dataset.valid = "false";
+    }
+  },
+
+  async saveKeyManager() {
+    const container = document.getElementById("km-new-keys-container");
+    if (!container) return;
+
+    const rows = container.querySelectorAll(".km-input-row");
+    const validKeys = [];
+
+    for (const r of rows) {
+      const input = r.querySelector(".km-input-field");
+      const key = input ? input.value.trim() : "";
+      if (!key) continue;
+
+      if (r.dataset.valid === "true") {
+        validKeys.push(key);
+      } else if (r.dataset.valid === "checking" || r.dataset.valid === "neutral") {
+        await this.validateKeyRow(r, key);
+        if (r.dataset.valid === "true") {
+          validKeys.push(key);
         }
-      },
-      "Keys speichern",
-      "Schließen"
-    );
+      }
+    }
+
+    if (validKeys.length === 0) {
+      window.showToast("Keine neuen gültigen Schlüssel zum Speichern vorhanden.", "info");
+      return;
+    }
+
+    const saveBtn = document.getElementById("btn-save-key-manager");
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.innerText = "⏳ Verschlüssele & speichere...";
+    }
+
+    try {
+      const res = await API.saveApiKeysBatch(validKeys);
+      window.showToast(`🎉 ${res.saved_count || validKeys.length} Schlüssel erfolgreich verschlüsselt gespeichert!`, "success");
+      await this.loadAndRenderSavedKeys();
+      await this.refreshTelemetry();
+
+      // Reset new keys container with 1 clean row
+      container.innerHTML = "";
+      this.addKeyInputRow("");
+    } catch (err) {
+      window.showToast(`Speichern fehlgeschlagen: ${err.message}`, "error");
+    } finally {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.innerText = "💾 Gültige Schlüssel speichern";
+      }
+    }
   },
 
   // Text cleaning: filter out ```mermaid ... ``` and [DECISION_GATE] blocks from text display

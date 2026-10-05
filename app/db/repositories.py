@@ -778,11 +778,102 @@ async def update_project_trigger(
         )
         await db.commit()
     
-    triggers = await get_project_triggers(project_id)
-    for t in triggers:
-        if t["phase"] == phase and t["trigger_index"] == trigger_index:
-            return t
-    return None
+
+# --- Encrypted API Keys Repository ---
+
+async def list_api_keys(tenant_id: str = "default") -> List[Dict[str, Any]]:
+    """Returns all stored API keys for the given tenant."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, tenant_id, provider, key_encrypted, key_fingerprint, masked_key,
+                   last_status, last_checked_at, created_at
+            FROM api_keys
+            WHERE tenant_id = ?
+            ORDER BY created_at ASC
+            """,
+            (tenant_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_api_key_by_id(key_id: str) -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, tenant_id, provider, key_encrypted, key_fingerprint, masked_key,
+                   last_status, last_checked_at, created_at
+            FROM api_keys
+            WHERE id = ?
+            """,
+            (key_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def get_api_key_by_fingerprint(fingerprint: str, tenant_id: str = "default") -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, tenant_id, provider, key_encrypted, key_fingerprint, masked_key,
+                   last_status, last_checked_at, created_at
+            FROM api_keys
+            WHERE tenant_id = ? AND key_fingerprint = ?
+            """,
+            (tenant_id, fingerprint)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def save_api_key(
+    id: str,
+    tenant_id: str,
+    provider: str,
+    key_encrypted: str,
+    key_fingerprint: str,
+    masked_key: str,
+    last_status: str
+) -> Dict[str, Any]:
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO api_keys (
+                id, tenant_id, provider, key_encrypted, key_fingerprint,
+                masked_key, last_status, last_checked_at, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT(tenant_id, key_fingerprint) DO UPDATE SET
+                key_encrypted = excluded.key_encrypted,
+                masked_key = excluded.masked_key,
+                last_status = excluded.last_status,
+                last_checked_at = CURRENT_TIMESTAMP
+            """,
+            (id, tenant_id, provider, key_encrypted, key_fingerprint, masked_key, last_status)
+        )
+        await db.commit()
+    res = await get_api_key_by_id(id)
+    if not res:
+        res = await get_api_key_by_fingerprint(key_fingerprint, tenant_id)
+    return res  # type: ignore
+
+
+async def delete_api_key(key_id: str, tenant_id: str = "default") -> bool:
+    async with get_db() as db:
+        cursor = await db.execute("DELETE FROM api_keys WHERE id = ? AND tenant_id = ?", (key_id, tenant_id))
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+async def update_api_key_status(key_id: str, status: str) -> None:
+    async with get_db() as db:
+        await db.execute(
+            "UPDATE api_keys SET last_status = ?, last_checked_at = CURRENT_TIMESTAMP WHERE id = ?",
+            (status, key_id)
+        )
+        await db.commit()
 
 
 

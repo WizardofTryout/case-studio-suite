@@ -39,13 +39,3 @@ async def health_check():
         },
         "gemini_pool": pool_status
     }
-
-
-@router.post("/keys/update")
-async def update_keys(payload: KeyUpdateRequest):
-    """Dynamically update or add Gemini API keys to the running key pool."""
-    key_pool.reload_keys(payload.keys)
-    return {
-        "message": "Key pool reloaded successfully",
-        "gemini_pool": key_pool.get_pool_status()
-    }

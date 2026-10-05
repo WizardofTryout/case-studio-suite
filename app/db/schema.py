@@ -144,6 +144,20 @@ CREATE TABLE IF NOT EXISTS project_adaptive_triggers (
     UNIQUE(project_id, phase, trigger_index)
 );
 
+-- 13. VERSCHLÜSSELTE API-KEYS MIT LIVE-VALIDIERUNG & MULTI-TENANCY
+CREATE TABLE IF NOT EXISTS api_keys (
+    id TEXT PRIMARY KEY,
+    tenant_id TEXT NOT NULL DEFAULT 'default',   -- vorbereitet für Mehrmandanten
+    provider TEXT DEFAULT 'gemini',
+    key_encrypted TEXT NOT NULL,                 -- Fernet-Geheimtext, NIE Klartext
+    key_fingerprint TEXT NOT NULL,               -- SHA-256(key)[:16] zur Duplikaterkennung
+    masked_key TEXT NOT NULL,                    -- z. B. AIza…lLpw für die Anzeige
+    last_status TEXT,                            -- ok | invalid | rate_limited
+    last_checked_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(tenant_id, key_fingerprint)
+);
+
 -- Performance indices on foreign keys and skill search
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
@@ -158,6 +172,7 @@ CREATE INDEX IF NOT EXISTS idx_skill_tags_skill ON skill_tags(skill_key);
 CREATE INDEX IF NOT EXISTS idx_delib_teams_session ON session_deliberation_teams(session_id);
 CREATE INDEX IF NOT EXISTS idx_prompt_refinements_session ON prompt_refinements(session_id);
 CREATE INDEX IF NOT EXISTS idx_triggers_project ON project_adaptive_triggers(project_id);
+CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
 """
 
 

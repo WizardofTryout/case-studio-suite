@@ -7,6 +7,7 @@
 /data/case_studio.db
 /data/case_studio.db-wal
 /data/case_studio.db-shm
+/data/.master_key
 /data/projects/*
 !/data/.gitkeep
 !/data/projects/.gitkeep

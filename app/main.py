@@ -18,7 +18,8 @@ from app.api import (
     sessions_router,
     decision_gates_router,
     copilot_router,
-    deliberation_router
+    deliberation_router,
+    keys_router
 )
 
 # Setup logging
@@ -36,6 +37,27 @@ async def lifespan(app: FastAPI):
     settings.resolved_data_dir
     settings.resolved_skills_catalog_dir
     await init_db()
+
+    # Load and decrypt stored API keys from SQLite + ENV into key_pool
+    try:
+        from app.db import repositories
+        from app.core.crypto import decrypt_key
+        from app.core.gemini_pool import key_pool
+        db_keys = await repositories.list_api_keys()
+        all_keys = list(settings.api_key_list)
+        for row in db_keys:
+            try:
+                dec = decrypt_key(row.get("key_encrypted", ""))
+                if dec and dec not in all_keys:
+                    all_keys.append(dec)
+            except Exception as e:
+                logger.error(f"Failed to decrypt stored key {row.get('masked_key')}: {e}")
+        if all_keys:
+            key_pool.reload_keys(all_keys)
+            logger.info(f"GeminiKeyPool initialized with {len(key_pool.keys)} active keys from DB & ENV.")
+    except Exception as e:
+        logger.error(f"Error loading API keys on startup: {e}")
+
     logger.info(f"Case Studio Suite ready on port {settings.port}")
     yield
     logger.info("Shutting down Case Studio Suite.")
@@ -78,6 +100,7 @@ app.include_router(sessions_router)
 app.include_router(decision_gates_router)
 app.include_router(copilot_router)
 app.include_router(deliberation_router)
+app.include_router(keys_router)
 
 # Mount static files
 static_dir = Path(__file__).parent / "static"

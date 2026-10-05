@@ -81,6 +81,23 @@ class GeminiKeyPool:
         self.keys = updated
         logger.info(f"GeminiKeyPool reloaded. Active key count: {len(self.keys)}")
 
+    def remove_key_by_identifier(self, key_identifier: str) -> bool:
+        """Removes a key matching either plaintext, masked_key, or fingerprint."""
+        before = len(self.keys)
+        self.keys = [k for k in self.keys if k.key != key_identifier and k.masked_key != key_identifier]
+        return len(self.keys) < before
+
+    def add_or_update_key(self, plain_key: str, status: KeyStatus = KeyStatus.HEALTHY) -> KeyInfo:
+        clean = plain_key.strip()
+        for k in self.keys:
+            if k.key == clean:
+                k.status = status
+                return k
+        new_info = KeyInfo(clean)
+        new_info.status = status
+        self.keys.append(new_info)
+        return new_info
+
     def get_pool_status(self) -> Dict[str, Any]:
         """Returns key pool telemetry for UI header: Keys: [ X/Y OK ]."""
         total = len(self.keys)

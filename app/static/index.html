@@ -607,6 +607,56 @@
         </button>
       </div>
     </div>
+  <!-- Gemini Key-Manager Modal (Live-Validation, Encrypted Persistence, Multi-Field UX) -->
+  <div id="key-manager-modal-overlay" class="modal-overlay">
+    <div class="modal-card key-manager-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+            <span>🔑 Gemini Key-Manager</span>
+            <span id="km-pool-badge" class="brand-badge" style="font-size:0.7rem;">0/0 OK</span>
+          </div>
+          <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+            Round-Robin Rotation mit automatischem Failover (&lt;50ms) bei HTTP 429 &amp; verschlüsselter Persistenz
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-key-manager">&times;</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:16px; max-height:68vh; overflow-y:auto; padding-right:4px;">
+        <!-- Section 1: Gespeicherte Keys -->
+        <div class="km-section">
+          <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>📋 Gespeicherte API-Schlüssel (<span id="km-saved-count">0</span>)</span>
+            <span style="font-size:0.72rem; color:var(--text-dim);">Verschlüsselt (AES-128 / Fernet)</span>
+          </div>
+          <div id="km-saved-keys-list" class="km-saved-list">
+            <!-- Dynamically rendered rows -->
+          </div>
+        </div>
+
+        <!-- Section 2: Neue Keys erfassen -->
+        <div class="km-section">
+          <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>✨ Neue API-Schlüssel erfassen</span>
+            <span style="font-size:0.72rem; color:var(--cyan);">Tipp: Kommagetrennte Liste oder Zeilenumbruch direkt einfügen</span>
+          </div>
+          <div id="km-new-keys-container" style="display:flex; flex-direction:column; gap:8px;">
+            <!-- Dynamically created new key input rows -->
+          </div>
+          <button id="btn-add-key-row" type="button" class="btn btn-secondary btn-sm" style="align-self:flex-start; margin-top:8px; display:flex; align-items:center; gap:6px;">
+            ➕ Weiteren Schlüssel hinzufügen
+          </button>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px;">
+        <button id="btn-close-key-manager-footer" class="btn btn-secondary btn-sm">Schließen</button>
+        <button id="btn-save-key-manager" class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:6px;">
+          💾 Gültige Schlüssel speichern
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Skill Studio & Markdown Editor Modal (Sprint 7) -->
