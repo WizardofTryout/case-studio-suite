@@ -10,6 +10,7 @@ services:
       - ./data:/app/data
       - ./app:/app/app
       - ./skills_catalog:/app/skills_catalog
+      - /Volumes/Spacestation/MCP/Antigravity-MCP-tools:/Volumes/Spacestation/MCP/Antigravity-MCP-tools:ro
     env_file:
       - path: .env
         required: false

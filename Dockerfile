@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /root/.local /root/.local
 
 # Create directories for persistent storage and skills
-RUN mkdir -p /app/data/projects /app/skills_catalog /app/static
+RUN mkdir -p /app/data/projects /app/data/skills_catalog /app/skills_catalog /app/static
 
 # Copy project files
 COPY app/ /app/app/

@@ -10,6 +10,8 @@
 /data/projects/*
 !/data/.gitkeep
 !/data/projects/.gitkeep
+/data/skills_catalog/*
+!/data/skills_catalog/.gitkeep
 
 # Python
 __pycache__/

@@ -69,11 +69,24 @@ const App = {
     }
   },
 
+  skillsState: {
+    library: [],
+    activeTag: "all",
+    searchQuery: "",
+    searchDebounceTimer: null,
+    scannedSkills: [],
+    selectedScanIndices: new Set(),
+    editingSkillKey: null,
+    editingScope: "global",
+    isBuiltIn: false
+  },
+
   async init() {
     this.initTheme();
     GraphViewer.init();
     this.bindEvents();
     this.bindDrawerEvents();
+    this.bindSkillStudioEvents();
     this.renderQuickTriggers(1);
     await this.refreshTelemetry();
     await this.loadProjects();
@@ -447,6 +460,7 @@ const App = {
 
     await this.loadProjectDocuments();
     await this.loadProjectSkills();
+    await this.loadSkillsCatalog();
     await this.loadDecisionGates();
     await this.loadMessages();
   },
@@ -1382,31 +1396,260 @@ const App = {
     );
   },
 
-  // --- Skill Snapshotting Engine ---
+  // --- Sprints 5-8: Skill Studio, Deep-Scanner & Editor Engine ---
+
+  bindSkillStudioEvents() {
+    // Search input with debounce 150ms
+    const searchInput = document.getElementById("skill-search-input");
+    const clearBtn = document.getElementById("btn-clear-skill-search");
+    if (searchInput) {
+      searchInput.addEventListener("input", (e) => {
+        const val = e.target.value;
+        if (clearBtn) clearBtn.style.display = val ? "block" : "none";
+        clearTimeout(this.skillsState.searchDebounceTimer);
+        this.skillsState.searchDebounceTimer = setTimeout(() => {
+          this.skillsState.searchQuery = val.trim();
+          this.loadSkillsCatalog();
+        }, 150);
+      });
+    }
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        clearBtn.style.display = "none";
+        this.skillsState.searchQuery = "";
+        this.loadSkillsCatalog();
+      });
+    }
+
+    // Tag pills click listeners
+    const tagPillsContainer = document.getElementById("skill-tag-pills");
+    if (tagPillsContainer) {
+      tagPillsContainer.addEventListener("click", (e) => {
+        const pill = e.target.closest(".tag-pill");
+        if (!pill) return;
+        const tag = pill.dataset.tag;
+        this.skillsState.activeTag = tag;
+
+        tagPillsContainer.querySelectorAll(".tag-pill").forEach(p => p.classList.remove("active"));
+        pill.classList.add("active");
+
+        this.loadSkillsCatalog();
+      });
+    }
+
+    // Import Modal triggers
+    const openImportBtn = document.getElementById("btn-open-skill-import");
+    if (openImportBtn) {
+      openImportBtn.addEventListener("click", () => this.openSkillImportModal());
+    }
+
+    const closeImportBtn = document.getElementById("btn-close-skill-import");
+    if (closeImportBtn) {
+      closeImportBtn.addEventListener("click", () => this.closeSkillImportModal());
+    }
+
+    const cancelImportBtn = document.getElementById("btn-cancel-skill-import");
+    if (cancelImportBtn) {
+      cancelImportBtn.addEventListener("click", () => this.closeSkillImportModal());
+    }
+
+    // Preset buttons
+    document.querySelectorAll(".import-preset-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const pathInput = document.getElementById("scan-path-input");
+        if (pathInput) pathInput.value = btn.dataset.path;
+        this.runSkillScan();
+      });
+    });
+
+    // Start scan button
+    const startScanBtn = document.getElementById("btn-start-skill-scan");
+    if (startScanBtn) {
+      startScanBtn.addEventListener("click", () => this.runSkillScan());
+    }
+
+    // Scan filter input
+    const scanFilterInput = document.getElementById("scan-filter-input");
+    if (scanFilterInput) {
+      scanFilterInput.addEventListener("input", (e) => {
+        this.renderScanResultsTable(e.target.value);
+      });
+    }
+
+    // Select all / deselect all
+    const selectAllBtn = document.getElementById("btn-scan-select-all");
+    if (selectAllBtn) {
+      selectAllBtn.addEventListener("click", () => {
+        this.skillsState.selectedScanIndices = new Set(this.skillsState.scannedSkills.map((_, i) => i));
+        this.renderScanResultsTable(scanFilterInput ? scanFilterInput.value : "");
+      });
+    }
+
+    const deselectAllBtn = document.getElementById("btn-scan-deselect-all");
+    if (deselectAllBtn) {
+      deselectAllBtn.addEventListener("click", () => {
+        this.skillsState.selectedScanIndices.clear();
+        this.renderScanResultsTable(scanFilterInput ? scanFilterInput.value : "");
+      });
+    }
+
+    const masterCb = document.getElementById("scan-master-cb");
+    if (masterCb) {
+      masterCb.addEventListener("change", (e) => {
+        if (e.target.checked) {
+          this.skillsState.selectedScanIndices = new Set(this.skillsState.scannedSkills.map((_, i) => i));
+        } else {
+          this.skillsState.selectedScanIndices.clear();
+        }
+        this.renderScanResultsTable(scanFilterInput ? scanFilterInput.value : "");
+      });
+    }
+
+    // Execute import
+    const executeImportBtn = document.getElementById("btn-execute-skill-import");
+    if (executeImportBtn) {
+      executeImportBtn.addEventListener("click", () => this.executeSkillImport());
+    }
+
+    // Editor Modal triggers
+    const newCustomSkillBtn = document.getElementById("btn-new-custom-skill");
+    if (newCustomSkillBtn) {
+      newCustomSkillBtn.addEventListener("click", () => this.openSkillEditor(null, false));
+    }
+
+    const closeEditorBtn = document.getElementById("btn-close-skill-editor");
+    if (closeEditorBtn) {
+      closeEditorBtn.addEventListener("click", () => this.closeSkillEditor());
+    }
+
+    const cancelEditorBtn = document.getElementById("btn-cancel-skill-editor");
+    if (cancelEditorBtn) {
+      cancelEditorBtn.addEventListener("click", () => this.closeSkillEditor());
+    }
+
+    const saveEditorBtn = document.getElementById("btn-save-skill-editor");
+    if (saveEditorBtn) {
+      saveEditorBtn.addEventListener("click", () => this.saveSkillEditor());
+    }
+
+    // Editor live preview on typing
+    const editorText = document.getElementById("editor-markdown-text");
+    if (editorText) {
+      editorText.addEventListener("input", () => this.updateEditorPreview());
+    }
+  },
 
   async loadSkillsCatalog() {
-    const catalog = await API.getSkillsCatalog();
     const container = document.getElementById("skills-catalog-list");
     if (!container) return;
 
-    container.innerHTML = "";
-    catalog.forEach(s => {
-      const card = document.createElement("div");
-      card.style.cssText = "display:flex; flex-direction:column; gap:8px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px;";
-      card.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div style="font-weight:700; font-size:0.9rem; color:#fff;">📦 ${this.escapeHtml(s.display_name)}</div>
-          <span class="brand-badge" style="font-size:0.6rem;">${s.skill_category}</span>
+    const params = {
+      search: this.skillsState.searchQuery || undefined,
+      tag: (this.skillsState.activeTag && this.skillsState.activeTag !== "all" && this.skillsState.activeTag !== "__favorites__") ? this.skillsState.activeTag : undefined,
+      is_favorite: this.skillsState.activeTag === "__favorites__" ? 1 : undefined,
+      project_id: this.state.currentProjectId || undefined
+    };
+
+    try {
+      const skills = await API.getSkillsLibrary(params);
+      this.skillsState.library = skills;
+      this.renderSkillsCatalog(skills);
+    } catch (err) {
+      container.innerHTML = `<div style="color:var(--rose); font-size:0.85rem;">Fehler beim Laden des Katalogs: ${this.escapeHtml(err.message)}</div>`;
+    }
+  },
+
+  renderSkillsCatalog(skills) {
+    const container = document.getElementById("skills-catalog-list");
+    const countBadge = document.getElementById("skill-count-badge");
+    if (!container) return;
+
+    if (countBadge) {
+      countBadge.innerText = `${skills.length} Skills`;
+    }
+
+    if (!skills || skills.length === 0) {
+      container.innerHTML = `
+        <div style="color:var(--text-dim); font-size:0.85rem; text-align:center; padding:30px 10px;">
+          🔍 Keine Skills gefunden. Passe die Suchbegriffe oder Tag-Filter an, oder importiere neue Repositories!
         </div>
-        <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${this.escapeHtml(s.description)}</div>
-        <div style="display:flex; justify-content:flex-end; margin-top:4px;">
-          <button class="btn btn-secondary btn-sm" onclick="App.activateSkill('${s.skill_name}')">
-            📥 Im Projekt snapshotten
+      `;
+      return;
+    }
+
+    container.innerHTML = "";
+    skills.forEach(s => {
+      const card = document.createElement("div");
+      card.className = "skill-card-item";
+
+      const isFav = !!s.is_favorite;
+      const isSnapshotted = !!s.is_snapshotted;
+      const originLabel = s.source_type === "system" ? "System" : (s.source_type === "user_created" ? "Custom" : "Importiert");
+
+      let tagsHtml = "";
+      if (s.tags_csv) {
+        const tags = s.tags_csv.split(",").map(t => t.trim()).filter(Boolean);
+        tagsHtml = tags.map(t => `<span class="skill-tag-chip">#${this.escapeHtml(t)}</span>`).join("");
+      }
+
+      card.innerHTML = `
+        <div class="skill-card-header">
+          <div class="skill-card-title-group">
+            <div class="skill-card-title">
+              <span>📦</span> ${this.escapeHtml(s.display_name)}
+            </div>
+            <div class="skill-card-key">${this.escapeHtml(s.skill_key)}</div>
+          </div>
+          <div class="skill-card-badges">
+            <span class="skill-origin-badge">${originLabel}</span>
+            <span class="brand-badge" style="font-size:0.65rem;">${s.skill_category}</span>
+            <button class="skill-fav-btn ${isFav ? 'is-favorite' : ''}" title="${isFav ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}" onclick="App.toggleSkillFavorite('${s.skill_key}', event)">
+              ${isFav ? '⭐' : '☆'}
+            </button>
+          </div>
+        </div>
+
+        <div class="skill-card-desc">
+          ${this.escapeHtml(s.description || 'Keine Beschreibung hinterlegt.')}
+        </div>
+
+        ${tagsHtml ? `<div class="skill-tag-chips-row">${tagsHtml}</div>` : ''}
+
+        <div class="skill-card-actions">
+          <button class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px;" onclick="App.openSkillEditor('${s.skill_key}', false)">
+            ✏️ Bearbeiten
           </button>
+          <div>
+            ${isSnapshotted 
+              ? `<span class="badge-snapshotted">✓ Im Projekt</span>`
+              : `<button class="btn btn-secondary btn-sm" onclick="App.activateSkill('${s.skill_key}')">📥 Im Projekt snapshotten</button>`
+            }
+          </div>
         </div>
       `;
       container.appendChild(card);
     });
+  },
+
+  async toggleSkillFavorite(skillKey, event) {
+    if (event) event.stopPropagation();
+    try {
+      const updated = await API.toggleSkillFavorite(skillKey);
+      const isFav = !!updated.is_favorite;
+      window.showToast(isFav ? `⭐ '${skillKey}' zu Favoriten hinzugefügt` : `Aus Favoriten entfernt`, "info");
+      
+      if (this.skillsState.activeTag === "__favorites__") {
+        await this.loadSkillsCatalog();
+      } else {
+        const item = this.skillsState.library.find(s => s.skill_key === skillKey);
+        if (item) item.is_favorite = updated.is_favorite;
+        this.renderSkillsCatalog(this.skillsState.library);
+      }
+    } catch (err) {
+      window.showToast(`Fehler beim Favorisieren: ${err.message}`, "error");
+    }
   },
 
   async loadProjectSkills() {
@@ -1414,30 +1657,45 @@ const App = {
     const skills = await API.getProjectSkills(this.state.currentProjectId);
     this.state.activeSkills = skills;
 
+    const countBadge = document.getElementById("active-skill-count-badge");
+    if (countBadge) {
+      countBadge.innerText = `${skills.filter(s => s.is_active).length} / ${skills.length} Aktiv`;
+    }
+
     const list = document.getElementById("active-skills-list");
     if (!list) return;
 
     list.innerHTML = "";
     if (!skills || skills.length === 0) {
-      list.innerHTML = `<div style="color:#64748b; font-size:0.85rem;">Keine aktiven Skills im Projekt. Aktiviere Skills aus dem Katalog!</div>`;
+      list.innerHTML = `<div style="color:#64748b; font-size:0.85rem; padding:12px 0;">Keine gesnapshotteten Skills im Projekt. Wähle rechts aus dem Katalog oder importiere externe Repositories!</div>`;
       return;
     }
 
     skills.forEach(s => {
       const item = document.createElement("div");
-      item.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:8px;";
+      item.style.cssText = "display:flex; flex-direction:column; gap:6px; padding:10px 12px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:var(--radius-sm);";
       item.innerHTML = `
-        <div>
-          <div style="font-weight:600; font-size:0.88rem; color:#fff;">⚡ ${this.escapeHtml(s.skill_name)}</div>
-          <div style="font-size:0.75rem; color:#64748b; font-family:monospace;">
-            Snapshot: ${s.version_hash ? '#' + s.version_hash : ''} | ${s.file_path}
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div style="font-weight:600; font-size:0.86rem; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+            <span>⚡</span> ${this.escapeHtml(s.skill_name)}
+          </div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <label style="display:flex; align-items:center; gap:5px; font-size:0.75rem; color:var(--text-muted); cursor:pointer;">
+              <input type="checkbox" ${s.is_active ? 'checked' : ''} onchange="App.toggleSkill('${s.id}', this.checked)" />
+              Aktiv im Prompt
+            </label>
           </div>
         </div>
-        <div style="display:flex; align-items:center; gap:10px;">
-          <label style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:#cbd5e1; cursor:pointer;">
-            <input type="checkbox" ${s.is_active ? 'checked' : ''} onchange="App.toggleSkill('${s.id}', this.checked)" />
-            Aktiv
-          </label>
+        <div style="font-size:0.72rem; color:var(--text-dim); font-family:var(--font-mono); word-break:break-all;">
+          ${s.version_hash ? '#' + s.version_hash : ''} | ${s.file_path}
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:2px;">
+          <button class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:3px 8px;" onclick="App.openSkillEditor('${s.skill_name}', true)">
+            ✏️ Snapshot editieren
+          </button>
+          <button class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:3px 8px; color:var(--rose);" onclick="App.deleteProjectSkill('${s.id}')">
+            🗑️ Snapshot lösen
+          </button>
         </div>
       `;
       list.appendChild(item);
@@ -1449,6 +1707,7 @@ const App = {
       await API.activateSkill(this.state.currentProjectId, skillName);
       window.showToast(`Skill '${skillName}' physisch im Projektordner gesichert!`, "success");
       await this.loadProjectSkills();
+      await this.loadSkillsCatalog();
     } catch (err) {
       window.showToast(`Skill konnte nicht aktiviert werden: ${err.message}`, "error");
     }
@@ -1458,6 +1717,309 @@ const App = {
     await API.toggleSkill(this.state.currentProjectId, skillId, isActive);
     window.showToast(`Skill-Status aktualisiert (${isActive ? 'Aktiv' : 'Deaktiviert'})`, "info");
     await this.loadProjectSkills();
+  },
+
+  async deleteProjectSkill(skillId) {
+    if (!this.state.currentProjectId) return;
+    window.showConfirmModal(
+      "Skill-Snapshot lösen",
+      "Möchtest du diesen Skill-Snapshot wirklich aus dem aktuellen Projekt entfernen?",
+      async () => {
+        await API.deleteProjectSkill(this.state.currentProjectId, skillId);
+        window.showToast("Skill-Snapshot aus dem Projekt gelöst.", "info");
+        await this.loadProjectSkills();
+        await this.loadSkillsCatalog();
+      }
+    );
+  },
+
+  // --- Sprint 6: Import-Center Modal Logik ---
+
+  openSkillImportModal() {
+    const modal = document.getElementById("skill-import-modal-overlay");
+    if (modal) modal.classList.add("active");
+    const pathInput = document.getElementById("scan-path-input");
+    if (pathInput && !pathInput.value) {
+      pathInput.value = "/Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills";
+    }
+  },
+
+  closeSkillImportModal() {
+    const modal = document.getElementById("skill-import-modal-overlay");
+    if (modal) modal.classList.remove("active");
+  },
+
+  async runSkillScan() {
+    const pathInput = document.getElementById("scan-path-input");
+    const path = pathInput ? pathInput.value.trim() : "";
+    if (!path) {
+      window.showToast("Bitte gib einen Verzeichnispfad an.", "warning");
+      return;
+    }
+
+    const scanBtn = document.getElementById("btn-start-skill-scan");
+    if (scanBtn) {
+      scanBtn.disabled = true;
+      scanBtn.innerText = "⏳ Scanne...";
+    }
+
+    try {
+      const res = await API.scanSkills(path);
+      this.skillsState.scannedSkills = res.skills || [];
+      this.skillsState.selectedScanIndices = new Set(this.skillsState.scannedSkills.map((_, i) => i));
+
+      const resultsBox = document.getElementById("scan-results-box");
+      if (resultsBox) resultsBox.style.display = "flex";
+
+      const summaryText = document.getElementById("scan-summary-text");
+      if (summaryText) {
+        summaryText.innerText = `${res.total_found} Skills in '${path}' gefunden`;
+      }
+
+      this.renderScanResultsTable();
+      window.showToast(`${res.total_found} Skills erfolgreich analysiert!`, "success");
+    } catch (err) {
+      window.showToast(`Scan fehlgeschlagen: ${err.message}`, "error");
+    } finally {
+      if (scanBtn) {
+        scanBtn.disabled = false;
+        scanBtn.innerText = "🔍 Verzeichnis scannen";
+      }
+    }
+  },
+
+  renderScanResultsTable(filterTerm = "") {
+    const tbody = document.getElementById("scan-results-tbody");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    const term = (filterTerm || "").toLowerCase();
+    const filtered = this.skillsState.scannedSkills.filter(s => {
+      if (!term) return true;
+      return (s.display_name && s.display_name.toLowerCase().includes(term)) ||
+             (s.skill_key && s.skill_key.toLowerCase().includes(term)) ||
+             (s.tags_csv && s.tags_csv.toLowerCase().includes(term));
+    });
+
+    filtered.forEach(s => {
+      const originalIndex = this.skillsState.scannedSkills.indexOf(s);
+      const isChecked = this.skillsState.selectedScanIndices.has(originalIndex);
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>
+          <input type="checkbox" data-idx="${originalIndex}" ${isChecked ? 'checked' : ''} onchange="App.handleScanRowCheckbox(${originalIndex}, this.checked)" />
+        </td>
+        <td>
+          <strong>${this.escapeHtml(s.display_name)}</strong>
+          <div style="font-size:0.7rem; color:var(--text-dim); font-family:monospace;">${this.escapeHtml(s.skill_key)}</div>
+        </td>
+        <td><span class="brand-badge" style="font-size:0.65rem;">${s.skill_category}</span></td>
+        <td><span style="font-size:0.72rem; color:var(--cyan);">${this.escapeHtml(s.tags_csv || '-')}</span></td>
+        <td style="font-size:0.72rem; color:var(--text-dim);">${Math.round(s.file_size / 1024)} KB</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    this.updateScanImportButton();
+  },
+
+  handleScanRowCheckbox(index, checked) {
+    if (checked) {
+      this.skillsState.selectedScanIndices.add(index);
+    } else {
+      this.skillsState.selectedScanIndices.delete(index);
+    }
+    this.updateScanImportButton();
+  },
+
+  updateScanImportButton() {
+    const btn = document.getElementById("btn-execute-skill-import");
+    const count = this.skillsState.selectedScanIndices.size;
+    if (btn) {
+      btn.disabled = count === 0;
+      btn.innerText = `🚀 Ausgewählte Skills importieren (${count})`;
+    }
+  },
+
+  async executeSkillImport() {
+    const indices = Array.from(this.skillsState.selectedScanIndices);
+    if (indices.length === 0) {
+      window.showToast("Keine Skills ausgewählt.", "warning");
+      return;
+    }
+
+    const selectedSkills = indices.map(i => this.skillsState.scannedSkills[i]);
+    const targetRadios = document.getElementsByName("import-target");
+    let target = "library";
+    for (const r of targetRadios) {
+      if (r.checked) {
+        target = r.value;
+        break;
+      }
+    }
+
+    const btn = document.getElementById("btn-execute-skill-import");
+    if (btn) {
+      btn.disabled = true;
+      btn.innerText = "⏳ Importiere...";
+    }
+
+    try {
+      const res = await API.importSkills({
+        skills: selectedSkills,
+        target: target,
+        project_id: this.state.currentProjectId
+      });
+      window.showToast(`${res.count} Skills erfolgreich importiert & gespeichert!`, "success");
+      this.closeSkillImportModal();
+      await this.loadSkillsCatalog();
+      if (target === "project" || target === "both") {
+        await this.loadProjectSkills();
+      }
+    } catch (err) {
+      window.showToast(`Import fehlgeschlagen: ${err.message}`, "error");
+    } finally {
+      if (btn) btn.disabled = false;
+      this.updateScanImportButton();
+    }
+  },
+
+  // --- Sprint 7: In-App Markdown-Editor & Skill-Studio ---
+
+  openSkillEditor(skillKey = null, isProjectSnapshot = false) {
+    this.skillsState.editingSkillKey = skillKey;
+    this.skillsState.editingScope = isProjectSnapshot ? "project" : "global";
+
+    const modal = document.getElementById("skill-editor-modal-overlay");
+    const scopeBadge = document.getElementById("editor-scope-badge");
+    const nameInput = document.getElementById("editor-display-name");
+    const keyInput = document.getElementById("editor-skill-key");
+    const catSelect = document.getElementById("editor-category");
+    const tagsInput = document.getElementById("editor-tags-csv");
+    const warningBanner = document.getElementById("editor-builtin-warning");
+    const textarea = document.getElementById("editor-markdown-text");
+
+    if (scopeBadge) {
+      scopeBadge.innerText = isProjectSnapshot ? "Projekt-Snapshot" : "Globaler Katalog";
+    }
+
+    if (modal) modal.classList.add("active");
+
+    if (!skillKey) {
+      // New Custom Skill
+      this.skillsState.isBuiltIn = false;
+      if (warningBanner) warningBanner.style.display = "none";
+      if (nameInput) nameInput.value = "";
+      if (keyInput) {
+        keyInput.value = "";
+        keyInput.disabled = false;
+      }
+      if (catSelect) catSelect.value = "domain_specialist";
+      if (tagsInput) tagsInput.value = "";
+      if (textarea) {
+        textarea.value = `# Neuer Fachexpertise-Skill\n\n## Rollendefinition\nDu bist ein hochspezialisierter Consultant...\n\n## Leitplanken & Regeln\n1. Präzise Faktenverifikation.\n2. Keine Spekulationen an Entscheidungsknoten.\n`;
+      }
+      this.updateEditorPreview();
+      return;
+    }
+
+    // Existing Skill
+    API.getSkillContent(skillKey, isProjectSnapshot ? this.state.currentProjectId : null).then(data => {
+      const meta = data.metadata || {};
+      this.skillsState.isBuiltIn = !!meta.is_built_in;
+
+      if (warningBanner) {
+        warningBanner.style.display = (!isProjectSnapshot && meta.is_built_in) ? "block" : "none";
+      }
+
+      if (nameInput) nameInput.value = meta.display_name || skillKey;
+      if (keyInput) {
+        keyInput.value = skillKey;
+        keyInput.disabled = true; // Lock key on edit
+      }
+      if (catSelect) catSelect.value = meta.skill_category || "domain_specialist";
+      if (tagsInput) tagsInput.value = meta.tags_csv || "";
+      if (textarea) textarea.value = data.content || "";
+      this.updateEditorPreview();
+    }).catch(err => {
+      window.showToast(`Fehler beim Laden des Skills: ${err.message}`, "error");
+      this.closeSkillEditor();
+    });
+  },
+
+  closeSkillEditor() {
+    const modal = document.getElementById("skill-editor-modal-overlay");
+    if (modal) modal.classList.remove("active");
+    this.skillsState.editingSkillKey = null;
+  },
+
+  updateEditorPreview() {
+    const textarea = document.getElementById("editor-markdown-text");
+    const preview = document.getElementById("editor-preview-pane");
+    if (textarea && preview) {
+      preview.innerHTML = this.renderMarkdown(textarea.value);
+    }
+  },
+
+  async saveSkillEditor() {
+    const nameInput = document.getElementById("editor-display-name");
+    const keyInput = document.getElementById("editor-skill-key");
+    const catSelect = document.getElementById("editor-category");
+    const tagsInput = document.getElementById("editor-tags-csv");
+    const textarea = document.getElementById("editor-markdown-text");
+
+    const displayName = nameInput ? nameInput.value.trim() : "";
+    const skillKey = keyInput ? keyInput.value.trim() : "";
+    const category = catSelect ? catSelect.value : "domain_specialist";
+    const tagsCsv = tagsInput ? tagsInput.value.trim() : "";
+    const content = textarea ? textarea.value : "";
+
+    if (!skillKey) {
+      window.showToast("Bitte gib eine Skill-Kennung an.", "warning");
+      return;
+    }
+    if (!content) {
+      window.showToast("Skill-Inhalt darf nicht leer sein.", "warning");
+      return;
+    }
+
+    const isNew = !this.skillsState.editingSkillKey;
+    const isProjectSnapshot = this.skillsState.editingScope === "project";
+
+    try {
+      if (isNew) {
+        await API.createCustomSkill({
+          skill_key: skillKey,
+          display_name: displayName || skillKey,
+          category: category,
+          tags_csv: tagsCsv,
+          content: content
+        });
+        window.showToast(`Neuer Skill '${skillKey}' erfolgreich in der Library angelegt!`, "success");
+      } else {
+        const res = await API.updateSkillContent(this.skillsState.editingSkillKey, {
+          content: content,
+          display_name: displayName,
+          category: category,
+          tags_csv: tagsCsv,
+          project_id: isProjectSnapshot ? this.state.currentProjectId : null
+        });
+        if (res.cloned) {
+          window.showToast(`Basisskill als Arbeitskopie '${res.skill_key}' gespeichert!`, "info");
+        } else {
+          window.showToast(`Skill '${skillKey}' erfolgreich aktualisiert!`, "success");
+        }
+      }
+
+      this.closeSkillEditor();
+      await this.loadSkillsCatalog();
+      if (isProjectSnapshot) {
+        await this.loadProjectSkills();
+      }
+    } catch (err) {
+      window.showToast(`Fehler beim Speichern: ${err.message}`, "error");
+    }
   },
 
   // --- Modals & Utilities ---

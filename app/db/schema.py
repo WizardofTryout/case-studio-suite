@@ -84,11 +84,43 @@ CREATE TABLE IF NOT EXISTS copilot_phase_states (
     UNIQUE(session_id, phase)
 );
 
--- Performance indices on foreign keys
+-- 8. GLOBALE SKILL-BIBLIOTHEK (Persistenter Katalog)
+CREATE TABLE IF NOT EXISTS global_skills (
+    id TEXT PRIMARY KEY,
+    skill_key TEXT UNIQUE NOT NULL,       -- Eindeutiger Bezeichner (z. B. 'alphagenome')
+    display_name TEXT NOT NULL,
+    skill_category TEXT NOT NULL,         -- 'master_consultant', 'domain_specialist', 'critic_validator', 'research_analyst', 'tool_specialist'
+    description TEXT,
+    source_type TEXT NOT NULL,            -- 'system', 'local_folder', 'git_repo', 'user_created', 'zip_upload'
+    source_origin TEXT,                   -- Ursprünglicher Pfad oder Repo-URL
+    relative_path TEXT NOT NULL,          -- Pfad relativ zu /app/data/skills_catalog/ oder /app/skills_catalog/
+    version_hash TEXT,
+    tags_csv TEXT,                        -- Kommagetrennte Tags z. B. 'bio,research,genomics'
+    is_favorite INTEGER DEFAULT 0,        -- 1 = Stern aktiv
+    is_built_in INTEGER DEFAULT 0,        -- 1 = unveränderlicher Basis-Skill
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 9. SKILL-TAGS (FÜR ELASTISCHE FILTERUNG & CHIPS)
+CREATE TABLE IF NOT EXISTS skill_tags (
+    id TEXT PRIMARY KEY,
+    skill_key TEXT NOT NULL,
+    tag_name TEXT NOT NULL,
+    UNIQUE(skill_key, tag_name),
+    FOREIGN KEY(skill_key) REFERENCES global_skills(skill_key) ON DELETE CASCADE
+);
+
+-- Performance indices on foreign keys and skill search
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_project ON case_sessions(project_id);
 CREATE INDEX IF NOT EXISTS idx_gates_session ON decision_gates(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session ON deliberation_messages(session_id);
 CREATE INDEX IF NOT EXISTS idx_phase_states_session ON copilot_phase_states(session_id);
+CREATE INDEX IF NOT EXISTS idx_global_skills_category ON global_skills(skill_category);
+CREATE INDEX IF NOT EXISTS idx_global_skills_favorite ON global_skills(is_favorite);
+CREATE INDEX IF NOT EXISTS idx_skill_tags_tag ON skill_tags(tag_name);
+CREATE INDEX IF NOT EXISTS idx_skill_tags_skill ON skill_tags(skill_key);
 """
+

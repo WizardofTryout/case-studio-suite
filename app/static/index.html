@@ -369,31 +369,63 @@
       </div>
     </section>
 
-    <!-- TAB 4: SKILL-KATALOG & PHYSISCHE SNAPSHOTS -->
+    <!-- TAB 4: SKILL-KATALOG & PHYSISCHE SNAPSHOTS (Sprints 5-8) -->
     <section id="tab-skills" class="tab-content">
       <div class="copilot-grid">
         <!-- Active Project Skills -->
         <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
-          <div style="font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
-            ⚡ Physisch im Projekt gesicherte Skills (Snapshots)
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
+            <div style="font-weight:700; font-size:1rem;">
+              ⚡ Im Projekt gesicherte Skills (Snapshots)
+            </div>
+            <span id="active-skill-count-badge" class="brand-badge" style="font-size:0.7rem;">0 Aktiv</span>
           </div>
           <div style="font-size:0.82rem; color:#94a3b8;">
-            Diese Skills liegen als physische Kopie in <code>/app/data/projects/{id}/skills/*.md</code> und fließen in die Prompts ein.
+            Diese Skills liegen als physische Kopie in <code>/app/data/projects/{id}/skills/*.md</code> und fließen direkt in die Copilot-Prompts ein.
           </div>
           <div id="active-skills-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
             <div style="color:#64748b; font-size:0.85rem;">Lade aktive Skills...</div>
           </div>
         </div>
 
-        <!-- Available Skills Catalog -->
-        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
-          <div style="font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
-            📚 Globaler Skill-Katalog
+        <!-- Available Skills Catalog (Sprint 5-8 Custom Library) -->
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:14px; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:8px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; font-size:1rem;">📚 Globaler Skill-Katalog & Library</span>
+              <span id="skill-count-badge" class="brand-badge" style="font-size:0.7rem;">Lade...</span>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button id="btn-open-skill-import" class="btn btn-primary btn-sm">
+                📥 Skills importieren / hinzufügen
+              </button>
+              <button id="btn-new-custom-skill" class="btn btn-violet btn-sm">
+                ＋ Neuer Skill
+              </button>
+            </div>
           </div>
-          <div style="font-size:0.82rem; color:#94a3b8;">
-            Wähle methodische Frameworks und Fachexpertisen aus, um sie im aktuellen Projekt zu snapshotten.
+
+          <!-- Elastic Search & Tag Pills Bar -->
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div style="position:relative;">
+              <input type="text" id="skill-search-input" class="gate-answer-input" placeholder="🔍 Skills durchsuchen (z. B. Bio, Edge, Python, GKE, Latenz, Siemens)..." style="width:100%; padding-left:12px;" />
+              <button id="btn-clear-skill-search" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:0.85rem; display:none;">&times;</button>
+            </div>
+
+            <!-- Tag Chips Bar -->
+            <div id="skill-tag-pills" class="skill-tag-pills-bar">
+              <button class="tag-pill active" data-tag="all">#Alle</button>
+              <button class="tag-pill fav-pill" data-tag="__favorites__">⭐ Nur Favoriten</button>
+              <button class="tag-pill" data-tag="research">#research</button>
+              <button class="tag-pill" data-tag="bio">#bio</button>
+              <button class="tag-pill" data-tag="cloud">#cloud</button>
+              <button class="tag-pill" data-tag="ot">#ot</button>
+              <button class="tag-pill" data-tag="siemens">#siemens</button>
+              <button class="tag-pill" data-tag="security">#security</button>
+            </div>
           </div>
-          <div id="skills-catalog-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+
+          <div id="skills-catalog-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding-right:4px;">
             <div style="color:#64748b; font-size:0.85rem;">Lade Katalog...</div>
           </div>
         </div>
@@ -410,6 +442,170 @@
       <div class="modal-actions">
         <button id="generic-modal-cancel" class="btn btn-secondary btn-sm">Abbrechen</button>
         <button id="generic-modal-confirm" class="btn btn-primary btn-sm">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skill Import & Deep-Scanner Modal (Sprint 6) -->
+  <div id="skill-import-modal-overlay" class="modal-overlay">
+    <div class="modal-card skill-import-modal-card">
+      <div class="modal-header-row">
+        <div class="modal-title">
+          <span>📥 Skill-Import & Deep-Scanner</span>
+        </div>
+        <button class="btn-close-modal" id="btn-close-skill-import">&times;</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; overflow:hidden;">
+        <!-- Preset quick buttons -->
+        <div>
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:6px;">
+            Schnellauswahl lokaler Repositories:
+          </label>
+          <div style="display:flex; flex-wrap:wrap; gap:8px;">
+            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills">
+              🔬 scientific-agent-skills (177 Bio/Research Skills)
+            </button>
+            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/googleskills">
+              ☁️ googleskills (130+ Cloud/GKE Skills)
+            </button>
+            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/app/data/skills_catalog">
+              📁 Persistenter Data-Katalog
+            </button>
+          </div>
+        </div>
+
+        <!-- Path input & scan button -->
+        <div style="display:flex; gap:8px;">
+          <input type="text" id="scan-path-input" class="gate-answer-input" placeholder="Pfad eingeben (z. B. /Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills)..." style="flex:1;" />
+          <button id="btn-start-skill-scan" class="btn btn-primary btn-sm">
+            🔍 Verzeichnis scannen
+          </button>
+        </div>
+
+        <!-- Scan Status & Results Section -->
+        <div id="scan-results-box" style="display:none; flex:1; display:flex; flex-direction:column; gap:10px; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.25); padding:8px 12px; border-radius:var(--radius-sm);">
+            <div id="scan-summary-text" style="font-size:0.84rem; font-weight:600; color:var(--cyan);">
+              0 Skills gefunden
+            </div>
+            <div style="display:flex; gap:6px;">
+              <button id="btn-scan-select-all" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px;">
+                Alle auswählen
+              </button>
+              <button id="btn-scan-deselect-all" class="btn btn-secondary btn-sm" style="font-size:0.75rem; padding:4px 8px;">
+                Auswahl aufheben
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter within scan results -->
+          <input type="text" id="scan-filter-input" class="gate-answer-input" placeholder="Ergebnisse filtern..." style="font-size:0.8rem; padding:5px 8px;" />
+
+          <!-- Results Table -->
+          <div class="scan-results-table-wrapper">
+            <table class="scan-results-table">
+              <thead>
+                <tr>
+                  <th style="width:36px;"><input type="checkbox" id="scan-master-cb" checked /></th>
+                  <th>Skill Name</th>
+                  <th>Kategorie</th>
+                  <th>Tags</th>
+                  <th>Größe</th>
+                </tr>
+              </thead>
+              <tbody id="scan-results-tbody">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Import Target Selection -->
+          <div class="import-target-selector">
+            <span style="font-weight:600; font-size:0.82rem; color:var(--text-main);">Zielbereich:</span>
+            <label class="import-radio-label">
+              <input type="radio" name="import-target" value="library" checked />
+              <span>In Globale Library importieren (dauerhaft)</span>
+            </label>
+            <label class="import-radio-label">
+              <input type="radio" name="import-target" value="project" />
+              <span>Direkt als Projekt-Snapshot einbinden</span>
+            </label>
+            <label class="import-radio-label">
+              <input type="radio" name="import-target" value="both" />
+              <span>Beides gleichzeitig</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:10px;">
+        <button id="btn-cancel-skill-import" class="btn btn-secondary btn-sm">Abbrechen</button>
+        <button id="btn-execute-skill-import" class="btn btn-primary btn-sm" disabled>
+          🚀 Ausgewählte Skills importieren (0)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Skill Studio & Markdown Editor Modal (Sprint 7) -->
+  <div id="skill-editor-modal-overlay" class="modal-overlay">
+    <div class="modal-card skill-editor-modal-card">
+      <div class="modal-header-row">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="modal-title">✏️ In-App Skill Studio</span>
+          <span id="editor-scope-badge" class="brand-badge" style="font-size:0.7rem;">Globaler Katalog</span>
+        </div>
+        <button class="btn-close-modal" id="btn-close-skill-editor">&times;</button>
+      </div>
+
+      <div id="editor-builtin-warning" class="editor-alert-banner" style="display:none;">
+        🛡️ <strong>System-Basisskill:</strong> Diese Datei ist schreibgeschützt. Deine Änderungen werden automatisch als sichere benutzerdefinierte Kopie (<code>-custom.md</code>) in <code>/app/data/skills_catalog/</code> gespeichert.
+      </div>
+
+      <!-- Metadata Fields -->
+      <div class="editor-meta-grid">
+        <div class="editor-meta-field">
+          <label>Display-Name:</label>
+          <input type="text" id="editor-display-name" class="gate-answer-input" placeholder="z. B. AlphaGenome Variant Analyst" />
+        </div>
+        <div class="editor-meta-field">
+          <label>Skill-Key (Kennung):</label>
+          <input type="text" id="editor-skill-key" class="gate-answer-input" placeholder="z. B. alphagenome" />
+        </div>
+        <div class="editor-meta-field">
+          <label>Kategorie:</label>
+          <select id="editor-category" class="gate-answer-input">
+            <option value="master_consultant">👑 Master Consultant</option>
+            <option value="domain_specialist" selected>⚡ Domain Specialist</option>
+            <option value="critic_validator">🛡️ Critic / Validator</option>
+            <option value="research_analyst">🔬 Research Analyst</option>
+            <option value="tool_specialist">🔧 Tool Specialist</option>
+          </select>
+        </div>
+        <div class="editor-meta-field">
+          <label>Tags (kommagetrennt):</label>
+          <input type="text" id="editor-tags-csv" class="gate-answer-input" placeholder="bio, genomics, variant, research" />
+        </div>
+      </div>
+
+      <!-- Split-View: Markdown Code on Left, Live Preview on Right -->
+      <div class="editor-split-view">
+        <div class="editor-pane">
+          <div class="pane-header">📝 Markdown Quellcode & Direktiven</div>
+          <textarea id="editor-markdown-text" class="editor-code-textarea" spellcheck="false" placeholder="# Skill Rollendefinition..."></textarea>
+        </div>
+        <div class="editor-pane">
+          <div class="pane-header">👁️ Live HTML-Vorschau</div>
+          <div id="editor-preview-pane" class="editor-preview-pane markdown-body"></div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:12px;">
+        <button id="btn-cancel-skill-editor" class="btn btn-secondary btn-sm">Abbrechen</button>
+        <button id="btn-save-skill-editor" class="btn btn-primary btn-sm">
+          💾 Änderungen speichern
+        </button>
       </div>
     </div>
   </div>
@@ -455,9 +651,10 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=2.2"></script>
-  <script src="/static/js/api.js?v=2.2"></script>
-  <script src="/static/js/graph.js?v=2.2"></script>
-  <script src="/static/js/app.js?v=2.2"></script>
+  <script src="/static/js/toast.js?v=2.3"></script>
+  <script src="/static/js/api.js?v=2.3"></script>
+  <script src="/static/js/graph.js?v=2.3"></script>
+  <script src="/static/js/app.js?v=2.3"></script>
 </body>
 </html>
+

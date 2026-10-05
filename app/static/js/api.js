@@ -65,6 +65,100 @@ const API = {
     return await res.json();
   },
 
+  async getSkillsLibrary(params = {}) {
+    const query = new URLSearchParams();
+    if (params.search) query.append("search", params.search);
+    if (params.tag) query.append("tag", params.tag);
+    if (params.category) query.append("category", params.category);
+    if (params.is_favorite !== undefined && params.is_favorite !== null) query.append("is_favorite", params.is_favorite);
+    if (params.project_id) query.append("project_id", params.project_id);
+
+    const url = "/api/skills/library" + (query.toString() ? "?" + query.toString() : "");
+    const res = await fetch(url);
+    return await res.json();
+  },
+
+  async getSkillTags() {
+    const res = await fetch("/api/skills/tags");
+    return await res.json();
+  },
+
+  async scanSkills(sourcePath, sourceType = "local_folder", maxDepth = 8) {
+    const res = await fetch("/api/skills/scan", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source_path: sourcePath, source_type: sourceType, max_depth: maxDepth })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Scan fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async importSkills(payload) {
+    const res = await fetch("/api/skills/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Import fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async toggleSkillFavorite(skillKey) {
+    const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}/favorite`, {
+      method: "POST"
+    });
+    return await res.json();
+  },
+
+  async getSkillContent(skillKey, projectId = null) {
+    const query = projectId ? `?project_id=${encodeURIComponent(projectId)}` : "";
+    const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}/content${query}`);
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Konnte Skill-Inhalt nicht laden");
+    }
+    return await res.json();
+  },
+
+  async updateSkillContent(skillKey, payload) {
+    const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Konnte Skill nicht speichern");
+    }
+    return await res.json();
+  },
+
+  async createCustomSkill(payload) {
+    const res = await fetch("/api/skills/custom", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Konnte Skill nicht erstellen");
+    }
+    return await res.json();
+  },
+
+  async deleteProjectSkill(projectId, skillId) {
+    const res = await fetch(`/api/projects/${projectId}/skills/${skillId}`, {
+      method: "DELETE"
+    });
+    return await res.json();
+  },
+
   async getProjectSkills(projectId) {
     const res = await fetch(`/api/projects/${projectId}/skills`);
     return await res.json();

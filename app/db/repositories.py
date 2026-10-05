@@ -464,3 +464,166 @@ async def save_phase_state(
     res = await get_phase_state(session_id, phase)
     return res  # type: ignore
 
+
+# --- Global Skills & Tags Repository (Sprints 5-8) ---
+
+async def list_global_skills(
+    category: Optional[str] = None,
+    tag: Optional[str] = None,
+    is_favorite: Optional[int] = None,
+    search: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    query = """
+        SELECT DISTINCT gs.id, gs.skill_key, gs.display_name, gs.skill_category,
+               gs.description, gs.source_type, gs.source_origin, gs.relative_path,
+               gs.version_hash, gs.tags_csv, gs.is_favorite, gs.is_built_in,
+               gs.created_at, gs.updated_at
+        FROM global_skills gs
+    """
+    conditions = []
+    params = []
+
+    if tag:
+        query += " JOIN skill_tags st ON gs.skill_key = st.skill_key"
+        conditions.append("LOWER(st.tag_name) = LOWER(?)")
+        params.append(tag)
+
+    if category:
+        conditions.append("gs.skill_category = ?")
+        params.append(category)
+
+    if is_favorite is not None:
+        conditions.append("gs.is_favorite = ?")
+        params.append(is_favorite)
+
+    if search:
+        search_term = f"%{search.strip().lower()}%"
+        conditions.append(
+            "(LOWER(gs.display_name) LIKE ? OR LOWER(gs.description) LIKE ? OR LOWER(gs.tags_csv) LIKE ? OR LOWER(gs.skill_key) LIKE ?)"
+        )
+        params.extend([search_term, search_term, search_term, search_term])
+
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    query += " ORDER BY gs.is_favorite DESC, gs.skill_category ASC, gs.display_name ASC"
+
+    async with get_db() as db:
+        async with db.execute(query, tuple(params)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_global_skill(skill_key: str) -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, skill_key, display_name, skill_category, description,
+                   source_type, source_origin, relative_path, version_hash,
+                   tags_csv, is_favorite, is_built_in, created_at, updated_at
+            FROM global_skills
+            WHERE skill_key = ?
+            """,
+            (skill_key,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def upsert_global_skill(skill_data: Dict[str, Any]) -> Dict[str, Any]:
+    skill_key = skill_data["skill_key"]
+    s_id = skill_data.get("id") or str(uuid.uuid4())
+    display_name = skill_data["display_name"]
+    category = skill_data.get("skill_category", "domain_specialist")
+    description = skill_data.get("description", "")
+    source_type = skill_data.get("source_type", "local_folder")
+    source_origin = skill_data.get("source_origin", "")
+    relative_path = skill_data.get("relative_path", "")
+    version_hash = skill_data.get("version_hash", "")
+    tags_csv = skill_data.get("tags_csv", "")
+    is_favorite = int(skill_data.get("is_favorite", 0))
+    is_built_in = int(skill_data.get("is_built_in", 0))
+
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO global_skills (
+                id, skill_key, display_name, skill_category, description,
+                source_type, source_origin, relative_path, version_hash,
+                tags_csv, is_favorite, is_built_in, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(skill_key) DO UPDATE SET
+                display_name = excluded.display_name,
+                skill_category = excluded.skill_category,
+                description = excluded.description,
+                source_origin = excluded.source_origin,
+                relative_path = excluded.relative_path,
+                version_hash = excluded.version_hash,
+                tags_csv = excluded.tags_csv,
+                is_built_in = excluded.is_built_in,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                s_id, skill_key, display_name, category, description,
+                source_type, source_origin, relative_path, version_hash,
+                tags_csv, is_favorite, is_built_in
+            )
+        )
+        await db.commit()
+
+    if tags_csv:
+        tag_list = [t.strip().lower() for t in tags_csv.split(",") if t.strip()]
+        await set_skill_tags(skill_key, tag_list)
+
+    item = await get_global_skill(skill_key)
+    return item  # type: ignore
+
+
+async def toggle_favorite_global_skill(skill_key: str) -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        await db.execute(
+            "UPDATE global_skills SET is_favorite = (1 - is_favorite), updated_at = CURRENT_TIMESTAMP WHERE skill_key = ?",
+            (skill_key,)
+        )
+        await db.commit()
+    return await get_global_skill(skill_key)
+
+
+async def set_skill_tags(skill_key: str, tags: List[str]) -> None:
+    async with get_db() as db:
+        await db.execute("DELETE FROM skill_tags WHERE skill_key = ?", (skill_key,))
+        for tag in set(tags):
+            if tag.strip():
+                t_id = str(uuid.uuid4())
+                await db.execute(
+                    "INSERT OR IGNORE INTO skill_tags (id, skill_key, tag_name) VALUES (?, ?, ?)",
+                    (t_id, skill_key, tag.strip().lower())
+                )
+        await db.commit()
+
+
+async def get_skill_tags(skill_key: str) -> List[str]:
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT tag_name FROM skill_tags WHERE skill_key = ? ORDER BY tag_name ASC",
+            (skill_key,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [r[0] for r in rows]
+
+
+async def get_all_unique_tags() -> List[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT tag_name, COUNT(*) as count 
+            FROM skill_tags 
+            GROUP BY tag_name 
+            ORDER BY count DESC, tag_name ASC
+            """
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [{"tag": r[0], "count": r[1]} for r in rows]
+
+

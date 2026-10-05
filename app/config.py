@@ -55,5 +55,12 @@ class Settings(BaseSettings):
         p.mkdir(parents=True, exist_ok=True)
         return p
 
+    @property
+    def resolved_data_skills_catalog_dir(self) -> Path:
+        p = (self.resolved_data_dir / "skills_catalog").resolve()
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
 
 settings = Settings()
+
