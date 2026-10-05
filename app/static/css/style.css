@@ -2209,6 +2209,26 @@ svg .node.selected text {
   color: #0f172a;
 }
 
+/* Security Hint Box */
+.skill-security-hint {
+  margin-top: 8px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  background: rgba(0, 212, 255, 0.06);
+  border: 1px solid rgba(0, 212, 255, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  line-height: 1.45;
+}
+
+.skill-security-hint code {
+  color: var(--cyan);
+  font-family: var(--font-mono);
+  background: rgba(0, 212, 255, 0.1);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
 /* ==========================================================================
    Light Mode Theming for All Modals (Zero Dark Background on Dark Text)
    ========================================================================== */
@@ -2232,11 +2252,24 @@ svg .node.selected text {
   color: #0284c7 !important;
 }
 
+[data-theme="light"] .skill-security-hint {
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+}
+
+[data-theme="light"] .skill-security-hint code {
+  background: rgba(22, 101, 52, 0.1) !important;
+  color: #166534 !important;
+}
+
 [data-theme="light"] .modal-overlay {
   background: rgba(15, 23, 42, 0.55) !important;
 }
 
-[data-theme="light"] .modal-card {
+[data-theme="light"] .modal-card,
+[data-theme="light"] .skill-import-modal-card,
+[data-theme="light"] .skill-editor-modal-card {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
   color: #0f172a !important;
@@ -2312,6 +2345,18 @@ svg .node.selected text {
   color: #334155 !important;
 }
 
+[data-theme="light"] .scan-results-table td strong {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .scan-results-table td div {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .scan-results-table td span {
+  color: #0284c7 !important;
+}
+
 [data-theme="light"] .scan-results-table tr:hover td {
   background: #f8fafc !important;
 }
@@ -2339,6 +2384,40 @@ svg .node.selected text {
 [data-theme="light"] .editor-meta-field label {
   color: #475569 !important;
 }
+
+[data-theme="light"] .brand-badge {
+  background: rgba(2, 132, 199, 0.1) !important;
+  border-color: rgba(2, 132, 199, 0.3) !important;
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .editor-preview-pane {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .editor-preview-pane * {
+  color: #0f172a;
+}
+
+[data-theme="light"] .editor-preview-pane h1,
+[data-theme="light"] .editor-preview-pane h2,
+[data-theme="light"] .editor-preview-pane h3 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .editor-preview-pane code {
+  background: #f1f5f9 !important;
+  color: #0284c7 !important;
+}
+
+[data-theme="light"] .editor-code-textarea {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
 
 
 

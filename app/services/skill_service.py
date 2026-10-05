@@ -97,12 +97,32 @@ async def list_global_skills_with_status(
     return skills
 
 
-def find_skill_source_file(skill_key: str) -> Optional[Path]:
-    """Finds physical file for a skill key in data catalog or system catalog."""
+async def resolve_skill_source_file(skill_key: str) -> Optional[Path]:
+    """
+    Finds physical file for a skill key.
+    Prioritizes SQLite global_skills metadata (source_origin, relative_path),
+    then checks data catalog and system catalog.
+    """
     data_dir = settings.resolved_data_skills_catalog_dir
     system_dir = settings.resolved_skills_catalog_dir
 
-    # Check data_dir first (user modified / imported)
+    # 1. Query SQLite global_skills
+    db_skill = await repositories.get_global_skill(skill_key)
+    if db_skill:
+        if db_skill.get("source_origin"):
+            origin_path = Path(db_skill["source_origin"])
+            if origin_path.exists():
+                return origin_path
+        if db_skill.get("relative_path"):
+            rel_name = db_skill["relative_path"]
+            cand_data = data_dir / rel_name
+            if cand_data.exists():
+                return cand_data
+            cand_sys = system_dir / rel_name
+            if cand_sys.exists():
+                return cand_sys
+
+    # 2. Check data_dir first (user modified / imported)
     candidate = data_dir / f"{skill_key}.md"
     if candidate.exists():
         return candidate
@@ -111,7 +131,7 @@ def find_skill_source_file(skill_key: str) -> Optional[Path]:
     if matches:
         return matches[0]
 
-    # Check system_dir
+    # 3. Check system_dir
     candidate_sys = system_dir / f"{skill_key}.md"
     if candidate_sys.exists():
         return candidate_sys
@@ -119,6 +139,13 @@ def find_skill_source_file(skill_key: str) -> Optional[Path]:
     matches_sys = list(system_dir.glob(f"{skill_key}*.md"))
     if matches_sys:
         return matches_sys[0]
+
+    # 4. Fallback search across all files in system_dir to match parsed skill_key
+    if system_dir.exists():
+        for f in system_dir.glob("*.md"):
+            parsed = parse_skill_file(f, system_dir, is_folder_based=False)
+            if parsed and parsed.get("skill_key") == skill_key:
+                return f
 
     return None
 
@@ -128,15 +155,7 @@ async def activate_skill_for_project(project_id: str, skill_name: str) -> Dict[s
     Physical Skill-Snapshotting: Copies skill file from catalog into
     /app/data/projects/{project_id}/skills/{skill_name}.md and registers it in SQLite.
     """
-    src_file = find_skill_source_file(skill_name)
-    if not src_file or not src_file.exists():
-        # Check global_skills database for source_origin
-        db_skill = await repositories.get_global_skill(skill_name)
-        if db_skill and db_skill.get("source_origin"):
-            origin_path = Path(db_skill["source_origin"])
-            if origin_path.exists():
-                src_file = origin_path
-
+    src_file = await resolve_skill_source_file(skill_name)
     if not src_file or not src_file.exists():
         raise FileNotFoundError(f"Skill '{skill_name}' not found in catalog or storage.")
 
@@ -174,22 +193,25 @@ async def import_scanned_skills(
 ) -> Dict[str, Any]:
     """
     Batch import of scanned skills into persistent library and/or project snapshots.
+    Supports either reading from server filesystem source_origin OR direct content payload.
     """
     data_catalog = settings.resolved_data_skills_catalog_dir
+    data_catalog.mkdir(parents=True, exist_ok=True)
     imported_keys = []
 
     for item in skills_data:
         skill_key = item["skill_key"]
-        source_origin = Path(item.get("source_origin", ""))
+        source_origin_str = item.get("source_origin", "")
+        source_origin = Path(source_origin_str) if source_origin_str else None
 
-        content = ""
-        if source_origin.exists() and source_origin.is_file():
+        content = item.get("content", "")
+        if not content and source_origin and source_origin.exists() and source_origin.is_file():
             try:
                 content = source_origin.read_text(encoding="utf-8", errors="replace")
             except Exception as e:
                 logger.error(f"Cannot read source file {source_origin}: {e}")
                 continue
-        elif "preview_snippet" in item:
+        elif not content and "preview_snippet" in item:
             content = f"# {item.get('display_name', skill_key)}\n\n{item['preview_snippet']}"
 
         # 1. Save persistently in /app/data/skills_catalog/
@@ -209,7 +231,7 @@ async def import_scanned_skills(
             "skill_category": item.get("skill_category", "domain_specialist"),
             "description": item.get("description", ""),
             "source_type": item.get("source_type", "local_folder"),
-            "source_origin": str(source_origin),
+            "source_origin": str(source_origin) if source_origin else str(target_file),
             "relative_path": f"{skill_key}.md",
             "version_hash": file_hash,
             "tags_csv": item.get("tags_csv", ""),
@@ -236,8 +258,8 @@ async def import_scanned_skills(
 
 async def get_skill_content(skill_key: str, project_id: Optional[str] = None) -> Dict[str, Any]:
     """Retrieve raw markdown and metadata for editor."""
-    # Check project snapshot first if project_id given
-    if project_id:
+    # Check project snapshot first if valid project_id given
+    if project_id and isinstance(project_id, str) and project_id.strip():
         proj_file = settings.resolved_data_dir / "projects" / project_id / "skills" / f"{skill_key}.md"
         if proj_file.exists():
             return {
@@ -248,7 +270,7 @@ async def get_skill_content(skill_key: str, project_id: Optional[str] = None) ->
             }
 
     # Otherwise check global library
-    src_file = find_skill_source_file(skill_key)
+    src_file = await resolve_skill_source_file(skill_key)
     if src_file and src_file.exists():
         content = src_file.read_text(encoding="utf-8", errors="replace")
         db_skill = await repositories.get_global_skill(skill_key)
@@ -278,7 +300,7 @@ async def save_skill_content(
     - If editing a custom global skill: overwrites in /app/data/skills_catalog/
     """
     # 1. Project Snapshot edit
-    if project_id:
+    if project_id and isinstance(project_id, str) and project_id.strip():
         proj_dir = settings.resolved_data_dir / "projects" / project_id / "skills"
         proj_dir.mkdir(parents=True, exist_ok=True)
         target_file = proj_dir / f"{skill_key}.md"

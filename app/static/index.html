@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=2.4">
+  <link rel="stylesheet" href="/static/css/style.css?v=2.5">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -457,30 +457,41 @@
       </div>
 
       <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; overflow:hidden;">
-        <!-- Preset quick buttons -->
-        <div>
-          <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:6px;">
-            Schnellauswahl lokaler Repositories:
-          </label>
-          <div style="display:flex; flex-wrap:wrap; gap:8px;">
-            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills">
-              🔬 scientific-agent-skills (177 Bio/Research Skills)
-            </button>
-            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/Volumes/Spacestation/MCP/Antigravity-MCP-tools/googleskills">
-              ☁️ googleskills (130+ Cloud/GKE Skills)
-            </button>
-            <button class="btn btn-secondary btn-sm import-preset-btn" data-path="/app/data/skills_catalog">
-              📁 Persistenter Data-Katalog
-            </button>
-          </div>
-        </div>
+        <!-- Hidden Browser Pickers (Universal Finder / File Explorer) -->
+        <input type="file" id="browser-folder-picker" webkitdirectory directory multiple style="display:none;" />
+        <input type="file" id="browser-file-picker" accept=".md,.markdown" multiple style="display:none;" />
 
-        <!-- Path input & scan button -->
-        <div style="display:flex; gap:8px;">
-          <input type="text" id="scan-path-input" class="gate-answer-input" placeholder="Pfad eingeben (z. B. /Volumes/Spacestation/MCP/Antigravity-MCP-tools/scientific-agent-skills)..." style="flex:1;" />
-          <button id="btn-start-skill-scan" class="btn btn-primary btn-sm">
-            🔍 Verzeichnis scannen
-          </button>
+        <!-- Source Selection Row -->
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <div>
+            <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); display:block; margin-bottom:8px;">
+              📁 Skills von Deinem System / Datenträger laden:
+            </label>
+            <div style="display:flex; flex-wrap:wrap; gap:10px;">
+              <button id="btn-browse-folder" type="button" class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:6px;">
+                📂 Ordner im Finder auswählen...
+              </button>
+              <button id="btn-browse-files" type="button" class="btn btn-secondary btn-sm" style="display:flex; align-items:center; gap:6px;">
+                📄 Einzelne Skill-Dateien (.md)...
+              </button>
+            </div>
+            <div class="skill-security-hint">
+              🛡️ <strong>Sicherer Skill-Filter:</strong> Erkennt automatisch <code>SKILL.md</code>-Pakete und strukturierte Markdown-Skills. Ignoriert Skripte (<code>.sh</code>, <code>.py</code>), Konfigurationen, Readmes, Lizenzen und Sub-Referenzen zum Schutz vor Fehlinterpretationen und Prompt-Injections.
+            </div>
+          </div>
+
+          <!-- Fallback: Server / Container path input -->
+          <div>
+            <label style="font-size:0.75rem; font-weight:600; color:var(--text-dim); display:block; margin-bottom:4px;">
+              Oder Server-/Container-Pfad scannen:
+            </label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="scan-path-input" class="gate-answer-input" placeholder="z. B. /app/data/skills_catalog..." style="flex:1;" />
+              <button id="btn-start-skill-scan" class="btn btn-secondary btn-sm">
+                🔍 Server-Pfad scannen
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Scan Status & Results Section -->
@@ -651,10 +662,10 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=2.4"></script>
-  <script src="/static/js/api.js?v=2.4"></script>
-  <script src="/static/js/graph.js?v=2.4"></script>
-  <script src="/static/js/app.js?v=2.4"></script>
+  <script src="/static/js/toast.js?v=2.5"></script>
+  <script src="/static/js/api.js?v=2.5"></script>
+  <script src="/static/js/graph.js?v=2.5"></script>
+  <script src="/static/js/app.js?v=2.5"></script>
 </body>
 </html>
 

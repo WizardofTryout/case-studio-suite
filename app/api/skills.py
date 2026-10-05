@@ -125,7 +125,7 @@ async def toggle_favorite(skill_key: str):
 @router.get("/skills/{skill_key}/content")
 async def fetch_skill_content(
     skill_key: str,
-    project_id: Optional[str] = Query(None)
+    project_id: Optional[str] = None
 ):
     """Fetch raw markdown text and metadata of a skill for the editor."""
     try:

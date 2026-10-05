@@ -12,10 +12,21 @@ except ImportError:
 
 logger = logging.getLogger("case_studio.skill_scanner")
 
-IGNORED_MD_FILES = {
-    "readme.md", "license.md", "licence.md", "contributing.md",
-    "changelog.md", "agents.md", "todo.md", "code_of_conduct.md"
+IGNORED_DIR_NAMES = {
+    "tests", "test", "testing", "docs", "documentation", "site",
+    "assets", "scripts", "references", "examples", "build", "dist",
+    ".git", ".agent", "node_modules", "__pycache__", "venv", ".venv",
+    ".github", ".vscode", "tmp", "temp"
 }
+
+IGNORED_MD_PREFIXES = (
+    "readme", "license", "licence", "contributing", "changelog",
+    "agents", "todo", "howto", "code_of_conduct", "index"
+)
+
+IGNORED_MD_SUFFIXES = (
+    "_test.md", ".test.md", "_spec.md", ".spec.md"
+)
 
 TAG_KEYWORDS = {
     "bio": ["bio", "biology", "genomics", "rna", "dna", "protein", "crispr", "uniprot", "variant", "mutation"],
@@ -133,21 +144,27 @@ def extract_tags(name: str, desc: str, raw_tags: Any) -> List[str]:
 
 def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[str, Any]:
     """
-    Recursively scans the target directory up to max_depth for SKILL.md and *.md files.
-    Extracts YAML frontmatter, title, description, category, and tags.
+    Recursively scans target directory for genuine skills:
+    1. Looks for folders containing SKILL.md.
+    2. Once a folder with SKILL.md is found, it is treated as a leaf skill and child directories
+       (such as references/, scripts/, tests/) are NOT crawled for separate skills.
+    3. Prunes non-skill directories (tests/, docs/, assets/, node_modules/, etc.).
+    4. Rejects any non-markdown files (.sh, .py, etc.) to prevent prompt injection and clutter.
+    5. Loose .md files are ONLY accepted if they have valid YAML frontmatter (name/description)
+       or explicit skill role structures.
     """
     target_path = Path(target_path_str).resolve()
     if not target_path.exists():
         return {
             "success": False,
-            "error": f"Path '{target_path_str}' does not exist.",
+            "error": f"Pfad '{target_path_str}' existiert nicht.",
             "skills": [],
             "total_found": 0
         }
     if not target_path.is_dir():
         return {
             "success": False,
-            "error": f"Path '{target_path_str}' is not a directory.",
+            "error": f"Pfad '{target_path_str}' ist kein Verzeichnis.",
             "skills": [],
             "total_found": 0
         }
@@ -160,13 +177,16 @@ def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[
         rel = os.path.relpath(root, str(target_path))
         depth = 0 if rel == "." else len(Path(rel).parts)
         if depth > max_depth:
-            dirs.clear()  # Don't descend further
+            dirs.clear()
             continue
 
-        # Skip hidden directories like .git, .agent, node_modules
-        dirs[:] = [d for d in dirs if not d.startswith(".") and d not in ("node_modules", "__pycache__", "venv", ".venv")]
+        # Prune ignored and hidden directories
+        dirs[:] = [
+            d for d in dirs
+            if not d.startswith(".") and d.lower() not in IGNORED_DIR_NAMES
+        ]
 
-        # First priority in this directory: check for SKILL.md
+        # Check for SKILL.md in current directory
         skill_md_path = None
         for f in files:
             if f.lower() == "skill.md":
@@ -181,23 +201,33 @@ def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[
                     skills.append(skill_item)
             except Exception as e:
                 logger.error(f"Failed to parse skill file {skill_md_path}: {e}")
-            # If folder has SKILL.md, do not parse additional loose .md files in the same folder
+            # CRITICAL: This directory is a self-contained skill!
+            # Do NOT descend into child directories (e.g. references/, scripts/, tests/)!
+            dirs.clear()
             continue
 
-        # Otherwise parse loose *.md files in this directory
+        # Otherwise: check loose .md files in this directory (with strict qualification)
         for f in files:
-            if not f.lower().endswith(".md") or f.lower() in IGNORED_MD_FILES:
+            lower_name = f.lower()
+            # ONLY .md files, strictly reject .sh, .py, .json, etc.
+            if not (lower_name.endswith(".md") or lower_name.endswith(".markdown")):
                 continue
+
+            # Ignore docs, licenses, readmes, tests
+            if any(lower_name.startswith(prefix) for prefix in IGNORED_MD_PREFIXES):
+                continue
+            if any(lower_name.endswith(suffix) for suffix in IGNORED_MD_SUFFIXES):
+                continue
+
             file_path = Path(root) / f
             try:
-                skill_item = parse_skill_file(file_path, target_path, is_folder_based=False)
+                skill_item = parse_skill_file(file_path, target_path, is_folder_based=False, strict_loose=True)
                 if skill_item and skill_item["skill_key"] not in seen_keys:
                     seen_keys.add(skill_item["skill_key"])
                     skills.append(skill_item)
             except Exception as e:
-                logger.error(f"Failed to parse skill file {file_path}: {e}")
+                logger.error(f"Failed to parse loose skill file {file_path}: {e}")
 
-    # Sort results by category and display_name
     skills.sort(key=lambda x: (x["skill_category"], x["display_name"]))
 
     return {
@@ -208,7 +238,12 @@ def scan_directory_for_skills(target_path_str: str, max_depth: int = 8) -> Dict[
     }
 
 
-def parse_skill_file(file_path: Path, base_dir: Path, is_folder_based: bool) -> Optional[Dict[str, Any]]:
+def parse_skill_file(
+    file_path: Path,
+    base_dir: Path,
+    is_folder_based: bool,
+    strict_loose: bool = False
+) -> Optional[Dict[str, Any]]:
     try:
         content = file_path.read_text(encoding="utf-8", errors="replace")
     except Exception as e:
@@ -219,7 +254,19 @@ def parse_skill_file(file_path: Path, base_dir: Path, is_folder_based: bool) -> 
     file_hash = compute_content_hash(content)
 
     meta, body = extract_yaml_frontmatter(content)
-    
+
+    # For loose .md files, enforce that they must be genuine skills, not random notes
+    if strict_loose and not is_folder_based:
+        has_meta = meta and (meta.get("name") or meta.get("description"))
+        has_structure = (
+            "## Role" in body or "## Rollendefinition" in body or
+            "## Leitplanken" in body or "## Description" in body or
+            "# Skill" in body or "## Purpose" in body
+        )
+        if not (has_meta or has_structure):
+            # Not a qualified skill definition
+            return None
+
     # Defaults
     if is_folder_based:
         default_key = file_path.parent.name.lower().replace(" ", "-")
@@ -248,6 +295,7 @@ def parse_skill_file(file_path: Path, base_dir: Path, is_folder_based: bool) -> 
             first_paragraph = sline
 
     display_name = str(raw_name).strip() if raw_name else (header_title or default_title)
+    
     # Sanitize skill_key
     skill_key = re.sub(r"[^a-zA-Z0-9_\-]", "-", display_name.lower().replace(" ", "-")).strip("-")
     if not skill_key:
