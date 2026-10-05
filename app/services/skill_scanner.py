@@ -112,13 +112,13 @@ def infer_category(name: str, desc: str, raw_category: Optional[str] = None) -> 
             return clean
 
     combined = f"{name} {desc}".lower()
-    if any(k in combined for k in ["master", "lead", "architect", "clarify", "consultant", "strategy"]):
-        return "master_consultant"
-    if any(k in combined for k in ["critic", "validator", "verifier", "challenger", "security", "auditor", "linter"]):
+    if any(k in combined for k in ["critic", "validator", "verifier", "challenger", "auditor"]):
         return "critic_validator"
-    if any(k in combined for k in ["research", "search", "arxiv", "pubmed", "patent", "literature", "fetch", "scrape", "bio", "genom"]):
+    if any(k in combined for k in ["master consultant", "lead strategist", "lead consultant", "prüfungsleitung", "master_consultant"]):
+        return "master_consultant"
+    if any(k in combined for k in ["research", "search", "arxiv", "pubmed", "patent", "literature", "bio", "genom", "protein", "chem"]):
         return "research_analyst"
-    if any(k in combined for k in ["tool", "cli", "sdk", "docker", "k8s", "kubernetes", "gke", "git", "api"]):
+    if any(k in combined for k in ["tool", "cli", "sdk", "docker", "k8s", "kubernetes", "gke", "git"]):
         return "tool_specialist"
     return "domain_specialist"
 

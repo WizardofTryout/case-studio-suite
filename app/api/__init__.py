@@ -5,6 +5,7 @@ from app.api.skills import router as skills_router
 from app.api.sessions import router as sessions_router
 from app.api.decision_gates import router as decision_gates_router
 from app.api.copilot import router as copilot_router
+from app.api.deliberation import router as deliberation_router
 
 __all__ = [
     "health_router",
@@ -13,5 +14,6 @@ __all__ = [
     "skills_router",
     "sessions_router",
     "decision_gates_router",
-    "copilot_router"
+    "copilot_router",
+    "deliberation_router"
 ]

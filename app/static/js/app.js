@@ -69,6 +69,34 @@ const App = {
     }
   },
 
+  deliberationState: {
+    autoPilot: true,
+    teamSlots: [
+      {
+        role: "master_consultant",
+        name: "Master Consultant (Lead Strategist)",
+        skill_key: "base_master_consultant",
+        is_fixed: true,
+        category: "master_consultant",
+        description: "Führt die Synthese, trifft Architekturentscheidungen und baut den Mermaid-Graph."
+      },
+      {
+        role: "critic",
+        name: "Pragmatic Critic & Risk Assessor",
+        skill_key: "base_critic",
+        is_fixed: true,
+        category: "critic",
+        description: "Hinterfragt Latenzen, Kosten, Vendor-Lock-in und Ausfallsicherheit gnadenlos."
+      }
+    ],
+    selectedRefinerSkillKey: "base_industrial_ot",
+    selectedRefinerName: "Industrial OT & Edge Specialist",
+    tileModalMode: "refiner", // 'refiner' | 'slot'
+    targetSlotIndex: null,
+    tileSearchQuery: "",
+    tileActiveCategory: "all"
+  },
+
   skillsState: {
     library: [],
     activeTag: "all",
@@ -87,6 +115,7 @@ const App = {
     this.bindEvents();
     this.bindDrawerEvents();
     this.bindSkillStudioEvents();
+    this.bindDeliberationEvents();
     this.renderQuickTriggers(1);
     await this.refreshTelemetry();
     await this.loadProjects();
@@ -463,6 +492,7 @@ const App = {
     await this.loadSkillsCatalog();
     await this.loadDecisionGates();
     await this.loadMessages();
+    await this.loadDeliberationTeam();
   },
 
   switchTab(tabId) {
@@ -473,6 +503,9 @@ const App = {
     document.querySelectorAll(".tab-content").forEach(c => {
       c.classList.toggle("active", c.id === `tab-${tabId}`);
     });
+    if (tabId === "deliberation") {
+      this.loadDeliberationTeam();
+    }
   },
 
   async switchPhase(phase) {
@@ -1190,7 +1223,470 @@ const App = {
     await this.runCopilotWithPrompt(prompt, false);
   },
 
-  // --- Multi-Agent Deliberation ---
+  // --- Multi-Agent Deliberation (Sprints 9, 10, 11) ---
+
+  bindDeliberationEvents() {
+    // Auto-Pilot toggle button
+    const apBtn = document.getElementById("btn-toggle-autopilot");
+    if (apBtn) {
+      apBtn.addEventListener("click", () => this.toggleAutoPilot());
+    }
+
+    // Add expert slot button
+    const addSlotBtn = document.getElementById("btn-add-agent-slot");
+    if (addSlotBtn) {
+      addSlotBtn.addEventListener("click", () => this.openAgentTileModal("slot", null));
+    }
+
+    // Open Tile Catalog buttons & Refiner Chip click
+    const catalogBtn = document.getElementById("btn-open-tile-catalog");
+    if (catalogBtn) {
+      catalogBtn.addEventListener("click", () => this.openAgentTileModal("refiner", null));
+    }
+    const refinerBadge = document.getElementById("selected-refiner-badge");
+    if (refinerBadge) {
+      refinerBadge.addEventListener("click", () => this.openAgentTileModal("refiner", null));
+    }
+
+    // Autoscan Refiner button
+    const autoscanBtn = document.getElementById("btn-autoscan-refiner");
+    if (autoscanBtn) {
+      autoscanBtn.addEventListener("click", () => this.autoscanRefiner());
+    }
+
+    // Enhance Prompt button
+    const enhanceBtn = document.getElementById("btn-enhance-prompt");
+    if (enhanceBtn) {
+      enhanceBtn.addEventListener("click", () => this.enhancePromptAction());
+    }
+
+    // Deliberation input shortcut: Cmd/Ctrl + Enter
+    const delibInput = document.getElementById("deliberation-input");
+    if (delibInput) {
+      delibInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          this.runDeliberation();
+        }
+      });
+    }
+
+    // Agent Tile Modal close buttons & backdrop click
+    const closeTileBtn = document.getElementById("btn-close-agent-tile-modal");
+    if (closeTileBtn) {
+      closeTileBtn.addEventListener("click", () => this.closeAgentTileModal());
+    }
+    const cancelTileBtn = document.getElementById("btn-cancel-agent-tile");
+    if (cancelTileBtn) {
+      cancelTileBtn.addEventListener("click", () => this.closeAgentTileModal());
+    }
+    const tileOverlay = document.getElementById("agent-tile-modal-overlay");
+    if (tileOverlay) {
+      tileOverlay.addEventListener("click", (e) => {
+        if (e.target === tileOverlay) this.closeAgentTileModal();
+      });
+    }
+
+    // Tile Search input
+    const tileSearch = document.getElementById("agent-tile-search");
+    if (tileSearch) {
+      tileSearch.addEventListener("input", (e) => {
+        this.deliberationState.tileSearchQuery = e.target.value.toLowerCase().trim();
+        this.renderAgentTiles();
+      });
+    }
+
+    // Tile Category Filter chips
+    const chipContainer = document.getElementById("agent-tile-filter-chips");
+    if (chipContainer) {
+      chipContainer.addEventListener("click", (e) => {
+        const chip = e.target.closest(".tag-pill");
+        if (!chip) return;
+        chipContainer.querySelectorAll(".tag-pill").forEach(p => p.classList.remove("active"));
+        chip.classList.add("active");
+        this.deliberationState.tileActiveCategory = chip.dataset.category || "all";
+        this.renderAgentTiles();
+      });
+    }
+  },
+
+  async toggleAutoPilot() {
+    this.deliberationState.autoPilot = !this.deliberationState.autoPilot;
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+    const msg = this.deliberationState.autoPilot
+      ? "🤖 Auto-Pilot aktiviert: KI schaltet Fachagenten dynamisch zu!"
+      : "⚙️ Auto-Pilot deaktiviert: Debattenteam manuell konfiguriert.";
+    window.showToast(msg, "info");
+  },
+
+  async loadDeliberationTeam() {
+    if (!this.state.currentSessionId) {
+      this.renderDeliberationTeamGrid();
+      return;
+    }
+    try {
+      const team = await API.getDeliberationTeam(this.state.currentSessionId);
+      if (team) {
+        if (team.auto_pilot !== undefined) {
+          this.deliberationState.autoPilot = !!team.auto_pilot;
+        }
+        if (team.configured_agents && team.configured_agents.length > 0) {
+          this.deliberationState.teamSlots = team.configured_agents;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not load deliberation team:", e);
+    }
+    this.renderDeliberationTeamGrid();
+  },
+
+  async saveDeliberationTeam() {
+    if (!this.state.currentSessionId) return;
+    try {
+      await API.saveDeliberationTeam(
+        this.state.currentSessionId,
+        this.deliberationState.autoPilot,
+        this.deliberationState.teamSlots
+      );
+    } catch (e) {
+      console.warn("Could not save deliberation team:", e);
+    }
+  },
+
+  renderDeliberationTeamGrid() {
+    const apBtn = document.getElementById("btn-toggle-autopilot");
+    if (apBtn) {
+      if (this.deliberationState.autoPilot) {
+        apBtn.classList.add("active");
+        apBtn.innerHTML = `<span>🤖</span> <strong>Auto-Pilot: AN</strong> (KI wählt dynamisch)`;
+      } else {
+        apBtn.classList.remove("active");
+        apBtn.innerHTML = `<span>⚙️</span> <strong>Auto-Pilot: AUS</strong> (Manuelle Auswahl)`;
+      }
+    }
+
+    const grid = document.getElementById("deliberation-team-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    // 1. Render all configured team slots
+    this.deliberationState.teamSlots.forEach((slot, idx) => {
+      const card = document.createElement("div");
+      card.className = "team-slot-card";
+
+      let badgeHtml = "";
+      let icon = "⚡";
+      if (slot.role === "master_consultant") {
+        icon = "👑";
+        badgeHtml = `<span class="badge-fixed">[Pflicht / Lead]</span>`;
+      } else if (slot.role === "critic") {
+        icon = "🛡️";
+        badgeHtml = `<span class="badge-fixed">[Qualitätswächter]</span>`;
+      } else {
+        icon = "⚡";
+        badgeHtml = `<span class="badge-specialist">[Fachspezialist]</span>`;
+      }
+
+      let actionsHtml = "";
+      if (!slot.is_fixed && slot.role !== "master_consultant" && slot.role !== "critic") {
+        actionsHtml = `
+          <div class="team-slot-actions">
+            <button class="btn btn-secondary btn-sm" onclick="App.openAgentTileModal('slot', ${idx})" title="Experte austauschen">
+              Ändern ▾
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="App.removeTeamSlot(${idx})" title="Entfernen" style="color:var(--rose);">
+              ✕
+            </button>
+          </div>
+        `;
+      }
+
+      card.innerHTML = `
+        <div class="team-slot-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.15rem;">${icon}</span>
+            <strong style="font-size:0.88rem; color:var(--text);">${this.escapeHtml(slot.name)}</strong>
+          </div>
+          ${badgeHtml}
+        </div>
+        <div class="team-slot-desc">${this.escapeHtml(slot.description || "Bringt tiefgreifendes Domänenwissen in die Debatte ein.")}</div>
+        ${actionsHtml}
+      `;
+      grid.appendChild(card);
+    });
+
+    // 2. If Auto-Pilot is enabled, show the dynamic auto-scan slot card
+    if (this.deliberationState.autoPilot) {
+      const autoCard = document.createElement("div");
+      autoCard.className = "team-slot-card auto-pilot-slot";
+      autoCard.innerHTML = `
+        <div class="team-slot-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.2rem;">🤖</span>
+            <strong style="font-size:0.88rem; color:var(--cyan);">Dynamische Fachagenten (Auto-Scan)</strong>
+          </div>
+          <span class="badge-autopilot">[Auto-Pilot Aktiv]</span>
+        </div>
+        <div class="team-slot-desc">
+          Erkennt anhand Deines Themas automatisch passende Spezialisten (z. B. SPS/OPC UA, Kafka, Snowflake, AI) und bindet sie dynamisch ein.
+        </div>
+      `;
+      grid.appendChild(autoCard);
+    }
+  },
+
+  async removeTeamSlot(idx) {
+    if (idx >= 0 && idx < this.deliberationState.teamSlots.length) {
+      const removed = this.deliberationState.teamSlots.splice(idx, 1)[0];
+      await this.saveDeliberationTeam();
+      this.renderDeliberationTeamGrid();
+      window.showToast(`Fachagent "${removed.name}" aus Team entfernt.`, "info");
+    }
+  },
+
+  openAgentTileModal(mode = "refiner", slotIndex = null) {
+    this.deliberationState.tileModalMode = mode;
+    this.deliberationState.targetSlotIndex = slotIndex;
+
+    const badge = document.getElementById("agent-tile-purpose-badge");
+    if (badge) {
+      badge.textContent = mode === "refiner"
+        ? "✨ Ziel: Prompt-Veredelung (Reichert Rohentwurf vorab technisch an)"
+        : (slotIndex !== null ? `🏛️ Ziel: Team-Slot #${slotIndex + 1} austauschen` : "🏛️ Ziel: Neuer Fachagent im Team");
+    }
+
+    const searchInput = document.getElementById("agent-tile-search");
+    if (searchInput) searchInput.value = "";
+    this.deliberationState.tileSearchQuery = "";
+
+    this.renderAgentTiles();
+
+    const overlay = document.getElementById("agent-tile-modal-overlay");
+    if (overlay) overlay.classList.add("active");
+  },
+
+  closeAgentTileModal() {
+    const overlay = document.getElementById("agent-tile-modal-overlay");
+    if (overlay) overlay.classList.remove("active");
+  },
+
+  renderAgentTiles() {
+    const grid = document.getElementById("agent-tiles-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    const library = this.skillsState.library || [];
+    const query = this.deliberationState.tileSearchQuery;
+    const cat = this.deliberationState.tileActiveCategory;
+
+    const filtered = library.filter(s => {
+      // Exclude lead & critic from specialist catalog selection
+      if (s.skill_key === "base_master_consultant" || s.skill_key === "base_critic") return false;
+
+      // Category filter
+      if (cat !== "all") {
+        const catLower = (s.category || "").toLowerCase();
+        const tagsLower = (s.tags || []).join(" ").toLowerCase();
+        const nameLower = (s.name || "").toLowerCase();
+        const allText = `${catLower} ${tagsLower} ${nameLower}`;
+
+        if (cat === "ot" && !allText.includes("ot") && !allText.includes("sps") && !allText.includes("edge") && !allText.includes("opc") && !allText.includes("industrial")) return false;
+        if (cat === "cloud" && !allText.includes("cloud") && !allText.includes("kafka") && !allText.includes("snowflake") && !allText.includes("streaming")) return false;
+        if (cat === "ai" && !allText.includes("ai") && !allText.includes("rag") && !allText.includes("llm") && !allText.includes("agent") && !allText.includes("mcp")) return false;
+        if (cat === "siemens" && !allText.includes("siemens") && !allText.includes("tia") && !allText.includes("s7") && !allText.includes("profinet")) return false;
+        if (cat === "science" && !allText.includes("science") && !allText.includes("biotech") && !allText.includes("alphafold") && !allText.includes("chembl") && !allText.includes("pdb")) return false;
+        if (cat === "data" && !allText.includes("data") && !allText.includes("sql") && !allText.includes("dbt") && !allText.includes("lakehouse") && !allText.includes("etl")) return false;
+        if (cat === "security" && !allText.includes("security") && !allText.includes("iec") && !allText.includes("purdue") && !allText.includes("audit")) return false;
+      }
+
+      // Query filter
+      if (query) {
+        const matchName = s.name.toLowerCase().includes(query);
+        const matchDesc = (s.description || "").toLowerCase().includes(query);
+        const matchTags = (s.tags || []).some(t => t.toLowerCase().includes(query));
+        if (!matchName && !matchDesc && !matchTags) return false;
+      }
+
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1; text-align:center; padding:30px; color:var(--text-muted);">Keine Fachskills für diesen Filter gefunden.</div>`;
+      return;
+    }
+
+    filtered.forEach(skill => {
+      const tile = document.createElement("div");
+      tile.className = "agent-tile-card";
+
+      let domainBadge = "⚡ Spezialist";
+      let icon = "⚡";
+      const catLower = (skill.category || "").toLowerCase();
+      const tags = (skill.tags || []).join(" ").toLowerCase();
+
+      if (tags.includes("siemens") || skill.name.toLowerCase().includes("siemens")) {
+        domainBadge = "Siemens Ecosystem";
+        icon = "⚙️";
+      } else if (catLower.includes("industrial") || tags.includes("ot") || tags.includes("edge")) {
+        domainBadge = "Industrial OT & Edge";
+        icon = "🏭";
+      } else if (catLower.includes("cloud") || tags.includes("kafka") || tags.includes("snowflake")) {
+        domainBadge = "Cloud & Streaming";
+        icon = "☁️";
+      } else if (catLower.includes("science") || tags.includes("biotech")) {
+        domainBadge = "Scientific Biotech";
+        icon = "🧬";
+      } else if (tags.includes("ai") || tags.includes("mcp") || tags.includes("llm")) {
+        domainBadge = "AI & Agents";
+        icon = "🤖";
+      }
+
+      tile.innerHTML = `
+        <div class="tile-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:1.3rem;">${icon}</span>
+            <div>
+              <div style="font-weight:700; font-size:0.92rem; color:var(--text);">${this.escapeHtml(skill.name)}</div>
+              <span class="tile-domain-badge">${domainBadge}</span>
+            </div>
+          </div>
+        </div>
+        <div class="tile-desc">${this.escapeHtml(skill.description || "Hochspezialisierter Fachagent.")}</div>
+        <div class="tile-footer">
+          <button class="btn btn-primary btn-sm" style="width:100%; justify-content:center;">
+            Wählen ➔
+          </button>
+        </div>
+      `;
+
+      tile.querySelector("button").addEventListener("click", () => {
+        this.selectTileSkill(skill);
+      });
+
+      grid.appendChild(tile);
+    });
+  },
+
+  async selectTileSkill(skill) {
+    if (this.deliberationState.tileModalMode === "refiner") {
+      this.deliberationState.selectedRefinerSkillKey = skill.skill_key;
+      this.deliberationState.selectedRefinerName = skill.name;
+
+      const badgeName = document.getElementById("refiner-badge-name");
+      if (badgeName) badgeName.textContent = skill.name;
+
+      const badgeIcon = document.getElementById("refiner-badge-icon");
+      if (badgeIcon) {
+        if (skill.name.toLowerCase().includes("siemens")) badgeIcon.textContent = "⚙️";
+        else if (skill.name.toLowerCase().includes("cloud")) badgeIcon.textContent = "☁️";
+        else if (skill.name.toLowerCase().includes("science") || skill.name.toLowerCase().includes("bio")) badgeIcon.textContent = "🧬";
+        else badgeIcon.textContent = "⚡";
+      }
+
+      this.closeAgentTileModal();
+      window.showToast(`✨ Fachagent "${skill.name}" für Veredelung gewählt!`, "info");
+    } else {
+      // Slot Mode
+      const newSlot = {
+        role: "domain_expert",
+        name: skill.name,
+        skill_key: skill.skill_key,
+        is_fixed: false,
+        category: skill.category || "domain_specialist",
+        description: skill.description || ""
+      };
+
+      if (this.deliberationState.targetSlotIndex !== null) {
+        this.deliberationState.teamSlots[this.deliberationState.targetSlotIndex] = newSlot;
+      } else {
+        this.deliberationState.teamSlots.push(newSlot);
+      }
+
+      await this.saveDeliberationTeam();
+      this.renderDeliberationTeamGrid();
+      this.closeAgentTileModal();
+      window.showToast(`🏛️ "${skill.name}" zum Debattenteam hinzugefügt!`, "success");
+    }
+  },
+
+  async autoscanRefiner() {
+    const inputEl = document.getElementById("deliberation-input");
+    const text = inputEl ? inputEl.value.trim() : "";
+    if (!text) {
+      window.showToast("Bitte gib zuerst einen Rohentwurf in das Prompt-Feld ein!", "warning");
+      return;
+    }
+
+    try {
+      window.showToast("🔍 Analysiere Rohentwurf auf passende Fachdomänen...", "info");
+      const res = await API.detectAgents(text, this.state.currentProjectId, 2);
+      if (res && res.agents && res.agents.length > 0) {
+        const top = res.agents.find(a => a.role === "domain_expert" || a.category === "domain_specialist") || res.agents[0];
+        this.deliberationState.selectedRefinerSkillKey = top.skill_key;
+        this.deliberationState.selectedRefinerName = top.name;
+
+        const badgeName = document.getElementById("refiner-badge-name");
+        if (badgeName) badgeName.textContent = top.name;
+
+        const badgeIcon = document.getElementById("refiner-badge-icon");
+        if (badgeIcon) {
+          if (top.name.toLowerCase().includes("siemens")) badgeIcon.textContent = "⚙️";
+          else if (top.name.toLowerCase().includes("cloud")) badgeIcon.textContent = "☁️";
+          else if (top.name.toLowerCase().includes("science") || top.name.toLowerCase().includes("bio")) badgeIcon.textContent = "🧬";
+          else badgeIcon.textContent = "⚡";
+        }
+
+        window.showToast(`🎯 Top-Fachagent erkannt: ${top.name}`, "success");
+      } else {
+        window.showToast("Kein spezifischer Fachagent erkannt, bestehende Auswahl bleibt aktiv.", "info");
+      }
+    } catch (e) {
+      window.showToast(`Autoscan fehlgeschlagen: ${e.message}`, "error");
+    }
+  },
+
+  async enhancePromptAction() {
+    const inputEl = document.getElementById("deliberation-input");
+    const text = inputEl ? inputEl.value.trim() : "";
+    if (!text) {
+      window.showToast("Bitte gib zuerst einen Rohentwurf ein, der veredelt werden soll!", "warning");
+      return;
+    }
+
+    const pill = document.getElementById("refiner-progress-pill");
+    const btn = document.getElementById("btn-enhance-prompt");
+    if (pill) pill.style.display = "flex";
+    if (btn) btn.disabled = true;
+
+    try {
+      const res = await API.enhancePrompt(
+        text,
+        this.deliberationState.selectedRefinerSkillKey,
+        this.state.currentProjectId,
+        this.state.currentSessionId
+      );
+      if (res && res.refined_prompt) {
+        inputEl.value = res.refined_prompt;
+        inputEl.focus();
+        window.showToast("✨ Prompt erfolgreich mit Fachdetails und Kennzahlen veredelt!", "success");
+      }
+    } catch (e) {
+      window.showToast(`Veredelungs-Fehler: ${e.message}`, "error");
+    } finally {
+      if (pill) pill.style.display = "none";
+      if (btn) btn.disabled = false;
+    }
+  },
+
+  appendSystemNotice(container, htmlContent) {
+    const notice = document.createElement("div");
+    notice.style.cssText = "margin:10px auto; padding:8px 16px; background:rgba(6,182,212,0.1); border:1px solid rgba(6,182,212,0.3); border-radius:8px; font-size:0.83rem; color:var(--cyan); max-width:90%; text-align:center;";
+    notice.innerHTML = htmlContent;
+    container.appendChild(notice);
+    container.scrollTop = container.scrollHeight;
+    return notice;
+  },
 
   async runDeliberation() {
     if (this.state.isStreaming) return;
@@ -1229,10 +1725,18 @@ const App = {
         project_id: this.state.currentProjectId,
         session_id: this.state.currentSessionId,
         topic_or_proposal: topic,
-        phase: this.state.currentPhase
+        phase: this.state.currentPhase,
+        auto_pilot: this.deliberationState.autoPilot,
+        configured_agents: this.deliberationState.teamSlots
       },
       (event) => {
-        if (event.type === "agent_start") {
+        if (event.type === "auto_pilot_detected") {
+          if (event.detected_specialists && event.detected_specialists.length > 0) {
+            const specNames = event.detected_specialists.map(s => s.name).join(" & ");
+            this.appendSystemNotice(thread, `🤖 Auto-Pilot aktiv: Dynamisch zugeschaltete Fachspezialisten: <strong>${this.escapeHtml(specNames)}</strong>`);
+            window.showToast(`🤖 Auto-Pilot: ${specNames} zugeschaltet!`, "info");
+          }
+        } else if (event.type === "agent_start") {
           currentRole = event.role;
           agentBuffer = "";
           currentMsgEl = this.appendChatMessage(thread, {
@@ -1271,7 +1775,7 @@ const App = {
     const btn = document.getElementById("btn-run-deliberation");
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = "⚔️ Agenten debattieren lassen";
+      btn.innerHTML = "🚀 Agenten debattieren lassen";
     }
   },
 
@@ -1286,7 +1790,7 @@ const App = {
     else if (msg.sender_role === "user") icon = "👤";
 
     card.innerHTML = `
-      <div class="msg-sender">${icon} ${msg.sender_name}</div>
+      <div class="msg-sender">${icon} ${this.escapeHtml(msg.sender_name)}</div>
       <div class="msg-body">${this.renderMarkdown(msg.content)}</div>
     `;
     container.appendChild(card);

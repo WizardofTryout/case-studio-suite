@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.db import repositories
 from app.services.copilot_service import (
     execute_copilot_stream,
@@ -26,6 +26,8 @@ class DeliberationRequest(BaseModel):
     session_id: str
     topic_or_proposal: str = Field(..., min_length=1)
     phase: Optional[int] = 2
+    auto_pilot: Optional[bool] = True
+    configured_agents: Optional[List[Dict[str, Any]]] = None
 
 
 @router.post("/stream")
@@ -62,7 +64,7 @@ async def stream_copilot_response(payload: CopilotStreamRequest):
 async def stream_deliberation(payload: DeliberationRequest):
     """
     Server-Sent Events endpoint for Multi-Agent Deliberation:
-    Critic, Domain Expert, and Master Consultant debate, test edge-cases, and synthesize.
+    Supports dynamic N-Agent orchestrations and KI-directed Auto-Pilot.
     """
     proj = await repositories.get_project(payload.project_id)
     if not proj:
@@ -77,7 +79,9 @@ async def stream_deliberation(payload: DeliberationRequest):
             project_id=payload.project_id,
             session_id=payload.session_id,
             topic_or_proposal=payload.topic_or_proposal,
-            phase=payload.phase or 2
+            phase=payload.phase or 2,
+            auto_pilot=True if payload.auto_pilot is None else payload.auto_pilot,
+            configured_agents=payload.configured_agents
         ),
         media_type="text/event-stream",
         headers={

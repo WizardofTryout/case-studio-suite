@@ -249,6 +249,62 @@ const API = {
     }
   },
 
+  // --- Sprint 9-11 Deliberation & Refiner APIs ---
+
+  async detectAgents(query, projectId = null, topK = 2) {
+    const res = await fetch("/api/deliberation/detect_agents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, project_id: projectId, top_k: topK })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Agenten-Erkennung fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async enhancePrompt(draftPrompt, skillKey, projectId = null, sessionId = null) {
+    const res = await fetch("/api/deliberation/enhance_prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        draft_prompt: draftPrompt,
+        skill_key: skillKey,
+        project_id: projectId,
+        session_id: sessionId
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Prompt-Veredelung fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async getDeliberationTeam(sessionId) {
+    const res = await fetch(`/api/deliberation/team?session_id=${encodeURIComponent(sessionId)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  },
+
+  async saveDeliberationTeam(sessionId, autoPilot, configuredAgents) {
+    const res = await fetch("/api/deliberation/team", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        session_id: sessionId,
+        auto_pilot: autoPilot,
+        configured_agents: configuredAgents
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Team-Speichern fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
 
   async streamSSE(url, payload, onEvent, onError, onComplete) {
     try {

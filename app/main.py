@@ -17,7 +17,8 @@ from app.api import (
     skills_router,
     sessions_router,
     decision_gates_router,
-    copilot_router
+    copilot_router,
+    deliberation_router
 )
 
 # Setup logging
@@ -76,6 +77,7 @@ app.include_router(skills_router)
 app.include_router(sessions_router)
 app.include_router(decision_gates_router)
 app.include_router(copilot_router)
+app.include_router(deliberation_router)
 
 # Mount static files
 static_dir = Path(__file__).parent / "static"

@@ -1,4 +1,5 @@
 import uuid
+import json
 from typing import List, Optional, Dict, Any
 from app.db.database import get_db
 
@@ -625,5 +626,84 @@ async def get_all_unique_tags() -> List[Dict[str, Any]]:
         ) as cursor:
             rows = await cursor.fetchall()
             return [{"tag": r[0], "count": r[1]} for r in rows]
+
+
+# --- Deliberation Teams & Prompt Refinements (Sprints 9-11) ---
+
+async def get_session_deliberation_team(session_id: str) -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT id, session_id, auto_pilot, configured_agents_json, updated_at FROM session_deliberation_teams WHERE session_id = ?",
+            (session_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return None
+            res = dict(row)
+            try:
+                res["configured_agents"] = json.loads(res["configured_agents_json"])
+            except Exception:
+                res["configured_agents"] = []
+            return res
+
+
+async def save_session_deliberation_team(
+    session_id: str,
+    auto_pilot: int = 1,
+    configured_agents: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    t_id = str(uuid.uuid4())
+    agents_json = json.dumps(configured_agents or [])
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO session_deliberation_teams (id, session_id, auto_pilot, configured_agents_json, updated_at)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(session_id) DO UPDATE SET
+                auto_pilot = excluded.auto_pilot,
+                configured_agents_json = excluded.configured_agents_json,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (t_id, session_id, auto_pilot, agents_json)
+        )
+        await db.commit()
+    team = await get_session_deliberation_team(session_id)
+    return team  # type: ignore
+
+
+async def create_prompt_refinement(
+    session_id: str,
+    original_draft: str,
+    refined_prompt: str,
+    used_skill_key: str
+) -> Dict[str, Any]:
+    r_id = str(uuid.uuid4())
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO prompt_refinements (id, session_id, original_draft, refined_prompt, used_skill_key)
+            VALUES (?, ?, ?, ?, ?)
+            """,
+            (r_id, session_id, original_draft, refined_prompt, used_skill_key)
+        )
+        await db.commit()
+    return {
+        "id": r_id,
+        "session_id": session_id,
+        "original_draft": original_draft,
+        "refined_prompt": refined_prompt,
+        "used_skill_key": used_skill_key
+    }
+
+
+async def list_prompt_refinements(session_id: str) -> List[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT id, session_id, original_draft, refined_prompt, used_skill_key, created_at FROM prompt_refinements WHERE session_id = ? ORDER BY created_at DESC",
+            (session_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
 
 

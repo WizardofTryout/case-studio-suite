@@ -111,6 +111,26 @@ CREATE TABLE IF NOT EXISTS skill_tags (
     FOREIGN KEY(skill_key) REFERENCES global_skills(skill_key) ON DELETE CASCADE
 );
 
+-- 10. TEAM-KONFIGURATION PRO SESSION
+CREATE TABLE IF NOT EXISTS session_deliberation_teams (
+    id TEXT PRIMARY KEY,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    auto_pilot INTEGER DEFAULT 1,          -- 1 = KI dirigiert, 0 = manuell
+    configured_agents_json TEXT NOT NULL,  -- JSON-Array: [{"role": "critic", "skill_key": "..."}, ...]
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(session_id)
+);
+
+-- 11. HISTORIE DER PROMPT-VEREDELUNGEN
+CREATE TABLE IF NOT EXISTS prompt_refinements (
+    id TEXT PRIMARY KEY,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    original_draft TEXT NOT NULL,
+    refined_prompt TEXT NOT NULL,
+    used_skill_key TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance indices on foreign keys and skill search
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
@@ -122,5 +142,7 @@ CREATE INDEX IF NOT EXISTS idx_global_skills_category ON global_skills(skill_cat
 CREATE INDEX IF NOT EXISTS idx_global_skills_favorite ON global_skills(is_favorite);
 CREATE INDEX IF NOT EXISTS idx_skill_tags_tag ON skill_tags(tag_name);
 CREATE INDEX IF NOT EXISTS idx_skill_tags_skill ON skill_tags(skill_key);
+CREATE INDEX IF NOT EXISTS idx_delib_teams_session ON session_deliberation_teams(session_id);
+CREATE INDEX IF NOT EXISTS idx_prompt_refinements_session ON prompt_refinements(session_id);
 """
 
