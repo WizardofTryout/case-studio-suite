@@ -135,28 +135,34 @@
         <!-- Right Column: Live-Graph & Decision Gates -->
         <div class="copilot-right">
           <!-- Live Graph Box -->
-          <div class="live-graph-box">
+          <div id="live-graph-box" class="live-graph-box" style="flex: 1.5;">
             <div class="box-header">
               <div class="box-title">
                 <span>🗺️</span> Live-Architektur (Mermaid Flow)
               </div>
-              <div style="display:flex; align-items:center; gap:8px;">
+              <div class="graph-toolbar">
+                <button id="btn-zoom-in" class="graph-tool-btn" title="Vergrößern (Zoom In)">➕ In</button>
+                <button id="btn-zoom-out" class="graph-tool-btn" title="Verkleinern (Zoom Out)">➖ Out</button>
+                <button id="btn-zoom-fit" class="graph-tool-btn" title="Ganzes Diagramm einpassen">📐 Fit</button>
+                <button id="btn-zoom-reset" class="graph-tool-btn" title="100% Zoom">⟲ 100%</button>
+                <button id="btn-graph-fullscreen" class="graph-tool-btn" title="Vollbild umschalten">⛶ Vollbild</button>
                 <span class="node-click-hint" title="Klicke auf beliebige Knoten im Diagramm für Details und gezielte Q&A">
                   💡 Klickbarer Knoten-Inspektor
                 </span>
-                <span class="brand-badge">Echtzeit-Graph</span>
               </div>
             </div>
             <div id="mermaid-viewport" class="mermaid-viewport">
-              <div style="color:#64748b; font-size:0.85rem; text-align:center;">
-                🗺️ Noch kein Architektur-Graph generiert.<br>
-                Starte den Case Copilot oder eine Multi-Agenten Debatte!
+              <div id="mermaid-canvas-layer" class="mermaid-canvas-layer">
+                <div style="color:#64748b; font-size:0.85rem; text-align:center; padding: 40px 20px;">
+                  🗺️ Noch kein Architektur-Graph generiert.<br>
+                  Starte den Case Copilot oder eine Multi-Agenten Debatte!
+                </div>
               </div>
             </div>
           </div>
 
           <!-- Decision Gates Container -->
-          <div class="live-graph-box" style="flex:1;">
+          <div class="live-graph-box" style="flex: 1; min-height: 220px;">
             <div class="box-header">
               <div class="box-title" style="color:var(--amber);">
                 <span>🚨</span> Master-Consultant Decision Gates

@@ -152,6 +152,21 @@ const App = {
         }
       });
     }
+
+    const nodeOverlay = document.getElementById("node-inspector-overlay");
+    if (nodeOverlay) {
+      nodeOverlay.addEventListener("click", (e) => {
+        if (e.target === nodeOverlay) {
+          this.closeNodeInspector();
+        }
+      });
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.closeNodeInspector();
+      }
+    });
   },
 
   async refreshTelemetry() {
@@ -554,7 +569,10 @@ const App = {
     if (!overlay || !nameEl || !profileContainer) return;
 
     nameEl.innerText = nodeName;
-    if (qaInput) qaInput.value = "";
+    if (qaInput) {
+      qaInput.value = "";
+      qaInput.placeholder = `z. B. Wie sichern wir '${nodeName}' gegen Ausfälle ab?`;
+    }
 
     const profile = this.getNodeProfile(nodeName);
 
@@ -582,6 +600,9 @@ const App = {
     `;
 
     overlay.classList.add("active");
+    if (qaInput) {
+      setTimeout(() => qaInput.focus(), 80);
+    }
   },
 
   closeNodeInspector() {
@@ -1020,6 +1041,10 @@ const App = {
   }
 };
 
+window.App = App;
+
 document.addEventListener("DOMContentLoaded", () => {
+  window.App = App;
   App.init();
 });
+

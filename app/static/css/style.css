@@ -577,6 +577,23 @@ body {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.live-graph-box.fullscreen-graph {
+  position: fixed !important;
+  top: 14px !important;
+  left: 14px !important;
+  right: 14px !important;
+  bottom: 14px !important;
+  z-index: 1200 !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  background: rgba(9, 12, 18, 0.98) !important;
+  backdrop-filter: blur(24px) !important;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.9), 0 0 0 1px var(--border-active) !important;
+  border-radius: var(--radius-lg) !important;
 }
 
 .box-header {
@@ -586,6 +603,8 @@ body {
   margin-bottom: 12px;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--border-subtle);
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .box-title {
@@ -596,16 +615,71 @@ body {
   gap: 8px;
 }
 
+/* Graph Navigation Toolbar */
+.graph-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.graph-tool-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.graph-tool-btn:hover {
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--cyan);
+  border-color: rgba(0, 212, 255, 0.35);
+}
+
+.graph-tool-btn.active {
+  background: rgba(0, 212, 255, 0.2);
+  color: var(--cyan);
+  border-color: var(--cyan);
+}
+
 .mermaid-viewport {
   flex: 1;
+  position: relative;
   background: #090c12;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  overflow: auto;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  min-height: 280px;
+}
+
+.mermaid-viewport.grabbing {
+  cursor: grabbing !important;
+}
+
+.mermaid-canvas-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  transition: transform 0.04s linear;
+  will-change: transform;
+}
+
+.mermaid-canvas-layer svg {
+  display: block;
+  overflow: visible !important;
 }
 
 /* Multi-Agent Deliberation Chat */
@@ -969,7 +1043,13 @@ body {
 /* Interactive SVG Node Styling */
 svg .node {
   cursor: pointer !important;
+  pointer-events: all !important;
   transition: all 0.2s ease !important;
+}
+
+svg .node * {
+  cursor: pointer !important;
+  pointer-events: all !important;
 }
 
 svg .node:hover rect,
@@ -978,11 +1058,12 @@ svg .node:hover circle,
 svg .node:hover path {
   stroke: var(--cyan) !important;
   stroke-width: 2.5px !important;
-  filter: drop-shadow(0 0 10px rgba(0, 212, 255, 0.7)) !important;
+  filter: drop-shadow(0 0 12px rgba(0, 212, 255, 0.85)) !important;
 }
 
 svg .node:hover .nodeLabel,
 svg .node:hover text {
-  fill: #fff !important;
-  font-weight: bold !important;
+  fill: #ffffff !important;
+  font-weight: 700 !important;
 }
+
