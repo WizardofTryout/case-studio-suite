@@ -11,7 +11,8 @@ const App = {
     isStreaming: false,
     projects: [],
     decisionGates: [],
-    activeSkills: []
+    activeSkills: [],
+    inspectedNodeName: null
   },
 
   async init() {
@@ -56,10 +57,38 @@ const App = {
       newProjBtn.addEventListener("click", () => this.promptNewProject());
     }
 
-    // Copilot Submit
+    // Copilot Submit (Main Prompt Box)
     const copilotBtn = document.getElementById("btn-run-copilot");
     if (copilotBtn) {
       copilotBtn.addEventListener("click", () => this.runCopilot());
+    }
+
+    // Main Prompt shortcut: Cmd/Ctrl + Enter
+    const promptArea = document.getElementById("copilot-prompt");
+    if (promptArea) {
+      promptArea.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          this.runCopilot();
+        }
+      });
+    }
+
+    // Follow-up Chat Submit (Phase 1)
+    const followupBtn = document.getElementById("btn-send-followup");
+    if (followupBtn) {
+      followupBtn.addEventListener("click", () => this.sendFollowup());
+    }
+
+    // Follow-up input shortcut: Cmd/Ctrl + Enter
+    const followupInput = document.getElementById("copilot-followup-input");
+    if (followupInput) {
+      followupInput.addEventListener("keydown", (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+          e.preventDefault();
+          this.sendFollowup();
+        }
+      });
     }
 
     // Deliberate Submit
@@ -97,6 +126,32 @@ const App = {
     if (fileInput) {
       fileInput.addEventListener("change", (e) => this.handleFileUpload(e));
     }
+
+    // Node Inspector Modal controls
+    const nodeCloseBtn = document.getElementById("node-inspector-close");
+    if (nodeCloseBtn) {
+      nodeCloseBtn.addEventListener("click", () => this.closeNodeInspector());
+    }
+
+    const nodeRefineBtn = document.getElementById("btn-refine-node");
+    if (nodeRefineBtn) {
+      nodeRefineBtn.addEventListener("click", () => this.refineCurrentNode());
+    }
+
+    const nodeQABtn = document.getElementById("btn-node-qa-send");
+    if (nodeQABtn) {
+      nodeQABtn.addEventListener("click", () => this.sendNodeQA());
+    }
+
+    const nodeQAInput = document.getElementById("node-qa-input");
+    if (nodeQAInput) {
+      nodeQAInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.sendNodeQA();
+        }
+      });
+    }
   },
 
   async refreshTelemetry() {
@@ -130,7 +185,6 @@ const App = {
 
     select.innerHTML = "";
     if (projects.length === 0) {
-      // Auto-create initial project
       const created = await API.createProject(
         "Industrial AI & Edge Transformation",
         "industrial_ot",
@@ -160,7 +214,6 @@ const App = {
     this.state.currentProjectId = projectId;
     const project = this.state.projects.find(p => p.id === projectId);
     
-    // Update project info display
     if (project) {
       const nameEl = document.getElementById("project-details-name");
       const indEl = document.getElementById("project-details-industry");
@@ -183,16 +236,9 @@ const App = {
       }
     }
 
-    // Load DMS Documents
     await this.loadProjectDocuments();
-
-    // Load Active Skills
     await this.loadProjectSkills();
-
-    // Load Decision Gates
     await this.loadDecisionGates();
-
-    // Load Deliberation Messages
     await this.loadMessages();
   },
 
@@ -226,6 +272,8 @@ const App = {
     }
   },
 
+  // --- Copilot Execution & Follow-Up Q&A ---
+
   async runCopilot() {
     if (this.state.isStreaming) return;
     const promptEl = document.getElementById("copilot-prompt");
@@ -234,23 +282,74 @@ const App = {
       window.showToast("Bitte gib eine Problemstellung oder Anforderung ein!", "warning");
       return;
     }
+    await this.runCopilotWithPrompt(promptText, true);
+  },
 
+  async sendFollowup() {
+    if (this.state.isStreaming) return;
+    const followupEl = document.getElementById("copilot-followup-input");
+    const text = followupEl ? followupEl.value.trim() : "";
+    if (!text) {
+      window.showToast("Bitte gib eine Rückfrage oder Kunden-Antwort ein!", "warning");
+      return;
+    }
+    followupEl.value = "";
+    await this.runCopilotWithPrompt(text, false);
+  },
+
+  async runCopilotWithPrompt(promptText, isInitial = false) {
+    if (this.state.isStreaming) return;
     this.state.isStreaming = true;
+
     const runBtn = document.getElementById("btn-run-copilot");
+    const followupBtn = document.getElementById("btn-send-followup");
     if (runBtn) {
       runBtn.disabled = true;
-      runBtn.innerText = "⏳ Analysiert & Generiert...";
+      runBtn.innerText = "⏳ Analysiert...";
+    }
+    if (followupBtn) {
+      followupBtn.disabled = true;
+      followupBtn.innerText = "⏳ Nachschärfen...";
     }
 
     const outputEl = document.getElementById("copilot-output");
-    outputEl.innerHTML = `
-      <div style="display:flex; align-items:center; gap:8px; color:#00d4ff; font-weight:600; font-size:0.85rem; margin-bottom:8px;">
-        <span class="telemetry-dot" style="background:#00d4ff; box-shadow:0 0 8px #00d4ff;"></span> Master-Consultant generiert...
-      </div>
-      <div id="active-stream-content" class="markdown-body"></div>
-    `;
-    const streamContainer = document.getElementById("active-stream-content");
 
+    // If initial run or placeholder was present, initialize output structure
+    if (isInitial || !document.getElementById("copilot-chat-stream")) {
+      outputEl.innerHTML = `
+        <div id="copilot-chat-stream" style="display:flex; flex-direction:column; gap:14px; width:100%;"></div>
+      `;
+    }
+
+    const streamParent = document.getElementById("copilot-chat-stream") || outputEl;
+
+    // Append User Card
+    const userCard = document.createElement("div");
+    userCard.className = "message-card user";
+    userCard.style.cssText = "align-self:flex-end; max-width:90%; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:10px; padding:10px 14px;";
+    userCard.innerHTML = `
+      <div class="msg-sender" style="color:var(--emerald); font-size:0.75rem; font-weight:700; margin-bottom:4px;">
+        👤 Matthias (Lead Consultant)
+      </div>
+      <div class="msg-body" style="font-size:0.88rem; color:#fff;">${this.escapeHtml(promptText)}</div>
+    `;
+    streamParent.appendChild(userCard);
+
+    // Append Assistant Streaming Card
+    const assistantCard = document.createElement("div");
+    assistantCard.className = "message-card master_consultant";
+    assistantCard.style.cssText = "align-self:flex-start; width:100%; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px 16px;";
+    assistantCard.innerHTML = `
+      <div class="msg-sender" style="color:var(--violet); font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+        <span>👑</span> Master-Consultant Lead
+        <span class="telemetry-dot" style="background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
+      </div>
+      <div class="stream-content markdown-body" style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;"></div>
+    `;
+    streamParent.appendChild(assistantCard);
+    outputEl.scrollTop = outputEl.scrollHeight;
+
+    const streamBody = assistantCard.querySelector(".stream-content");
     let fullText = "";
 
     await API.streamSSE(
@@ -264,14 +363,15 @@ const App = {
       (event) => {
         if (event.type === "token") {
           fullText += event.content;
-          streamContainer.innerHTML = this.renderMarkdown(fullText);
-          streamContainer.scrollTop = streamContainer.scrollHeight;
+          // Filter raw mermaid and decision gate blocks from text display
+          streamBody.innerHTML = this.renderMarkdown(fullText);
+          outputEl.scrollTop = outputEl.scrollHeight;
         } else if (event.type === "graph") {
           GraphViewer.renderGraph(event.mermaid);
           window.showToast("🗺️ Neuer Architektur-Graph gerendert!", "info");
         } else if (event.type === "gates") {
-          this.loadDecisionGates();
-          window.showToast("🚨 Master-Consultant hat Decision Gate(s) erkannt!", "warning");
+          this.renderDecisionGatesList(event.gates);
+          window.showToast("🚨 Master-Consultant Decision Gate(s) erkannt!", "warning");
         }
       },
       (err) => {
@@ -280,8 +380,10 @@ const App = {
       },
       () => {
         this.resetStreamBtn();
-        window.showToast("Analyse abgeschlossen & in SQLite gespeichert.", "success");
+        window.showToast("Analyse nachgeschärft & in SQLite gesichert.", "success");
         this.refreshTelemetry();
+        // Load latest decision gates
+        this.loadDecisionGates();
       }
     );
   },
@@ -289,11 +391,228 @@ const App = {
   resetStreamBtn() {
     this.state.isStreaming = false;
     const runBtn = document.getElementById("btn-run-copilot");
+    const followupBtn = document.getElementById("btn-send-followup");
     if (runBtn) {
       runBtn.disabled = false;
       runBtn.innerHTML = "🚀 Analysieren & Streamen";
     }
+    if (followupBtn) {
+      followupBtn.disabled = false;
+      followupBtn.innerHTML = "🚀 Senden & Architektur nachschärfen";
+    }
   },
+
+  // --- Decision Gates Panel Management ---
+
+  async loadDecisionGates() {
+    if (!this.state.currentSessionId) return;
+    const gates = await API.getDecisionGates(this.state.currentSessionId);
+    this.state.decisionGates = gates;
+    this.renderDecisionGatesList(gates);
+  },
+
+  renderDecisionGatesList(gates) {
+    const listContainer = document.getElementById("decision-gates-list");
+    if (!listContainer) return;
+
+    if (!gates || gates.length === 0) {
+      listContainer.innerHTML = `
+        <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
+          Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
+        </div>
+      `;
+      return;
+    }
+
+    listContainer.innerHTML = "";
+    gates.forEach(g => {
+      const isResolved = g.status === "resolved";
+      const card = document.createElement("div");
+      card.className = `decision-gate-card ${isResolved ? 'resolved' : ''}`;
+      
+      card.innerHTML = `
+        <div class="gate-header">
+          <div class="gate-title">
+            <span>${isResolved ? '✅' : '🚨'}</span> <strong>${this.escapeHtml(g.topic)}</strong>
+          </div>
+          <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
+        </div>
+        <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
+          <strong style="color:var(--amber);">Fehlender Fakt:</strong> ${this.escapeHtml(g.detected_missing_fact)}
+        </div>
+        <div class="gate-question-box">
+          <div style="font-style:italic; font-size:0.84rem; flex:1;">💬 »${this.escapeHtml(g.recommended_question)}«</div>
+          <button class="btn btn-secondary btn-sm" onclick="App.copyToClipboard('${this.escapeHtml(g.recommended_question)}')">
+            📋 Frage kopieren
+          </button>
+        </div>
+        ${isResolved ? `
+          <div style="font-size:0.82rem; color:#a7f3d0; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); padding:8px 10px; border-radius:6px;">
+            <strong>Antwort des Kunden:</strong> ${this.escapeHtml(g.customer_answer)}
+          </div>
+        ` : `
+          <div class="gate-answer-row" style="display:flex; gap:8px; margin-top:4px;">
+            <input type="text" id="gate-input-${g.id}" class="gate-answer-input" placeholder="Antwort des Kunden hier eintragen..." style="flex:1;" />
+            <button class="btn btn-primary btn-sm" onclick="App.resolveGateAndBranch('${g.id}')">
+              Als Fakt übernehmen & Graph aktualisieren
+            </button>
+          </div>
+        `}
+      `;
+      listContainer.appendChild(card);
+    });
+  },
+
+  async resolveGateAndBranch(gateId) {
+    const input = document.getElementById(`gate-input-${gateId}`);
+    const answer = input ? input.value.trim() : "";
+    if (!answer) {
+      window.showToast("Bitte gib die Antwort des Kunden ein!", "warning");
+      return;
+    }
+
+    const gate = this.state.decisionGates.find(g => g.id === gateId);
+    const topic = gate ? gate.topic : "Entscheidungsknoten";
+
+    await API.resolveDecisionGate(gateId, answer);
+    window.showToast("Kunden-Fakt gesichert! Verzweige Architektur...", "success");
+
+    await this.loadDecisionGates();
+
+    // Automatically trigger Copilot update with the resolved fact to branch architecture
+    const prompt = `Kundenfakt geklärt zu Thema '${topic}': Der Kunde hat bestätigt: '${answer}'. Bitte schärfe die Architektur basierend auf diesem harten Fakt nach und aktualisiere den Mermaid-Graphen!`;
+    await this.runCopilotWithPrompt(prompt, false);
+  },
+
+  copyToClipboard(text) {
+    navigator.clipboard.writeText(text);
+    window.showToast("Frage in die Zwischenablage kopiert!", "info");
+  },
+
+  // --- Node Inspector & Sub-Graph Refinement ---
+
+  getNodeProfile(nodeName) {
+    const name = (nodeName || "").toLowerCase();
+
+    let profile = {
+      name: nodeName,
+      category: "System-Komponente",
+      protocols: "Standard-Schnittstellen (TCP/IP, REST, gRPC)",
+      latency: "< 50ms (System-Default)",
+      security: "TLS 1.3 Verschlüsselung, Rollenbasierte Zugriffskontrolle (RBAC)",
+      standards: "IEC 62443 / Enterprise IT-Security",
+      description: "Architektonischer Baustein im verteilten Gesamtverbund."
+    };
+
+    if (name.includes("sps") || name.includes("plc") || name.includes("simatic") || name.includes("sensor")) {
+      profile.category = "Feldebene & Sensorik (Purdue Level 0/1)";
+      profile.protocols = "PROFINET, Industrial Ethernet, OPC UA (PubSub), Modbus TCP, IO-Link";
+      profile.latency = "Hard Real-Time: < 1ms bis 10ms (Deterministische Zykluszeit)";
+      profile.security = "Physische Abschirmung, Feldbus-Segmentierung, geschützter SPS-Programmspeicher";
+      profile.standards = "IEC 61131-3 (SPS-Programmierung), IEC 62443-4-2 (Komponentensicherheit)";
+      profile.description = "Direkte Erfassung von Prozesssignalen (Schwingung, Temperatur, Drehzahl) und Notabschaltung.";
+    } else if (name.includes("edge") || name.includes("ied") || name.includes("ipc") || name.includes("gateway")) {
+      profile.category = "Industrial Edge & OT-Ingest (Purdue Level 2/3)";
+      profile.protocols = "OPC UA Client/Server, MQTT Sparkplug B, REST/HTTPS, SIMATIC LiveTwin";
+      profile.latency = "Soft Real-Time: < 8ms bis 20ms für lokale Vorverarbeitung / KI-Inferenz";
+      profile.security = "Dual-Homed Network (LAN 1 OT / LAN 2 Enterprise), mTLS, TPM 2.0 Chip, Secure Boot";
+      profile.standards = "IEC 62443-3-3 (Zonen & Conduits), Siemens Industrial Operations X Richtlinien";
+      profile.description = "Ausführung containerisierter KI-Modelle (ONNX/OpenVINO), lokaler 48h-Ringpuffer bei Netzwerkausfall.";
+    } else if (name.includes("kafka") || name.includes("stream") || name.includes("broker")) {
+      profile.category = "Event-Streaming & Message Broker";
+      profile.protocols = "Apache Kafka Binary Protocol, MQTT 5.0, WebSockets";
+      profile.latency = "Near-Real-Time: 10ms bis 50ms End-to-End Latenz";
+      profile.security = "SASL/SCRAM, TLS 1.3, Access Control Lists (ACLs), Schema Registry Validierung";
+      profile.standards = "CloudEvents Standard, ISO 27001";
+      profile.description = "Entkoppelte, hochskalierbare Pufferung hochfrequenter Telemetriedatenströme.";
+    } else if (name.includes("lake") || name.includes("snowflake") || name.includes("storage") || name.includes("dwh")) {
+      profile.category = "Enterprise Data Lakehouse & Analytics";
+      profile.protocols = "Snowpipe Streaming API, Apache Iceberg REST Catalog, SQL:2016";
+      profile.latency = "Batch / Sub-Second Ingest: 1s bis 60s für Dynamic Tables";
+      profile.security = "End-to-End Encryption at Rest & in Transit (AES-256), Column-Level PII Masking";
+      profile.standards = "SOC 2 Type II, HIPAA, ISO 27001, EU AI Act Data Governance";
+      profile.description = "Medallion Architecture (Bronze: Raw / Silver: Cleaned / Gold: OEE & Features) für Langzeit-KI.";
+    } else if (name.includes("aktor") || name.includes("not-aus") || name.includes("safety")) {
+      profile.category = "Sicherheit & Aktorik (Safety Loop)";
+      profile.protocols = "PROFIsafe, Fail-Safe Digital Output, Relaiskontakt";
+      profile.latency = "Ultra-Low Latency: < 5ms Reaktionszeit";
+      profile.security = "SIL 3 (Safety Integrity Level) / PL e (Performance Level), Redundante Kanäle";
+      profile.standards = "ISO 13849-1, IEC 61508";
+      profile.description = "Physikalische Notabschaltung bei Überschreiten kritischer Schwingungsgrenzwerte.";
+    }
+
+    return profile;
+  },
+
+  openNodeInspector(nodeName) {
+    this.state.inspectedNodeName = nodeName;
+    const overlay = document.getElementById("node-inspector-overlay");
+    const nameEl = document.getElementById("node-inspector-name");
+    const profileContainer = document.getElementById("node-tech-profile");
+    const qaInput = document.getElementById("node-qa-input");
+
+    if (!overlay || !nameEl || !profileContainer) return;
+
+    nameEl.innerText = nodeName;
+    if (qaInput) qaInput.value = "";
+
+    const profile = this.getNodeProfile(nodeName);
+
+    profileContainer.innerHTML = `
+      <div class="node-prop-item">
+        <span class="node-prop-label">Kategorie & Ebene</span>
+        <span class="node-prop-val">${profile.category}</span>
+      </div>
+      <div class="node-prop-item">
+        <span class="node-prop-label">⚡ Protokolle & Schnittstellen</span>
+        <span class="node-prop-val">${profile.protocols}</span>
+      </div>
+      <div class="node-prop-item">
+        <span class="node-prop-label">⏱️ Latenz- & Zykluszeit-Garantie</span>
+        <span class="node-prop-val" style="color:var(--cyan); font-weight:600;">${profile.latency}</span>
+      </div>
+      <div class="node-prop-item">
+        <span class="node-prop-label">🛡️ Security & Industriestandards</span>
+        <span class="node-prop-val">${profile.security} (${profile.standards})</span>
+      </div>
+      <div class="node-prop-item">
+        <span class="node-prop-label">Funktionsbeschreibung</span>
+        <span class="node-prop-val" style="color:#cbd5e1;">${profile.description}</span>
+      </div>
+    `;
+
+    overlay.classList.add("active");
+  },
+
+  closeNodeInspector() {
+    const overlay = document.getElementById("node-inspector-overlay");
+    if (overlay) overlay.classList.remove("active");
+  },
+
+  async refineCurrentNode() {
+    const nodeName = this.state.inspectedNodeName;
+    if (!nodeName) return;
+    this.closeNodeInspector();
+    window.showToast(`Verfeinere Baustein '${nodeName}' im Architektur-Graphen...`, "info");
+    const prompt = `Detailliere und verfeinere im Mermaid-Graphen bitte den Baustein '${nodeName}'. Spalte diesen Knoten in seine internen Komponenten und Protokollschritte auf (Sub-Graph / detail-nodes) und liefere den erweiterten Gesamtgraphen.`;
+    await this.runCopilotWithPrompt(prompt, false);
+  },
+
+  async sendNodeQA() {
+    const nodeName = this.state.inspectedNodeName;
+    const qaInput = document.getElementById("node-qa-input");
+    const question = qaInput ? qaInput.value.trim() : "";
+    if (!question) {
+      window.showToast("Bitte gib eine Frage ein!", "warning");
+      return;
+    }
+    this.closeNodeInspector();
+    window.showToast(`Frage zu '${nodeName}' wird analysiert...`, "info");
+    const prompt = `Konkrete technische Frage zum Baustein '${nodeName}': ${question}`;
+    await this.runCopilotWithPrompt(prompt, false);
+  },
+
+  // --- Multi-Agent Deliberation ---
 
   async runDeliberation() {
     if (this.state.isStreaming) return;
@@ -352,7 +671,7 @@ const App = {
           GraphViewer.renderGraph(event.mermaid);
           window.showToast("🗺️ Neuer debattierter Architektur-Graph generiert!", "info");
         } else if (event.type === "gates") {
-          this.loadDecisionGates();
+          this.renderDecisionGatesList(event.gates);
           window.showToast("🚨 Neues Decision Gate aus Debatte erkannt!", "warning");
         }
       },
@@ -364,6 +683,7 @@ const App = {
         this.resetDeliberateBtn();
         window.showToast("Multi-Agenten Debatte abgeschlossen.", "success");
         this.refreshTelemetry();
+        this.loadDecisionGates();
       }
     );
   },
@@ -405,7 +725,7 @@ const App = {
     if (!messages || messages.length === 0) {
       thread.innerHTML = `
         <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
-          💬 Noch keine Diskussionsbeiträge. Gib oben ein Thema ein und lass das Team debattieren!
+          💬 Noch keine Diskussionsbeiträge. Gib unten ein Thema ein und lass das Team debattieren!
         </div>
       `;
       return;
@@ -426,82 +746,8 @@ const App = {
     );
   },
 
-  async loadDecisionGates() {
-    if (!this.state.currentSessionId) return;
-    const gates = await API.getDecisionGates(this.state.currentSessionId);
-    this.state.decisionGates = gates;
-
-    const listContainer = document.getElementById("decision-gates-list");
-    if (!listContainer) return;
-
-    if (!gates || gates.length === 0) {
-      listContainer.innerHTML = `
-        <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
-          Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
-        </div>
-      `;
-      return;
-    }
-
-    listContainer.innerHTML = "";
-    gates.forEach(g => {
-      const card = document.createElement("div");
-      card.className = `decision-gate-card ${g.status === 'resolved' ? 'resolved' : ''}`;
-      
-      const isResolved = g.status === "resolved";
-      
-      card.innerHTML = `
-        <div class="gate-header">
-          <div class="gate-title">
-            <span>${isResolved ? '✅' : '🚨'}</span> ${g.topic}
-          </div>
-          <span class="gate-badge ${g.status}">${g.status === 'resolved' ? 'Geklärt' : 'Fakt fehlt'}</span>
-        </div>
-        <div style="font-size:0.8rem; color:#cbd5e1;">
-          <strong>Fehlender Fakt:</strong> ${g.detected_missing_fact}
-        </div>
-        <div class="gate-question-box">
-          <div style="font-style:italic;">💬 »${g.recommended_question}«</div>
-          <button class="btn btn-secondary btn-sm" onclick="App.copyToClipboard('${this.escapeHtml(g.recommended_question)}')">
-            Kopieren
-          </button>
-        </div>
-        ${isResolved ? `
-          <div style="font-size:0.82rem; color:#a7f3d0; background:rgba(16,185,129,0.1); padding:6px 10px; border-radius:4px;">
-            <strong>Antwort des Kunden:</strong> ${g.customer_answer}
-          </div>
-        ` : `
-          <div class="gate-answer-row">
-            <input type="text" id="gate-input-${g.id}" class="gate-answer-input" placeholder="Antwort des Interviewers / Kunden eintragen..." />
-            <button class="btn btn-primary btn-sm" onclick="App.resolveGate('${g.id}')">
-              Pfad freischalten
-            </button>
-          </div>
-        `}
-      `;
-      listContainer.appendChild(card);
-    });
-  },
-
-  async resolveGate(gateId) {
-    const input = document.getElementById(`gate-input-${gateId}`);
-    const answer = input ? input.value.trim() : "";
-    if (!answer) {
-      window.showToast("Bitte gib die Antwort des Kunden ein!", "warning");
-      return;
-    }
-
-    await API.resolveDecisionGate(gateId, answer);
-    window.showToast("Kunden-Fakt gesichert! Der Architekturentwurf passt sich an.", "success");
-    await this.loadDecisionGates();
-  },
-
-  copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
-    window.showToast("Rückfrage in die Zwischenablage kopiert!", "info");
-  },
-
   // --- Document Management (DMS) ---
+
   async loadProjectDocuments() {
     if (!this.state.currentProjectId) return;
     const docs = await API.getDocuments(this.state.currentProjectId);
@@ -519,7 +765,7 @@ const App = {
       item.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:8px 12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:8px;";
       item.innerHTML = `
         <div>
-          <div style="font-weight:600; font-size:0.88rem; color:#fff;">📄 ${d.filename}</div>
+          <div style="font-weight:600; font-size:0.88rem; color:#fff;">📄 ${this.escapeHtml(d.filename)}</div>
           <div style="font-size:0.75rem; color:#94a3b8;">Typ: ${d.file_type.toUpperCase()} | Erstellt: ${d.created_at}</div>
         </div>
         <div style="display:flex; gap:8px;">
@@ -573,6 +819,7 @@ const App = {
   },
 
   // --- Skill Snapshotting Engine ---
+
   async loadSkillsCatalog() {
     const catalog = await API.getSkillsCatalog();
     const container = document.getElementById("skills-catalog-list");
@@ -584,10 +831,10 @@ const App = {
       card.style.cssText = "display:flex; flex-direction:column; gap:8px; padding:12px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:10px;";
       card.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div style="font-weight:700; font-size:0.9rem; color:#fff;">📦 ${s.display_name}</div>
+          <div style="font-weight:700; font-size:0.9rem; color:#fff;">📦 ${this.escapeHtml(s.display_name)}</div>
           <span class="brand-badge" style="font-size:0.6rem;">${s.skill_category}</span>
         </div>
-        <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${s.description}</div>
+        <div style="font-size:0.8rem; color:#94a3b8; line-height:1.4;">${this.escapeHtml(s.description)}</div>
         <div style="display:flex; justify-content:flex-end; margin-top:4px;">
           <button class="btn btn-secondary btn-sm" onclick="App.activateSkill('${s.skill_name}')">
             📥 Im Projekt snapshotten
@@ -617,7 +864,7 @@ const App = {
       item.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:10px 14px; background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.07); border-radius:8px;";
       item.innerHTML = `
         <div>
-          <div style="font-weight:600; font-size:0.88rem; color:#fff;">⚡ ${s.skill_name}</div>
+          <div style="font-weight:600; font-size:0.88rem; color:#fff;">⚡ ${this.escapeHtml(s.skill_name)}</div>
           <div style="font-size:0.75rem; color:#64748b; font-family:monospace;">
             Snapshot: ${s.version_hash ? '#' + s.version_hash : ''} | ${s.file_path}
           </div>
@@ -649,7 +896,8 @@ const App = {
     await this.loadProjectSkills();
   },
 
-  // --- Project Modal ---
+  // --- Modals & Utilities ---
+
   promptNewProject() {
     window.showPromptModal(
       "Neues Projekt anlegen",
@@ -665,7 +913,6 @@ const App = {
     );
   },
 
-  // --- Key Pool Modal ---
   async showKeyPoolModal() {
     const data = await API.getHealth();
     const pool = data.gemini_pool;
@@ -719,12 +966,21 @@ const App = {
     );
   },
 
-  // Simple Markdown renderer helper
+  // Text cleaning: filter out ```mermaid ... ``` and [DECISION_GATE] blocks from text display
+  cleanTextOutput(text) {
+    if (!text) return "";
+    let cleaned = text.replace(/```mermaid[\s\S]*?```/gi, "");
+    cleaned = cleaned.replace(/\[DECISION_GATE\][\s\S]*?\[\/DECISION_GATE\]/gi, "");
+    cleaned = cleaned.replace(/\n{3,}/g, "\n\n").trim();
+    return cleaned;
+  },
+
   renderMarkdown(text) {
     if (!text) return "";
-    let html = this.escapeHtml(text);
+    const clean = this.cleanTextOutput(text);
+    let html = this.escapeHtml(clean);
 
-    // Code blocks
+    // Code blocks (non-mermaid)
     html = html.replace(/```([a-zA-Z0-9]*)\n([\s\S]*?)```/g, (match, lang, code) => {
       return `<pre><code class="language-${lang}">${code}</code></pre>`;
     });

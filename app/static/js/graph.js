@@ -60,6 +60,9 @@ const GraphViewer = {
         svgEl.style.height = "auto";
         svgEl.style.maxHeight = "100%";
       }
+
+      // Attach interactive node clicks for Node Inspector
+      this.attachNodeClickListeners(container);
     } catch (err) {
       console.warn("Mermaid render error:", err);
       container.innerHTML = `
@@ -69,5 +72,39 @@ const GraphViewer = {
         </div>
       `;
     }
+  },
+
+  attachNodeClickListeners(container) {
+    if (!container) return;
+    const nodes = container.querySelectorAll(".node");
+    nodes.forEach(node => {
+      node.style.cursor = "pointer";
+
+      // Extract node label text
+      let label = "";
+      const labelSpan = node.querySelector(".nodeLabel");
+      if (labelSpan && labelSpan.textContent.trim()) {
+        label = labelSpan.textContent.trim();
+      } else {
+        const textNodes = node.querySelectorAll("text");
+        if (textNodes.length > 0) {
+          const texts = Array.from(textNodes).map(t => t.textContent.trim()).filter(Boolean);
+          label = texts.join(" ");
+        }
+      }
+
+      if (!label) {
+        label = node.id ? node.id.replace(/^flowchart-/, '').split('-')[0] : "Baustein";
+      }
+
+      node.setAttribute("title", `🔍 Klicke für Details & Q&A zu: ${label}`);
+
+      node.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (window.App && typeof window.App.openNodeInspector === "function") {
+          window.App.openNodeInspector(label);
+        }
+      });
+    });
   }
 };

@@ -119,6 +119,17 @@
               Der Master-Consultant strukturiert den Lösungsansatz und stoppt bei fehlenden Fakten via Decision Gates.
             </div>
           </div>
+
+          <!-- Interactive Follow-Up Chat Box for Phase 1 -->
+          <div class="followup-chat-container">
+            <textarea id="copilot-followup-input" class="followup-textarea" placeholder="Eigene Rückfrage zum Inhalt stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)"></textarea>
+            <div class="followup-actions">
+              <span class="shortcut-hint">Shortcut: ⌘/Ctrl + Enter</span>
+              <button id="btn-send-followup" class="btn btn-primary btn-sm">
+                🚀 Senden & Architektur nachschärfen
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- Right Column: Live-Graph & Decision Gates -->
@@ -129,7 +140,12 @@
               <div class="box-title">
                 <span>🗺️</span> Live-Architektur (Mermaid Flow)
               </div>
-              <span class="brand-badge">Echtzeit-Graph</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span class="node-click-hint" title="Klicke auf beliebige Knoten im Diagramm für Details und gezielte Q&A">
+                  💡 Klickbarer Knoten-Inspektor
+                </span>
+                <span class="brand-badge">Echtzeit-Graph</span>
+              </div>
             </div>
             <div id="mermaid-viewport" class="mermaid-viewport">
               <div style="color:#64748b; font-size:0.85rem; text-align:center;">
@@ -140,7 +156,7 @@
           </div>
 
           <!-- Decision Gates Container -->
-          <div class="live-graph-box" style="flex:0.9;">
+          <div class="live-graph-box" style="flex:1;">
             <div class="box-header">
               <div class="box-title" style="color:var(--amber);">
                 <span>🚨</span> Master-Consultant Decision Gates
@@ -269,6 +285,43 @@
       <div class="modal-actions">
         <button id="generic-modal-cancel" class="btn btn-secondary btn-sm">Abbrechen</button>
         <button id="generic-modal-confirm" class="btn btn-primary btn-sm">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Node Inspector Modal / Drawer -->
+  <div id="node-inspector-overlay" class="modal-overlay">
+    <div class="modal-card node-inspector-card">
+      <div class="modal-header-row">
+        <div class="modal-title" id="node-inspector-title">
+          <span>🔍 Baustein-Inspektor:</span> <span id="node-inspector-name" style="color:var(--cyan); font-weight:700;">Node</span>
+        </div>
+        <button class="btn-close-modal" id="node-inspector-close">&times;</button>
+      </div>
+      
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px; margin-top:8px;">
+        <!-- Technical Profile -->
+        <div class="node-tech-profile" id="node-tech-profile">
+          <!-- Filled dynamically by App.openNodeInspector -->
+        </div>
+
+        <!-- Sub-Graph Refinement Trigger -->
+        <div class="node-action-box">
+          <button id="btn-refine-node" class="btn btn-violet btn-sm" style="width:100%; justify-content:center; padding:9px 14px;">
+            🔍 Diesen Knoten im Graphen detaillieren / aufsplitten
+          </button>
+        </div>
+
+        <!-- Node-specific Q&A -->
+        <div class="node-qa-box">
+          <label style="font-size:0.8rem; font-weight:600; color:#cbd5e1; display:block; margin-bottom:6px;">
+            💬 Gezielte Frage zu diesem Baustein an den Master-Consultant:
+          </label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="node-qa-input" class="gate-answer-input" placeholder="z. B. Wie sichern wir dieses Device gegen Netzwerkausfälle ab?" />
+            <button id="btn-node-qa-send" class="btn btn-primary btn-sm">Fragen</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>

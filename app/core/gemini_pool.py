@@ -288,25 +288,80 @@ class GeminiKeyPool:
                 if "text" in p:
                     last_text = p["text"]
 
-        simulated_response = (
-            "### 🏛️ Strategische Analyse & Architektur-Empfehlung\n\n"
-            "Basierend auf den bisherigen Anforderungen und den vorliegenden Systemrandbedingungen "
-            "empfehle ich eine **hybride Edge-to-Cloud Architektur**:\n\n"
-            "1. **OT Ingest & Latenz-Garantie (<20ms):** Einsatz von Industrial Edge Gateways direkt an der SPS/Feldebene für deterministisches Vorfiltern und Notabschaltungen.\n"
-            "2. **Cloud Streaming Pipeline:** Asynchroner Upload hochfrequenter Telemetriedaten via MQTT/Kafka zur Langzeitanalyse und Modell-Retraining.\n"
-            "3. **Governance & EU AI Act Compliance:** Lokale Audit-Logs und transparente Modellüberwachung.\n\n"
-            "```mermaid\n"
-            "graph TD\n"
-            "    SPS[SPS / Sensorik] -->|Fieldbus / OPC UA| Edge[Industrial Edge Device]\n"
-            "    Edge -->|Real-time Control <20ms| Actuator[Aktor / Not-Aus]\n"
-            "    Edge -->|MQTT / TLS 1.3| Gateway[Cloud IoT Gateway]\n"
-            "    Gateway --> Kafka[Apache Kafka Stream]\n"
-            "    Kafka --> Lake[Snowflake / Iceberg Lakehouse]\n"
-            "```\n\n"
-            "> 🚨 **Master-Consultant Decision Gate:**\n"
-            "> Bitte klären Sie mit dem Kunden zwingend die SPS-Zykluszeit und die Bandbreitenlimitierung der Produktionshallen, "
-            "um die Dimensionierung des lokalen Edge-Speichers festzulegen!"
-        )
+        lower_query = last_text.lower()
+
+        # Contextual response depending on whether user answered a gate, asked about a node, or scoped the case
+        if "kundenfakt geklärt" in lower_query or "12ms" in lower_query or "not-aus" in lower_query or "zykluszeit" in lower_query:
+            simulated_response = (
+                "### 🎯 Nachgeschärfter Architektur-Pfad (Fakt eingearbeitet)\n\n"
+                "Der bestätigte Kundenfakt (**Latenzgrenze < 12ms für Not-Aus**) schließt reines Cloud-Streaming für die "
+                "Steuerungsebene definitiv aus. Die Architektur wird hiermit deterministisch verzweigt:\n\n"
+                "1. **Hard Real-Time Control Loop (<12ms):** Die Schwingungsanalyse und Grenzwertabschaltung läuft vollständig lokal auf dem "
+                "**IED (Industrial Edge Device - Industrie-PC am Shopfloor)** über **OPC UA (Open Platform Communications Unified Architecture)**. "
+                "Kein Umweg über externe Netzwerke!\n"
+                "2. **Asynchroner Telemetrie-Uplink:** Erst aggregierte Kennwerte (RMS-Vibrationswerte, Peak-to-Peak) werden via **MQTT (Message Queuing Telemetry Transport)** "
+                "mit **TLS (Transport Layer Security 1.3)** an das **Cloud IoT (Internet of Things) Gateway** und die nachgelagerte **Kafka (Apache Kafka - Verteilte Event-Streaming-Plattform)** übergeben.\n"
+                "3. **Long-Term Analytics:** Speicherung in **Snowflake / Iceberg Lakehouse (Offene Tabellenformat-Architektur)** für Predictive Maintenance und OEE-Trends (Overall Equipment Effectiveness / Gesamtanlageneffektivität).\n\n"
+                "```mermaid\n"
+                "graph TD\n"
+                "    SPS[SPS: SIMATIC S7-1500 / Sensorik] -->|PROFINET / OPC UA <5ms| Edge[Industrial Edge Device: IPC227E]\n"
+                "    Edge -->|Hard Real-Time Not-Aus <12ms| Actuator[CNC-Aktor / Not-Aus]\n"
+                "    Edge -->|Lokaler 48h Ringpuffer| LocalBuffer[Flash Storage / SQLite]\n"
+                "    Edge -->|MQTT / TLS 1.3 Asynchron| Gateway[Cloud IoT Gateway]\n"
+                "    Gateway --> Kafka[Apache Kafka Stream]\n"
+                "    Kafka --> Lake[Snowflake / Iceberg Lakehouse]\n"
+                "```\n\n"
+                "✅ **Architekturpfad erfolgreich freigeschaltet und gehärtet.**"
+            )
+        elif "detailliere" in lower_query or "edge device" in lower_query or "knoten" in lower_query:
+            simulated_response = (
+                "### 🔍 Sub-Graph Detailanalyse: Industrial Edge Device\n\n"
+                "Hier ist die verfeinerte Binnenarchitektur des **IED (Industrial Edge Device - Industrie-PC am Shopfloor)** "
+                "mit seinen containerisierten Workloads und internen Datenpfaden:\n\n"
+                "1. **OT (Operational Technology - Betriebstechnik) Adapter:** Liest zyklisch Prozessdaten über **OPC UA (Open Platform Communications Unified Architecture)** und Feldbusse aus der **SPS (Speicherprogrammierbare Steuerung / Programmable Logic Controller)**.\n"
+                "2. **Lokale KI-Inferenz (ONNX Runtime / OpenVINO):** Berechnet Fast-Fourier-Transformationen (FFT) der Schwingungsdaten in <8ms.\n"
+                "3. **Ringpuffer-Speicher:** Lokale SQLite-Datenbank sichert Telemetriedaten bei Netzwerkausfall bis zu 48 Stunden.\n"
+                "4. **Security Isolation:** Vollständige Netztrennung zwischen Fabriknetz (LAN 1) und Unternehmensnetz (LAN 2) gemäß **IEC 62443 (Sicherheitsstandard für industrielle Automatisierungssysteme)**.\n\n"
+                "```mermaid\n"
+                "graph TD\n"
+                "    SPS[SPS: SIMATIC S7] -->|OPC UA PubSub| Adapter[OT Ingest Adapter]\n"
+                "    Adapter --> Engine[Edge AI Inference Engine: ONNX]\n"
+                "    Engine -->|Anomalie-Signal <10ms| Safety[Lokale Notabschaltung]\n"
+                "    Engine --> Buffer[Lokaler 48h Ringpuffer]\n"
+                "    Buffer --> Publisher[MQTT / TLS 1.3 Publisher]\n"
+                "    Publisher --> Cloud[Cloud IoT Gateway]\n"
+                "```\n\n"
+                "Dieser detaillierte Sub-Graph ist nun im System hinterlegt."
+            )
+        else:
+            simulated_response = (
+                "### 🏛️ Strategische Analyse & Architektur-Empfehlung\n\n"
+                "Basierend auf den bisherigen Anforderungen und den vorliegenden Systemrandbedingungen "
+                "empfehle ich eine **hybride Edge-to-Cloud Architektur**:\n\n"
+                "1. **OT (Operational Technology - Betriebstechnik) Ingest & Latenz-Garantie (<20ms):** Einsatz von "
+                "**IED (Industrial Edge Device - Industrie-PC am Shopfloor)** direkt an der "
+                "**SPS (Speicherprogrammierbare Steuerung / Programmable Logic Controller)** für deterministisches Vorfiltern und Notabschaltungen über "
+                "**OPC UA (Open Platform Communications Unified Architecture)**.\n"
+                "2. **Cloud Streaming Pipeline:** Asynchroner Upload hochfrequenter Telemetriedaten via "
+                "**MQTT (Message Queuing Telemetry Transport)** und **Kafka (Apache Kafka - Verteilte Event-Streaming-Plattform)** zur Langzeitanalyse und Modell-Retraining.\n"
+                "3. **Governance & EU AI Act (Künstliche Intelligenz Verordnung der Europäischen Union) Compliance:** Lokale Audit-Logs und transparente Modellüberwachung.\n\n"
+                "```mermaid\n"
+                "graph TD\n"
+                "    SPS[SPS: SIMATIC S7 / Sensorik] -->|OPC UA <10ms| Edge[Industrial Edge Device]\n"
+                "    Edge -->|Real-time Control <20ms| Actuator[CNC-Aktor / Not-Aus]\n"
+                "    Edge -->|MQTT / TLS 1.3| Gateway[Cloud IoT Gateway]\n"
+                "    Gateway --> Kafka[Apache Kafka Stream]\n"
+                "    Kafka --> Lake[Snowflake / Iceberg Lakehouse]\n"
+                "```\n\n"
+                "[DECISION_GATE]\n"
+                "Thema: SPS-Zykluszeit & Bandbreitenlimitierung unklar\n"
+                "Fehlender Fakt: Exakte SPS-Zykluszeit und Verfügbarkeit des Hallennetzwerks für Not-Aus\n"
+                "Empfohlene Rueckfrage: Wie hoch ist die maximale tolerierbare Reaktionszeit für Not-Aus an der Fräse – sprechen wir von <20ms oder reicht Near-Realtime?\n"
+                "[/DECISION_GATE]\n\n"
+                "> 🚨 **Master-Consultant Decision Gate:**\n"
+                "> Bitte klären Sie mit dem Kunden zwingend die SPS-Zykluszeit (<20ms) und die Bandbreitenlimitierung der Produktionshallen, "
+                "um die Dimensionierung des lokalen Edge-Speichers festzulegen!"
+            )
         
         words = simulated_response.split(" ")
         for i, word in enumerate(words):

@@ -123,9 +123,9 @@ async def execute_copilot_stream(
         yield f"data: {json.dumps({'type': 'graph', 'mermaid': mermaid_code})}\n\n"
 
     # 5. Post-processing: Extract Decision Gates
-    gates = await record_detected_gates(session_id, full_response_text)
-    if gates:
-        yield f"data: {json.dumps({'type': 'gates', 'gates': gates})}\n\n"
+    await record_detected_gates(session_id, full_response_text)
+    all_gates = await repositories.list_decision_gates(session_id)
+    yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 
     # 6. Save full model response to SQLite
     msg_record = await repositories.create_deliberation_message(

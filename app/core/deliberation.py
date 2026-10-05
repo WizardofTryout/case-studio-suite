@@ -125,9 +125,9 @@ async def run_multi_agent_deliberation(
         yield f"data: {json.dumps({'type': 'graph', 'mermaid': mermaid})}\n\n"
 
     # Check for Decision Gates
-    gates = await record_detected_gates(session_id, lead_text)
-    if gates:
-        yield f"data: {json.dumps({'type': 'gates', 'gates': gates})}\n\n"
+    await record_detected_gates(session_id, lead_text)
+    all_gates = await repositories.list_decision_gates(session_id)
+    yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 
     await repositories.create_deliberation_message(
         session_id=session_id,
