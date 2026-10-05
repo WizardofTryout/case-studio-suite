@@ -100,3 +100,36 @@ async def clear_messages(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
     await repositories.clear_deliberation_messages(session_id)
     return {"message": "Deliberation messages cleared"}
+
+
+class SavePhaseRequest(BaseModel):
+    content_html: str
+    full_text: Optional[str] = ""
+    graph_mermaid: Optional[str] = None
+
+
+@router.get("/sessions/{session_id}/phases")
+async def get_session_phases(session_id: str):
+    """Retrieve all 4 phase states for a session."""
+    sess = await repositories.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    phases = await repositories.get_phase_states(session_id)
+    return phases
+
+
+@router.put("/sessions/{session_id}/phases/{phase}")
+async def save_session_phase(session_id: str, phase: int, payload: SavePhaseRequest):
+    """Save content and graph state for a specific phase (1-4)."""
+    sess = await repositories.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    saved = await repositories.save_phase_state(
+        session_id=session_id,
+        phase=phase,
+        content_html=payload.content_html,
+        full_text=payload.full_text or "",
+        graph_mermaid=payload.graph_mermaid
+    )
+    return saved
+

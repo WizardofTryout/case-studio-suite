@@ -403,3 +403,64 @@ async def clear_deliberation_messages(session_id: str) -> bool:
         await db.execute("DELETE FROM deliberation_messages WHERE session_id = ?", (session_id,))
         await db.commit()
         return True
+
+
+# --- Copilot Phase States (Per-Phase Persistence 1-4) ---
+
+async def get_phase_states(session_id: str) -> List[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, session_id, phase, content_html, full_text, architecture_graph_mermaid, updated_at
+            FROM copilot_phase_states
+            WHERE session_id = ?
+            ORDER BY phase ASC
+            """,
+            (session_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_phase_state(session_id: str, phase: int) -> Optional[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, session_id, phase, content_html, full_text, architecture_graph_mermaid, updated_at
+            FROM copilot_phase_states
+            WHERE session_id = ? AND phase = ?
+            """,
+            (session_id, phase)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def save_phase_state(
+    session_id: str,
+    phase: int,
+    content_html: str,
+    full_text: str = "",
+    graph_mermaid: Optional[str] = None
+) -> Dict[str, Any]:
+    state_id = str(uuid.uuid4())
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO copilot_phase_states (id, session_id, phase, content_html, full_text, architecture_graph_mermaid, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(session_id, phase) DO UPDATE SET
+                content_html = CASE WHEN ? != '' THEN ? ELSE content_html END,
+                full_text = CASE WHEN ? != '' THEN ? ELSE full_text END,
+                architecture_graph_mermaid = COALESCE(?, architecture_graph_mermaid),
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            (
+                state_id, session_id, phase, content_html, full_text, graph_mermaid,
+                content_html, content_html, full_text, full_text, graph_mermaid
+            )
+        )
+        await db.commit()
+    res = await get_phase_state(session_id, phase)
+    return res  # type: ignore
+

@@ -96,12 +96,8 @@
             
             <!-- Quick-Triggers Toolbar -->
             <div style="font-size:0.75rem; color:#64748b; font-weight:600; margin-top:2px;">Situative Quick-Triggers:</div>
-            <div class="quick-triggers">
-              <span class="trigger-chip" data-prompt="Kläre die maximal tolerierbare Latenz an der Linie (<20ms) und Not-Aus-Szenarien.">⏱️ Latenz / Realtime</span>
-              <span class="trigger-chip" data-prompt="Erstelle einen 4-Schichten Architektur-Blueprint mit Edge Ingest und Snowflake Lakehouse.">🏗️ 4-Schichten Blueprint</span>
-              <span class="trigger-chip" data-prompt="Prüfe EU AI Act Konformität (Hochrisiko-Klassifizierung) und lokale Audit-Trails.">⚖️ EU AI Act</span>
-              <span class="trigger-chip" data-prompt="Analysiere das Failover-Verhalten bei Netzwerkausfall für 48 Stunden.">🛡️ 48h Offline-Buffer</span>
-              <span class="trigger-chip" data-prompt="Kalkuliere Business Value: OEE-Steigerung um 3% und ROI im ersten Betriebsjahr.">💰 Business Value & ROI</span>
+            <div id="quick-triggers-container" class="quick-triggers">
+              <!-- Dynamically populated per phase by App.updatePhaseUI -->
             </div>
 
             <div class="prompt-actions">
@@ -112,15 +108,46 @@
             </div>
           </div>
 
-          <!-- Live Output Stream Window -->
-          <div id="copilot-output" class="copilot-output-container">
-            <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
-              💡 Gib oben die Anforderungen ein oder wähle einen Quick-Trigger.<br>
-              Der Master-Consultant strukturiert den Lösungsansatz und stoppt bei fehlenden Fakten via Decision Gates.
+          <!-- Live Output Stream Windows (Per-Phase Separate State & History) -->
+          <div id="copilot-output-phase-1" class="copilot-output-container phase-output-pane">
+            <div class="empty-phase-card">
+              <div class="empty-phase-title">🎯 Phase 1: Clarify & Scoping</div>
+              <div class="empty-phase-desc">
+                💡 Grenzt die Problemstellung ein, klärt Schmerzpunkte und prüft Latenzen & Not-Aus-Bedingungen.<br>
+                Der Master-Consultant stoppt Spekulationen an Entscheidungsknotenpunkten via Decision Gates.
+              </div>
             </div>
           </div>
 
-          <!-- Interactive Follow-Up Chat Box for Phase 1 -->
+          <div id="copilot-output-phase-2" class="copilot-output-container phase-output-pane" style="display:none;">
+            <div class="empty-phase-card">
+              <div class="empty-phase-title">🏗️ Phase 2: Architect & Blueprint</div>
+              <div class="empty-phase-desc">
+                💡 Entwirf den 4-Schichten Blueprint (OT Ingest -> Edge AI -> Streaming -> Data Lakehouse & Agenten).<br>
+                Nutze die Quick-Triggers oder übernehme die Synthese aus Phase 1!
+              </div>
+            </div>
+          </div>
+
+          <div id="copilot-output-phase-3" class="copilot-output-container phase-output-pane" style="display:none;">
+            <div class="empty-phase-card">
+              <div class="empty-phase-title">🔬 Phase 3: Deep Dive & Trade-Offs</div>
+              <div class="empty-phase-desc">
+                💡 Analysiere Edge vs. Cloud Trade-Offs, 48h Offline-Pufferung bei Netzausfall und IEC 62443 Sicherheitszonen.
+              </div>
+            </div>
+          </div>
+
+          <div id="copilot-output-phase-4" class="copilot-output-container phase-output-pane" style="display:none;">
+            <div class="empty-phase-card">
+              <div class="empty-phase-title">💰 Phase 4: Value & Roadmap</div>
+              <div class="empty-phase-desc">
+                💡 Berechne die quantitative OEE-Steigerung, den ROI und die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale).
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive Follow-Up Chat Box for Active Phase -->
           <div class="followup-chat-container">
             <textarea id="copilot-followup-input" class="followup-textarea" placeholder="Eigene Rückfrage zum Inhalt stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)"></textarea>
             <div class="followup-actions">

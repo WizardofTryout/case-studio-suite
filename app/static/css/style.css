@@ -432,6 +432,71 @@ body {
   gap: 12px;
 }
 
+.phase-output-pane {
+  flex: 1;
+  min-height: 0;
+}
+
+.empty-phase-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 20px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-md);
+  margin: auto 0;
+  gap: 8px;
+}
+
+.empty-phase-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--cyan);
+}
+
+.empty-phase-desc {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  max-width: 520px;
+}
+
+.phase-transition-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(0, 212, 255, 0.06));
+  border: 1px solid rgba(168, 85, 247, 0.35);
+  border-radius: var(--radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.phase-transition-title {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--violet);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.phase-transition-btn {
+  width: 100%;
+  padding: 10px 16px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  justify-content: center;
+  box-shadow: 0 4px 16px rgba(168, 85, 247, 0.3);
+}
+
+
 .markdown-body {
   font-size: 0.9rem;
   color: #e2e8f0;

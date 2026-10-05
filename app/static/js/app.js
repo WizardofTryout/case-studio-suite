@@ -3,6 +3,52 @@
  */
 
 const App = {
+  PHASE_TRIGGERS: {
+    1: [
+      { label: "🎯 Ziel: OPEX vs. Qualität", prompt: "Kläre das Hauptziel des Kunden: Geht es primär um OPEX-Senkung durch weniger Werkzeugbruch oder um kompromisslose Fertigungsqualität?" },
+      { label: "📊 Datenlage: Silos vs. DWH", prompt: "Prüfe die vorhandene Datenlage: Liegen die Sensordaten aktuell in proprietären Maschinensilos oder existiert bereits ein angebundenes DWH (Data Warehouse)?" },
+      { label: "⏱️ Latenzvorgaben", prompt: "Kläre die maximal tolerierbare Latenz an der Linie (<20ms) und Not-Aus-Szenarien für die Frässpindeln." },
+      { label: "👥 Budget & Stakeholder", prompt: "Erfasse das freigegebene Budget (CAPEX/OPEX) sowie die relevanten Entscheidungsträger (Werkleitung, IT-Leitung, Betriebsrat)." }
+    ],
+    2: [
+      { label: "⚙️ OT/Edge Schicht", prompt: "Detailliere die OT- und Edge-Schicht: Anbindung der SIMATIC SPS über PROFINET und OPC UA an ein Industrial Edge Device (IED)." },
+      { label: "⚡ Kafka Streaming Ingest", prompt: "Modelliere die hochverfügbare Event-Streaming-Pipeline mit Apache Kafka und Kafka Connect für 10.000 Telemetrie-Events/Sekunde." },
+      { label: "❄️ Snowflake / dbt Layer", prompt: "Entwirf die analytische Speicherschicht in Snowflake unter Verwendung von Apache Iceberg und dbt für Medallion-Tabellen (Bronze/Silver/Gold)." },
+      { label: "🤖 MCP-Agenten-Orchestrierung", prompt: "Integriere autonome KI-Agenten über das MCP (Model Context Protocol) zur automatisierten Anomalieerkennung und Wartungsdisposition." }
+    ],
+    3: [
+      { label: "⚖️ Edge vs. Cloud Trade-Off", prompt: "Analysiere den Trade-Off zwischen Edge-Inferenz (<10ms Latenz, keine Cloud-Kosten) und zentralem Cloud-Training mit globalem Modell-Abgleich." },
+      { label: "🛡️ 48h Offline-Puffer bei Netzausfall", prompt: "Spezifiziere das Failover-Konzept bei vollständigem Hallennetzwerk-Ausfall: Lokaler NVMe/SQLite 48h-Ringpuffer auf dem Edge Device mit Re-Sync." },
+      { label: "🔒 IEC 62443 Security", prompt: "Härte die Architektur nach IEC 62443: Zonentrennung (Purdue Level 2 vs. Level 3), Dual-Homed Network Adapter, mTLS und TPM 2.0 Chip." },
+      { label: "⚡ Deterministik vs. LLM", prompt: "Beweise, warum sicherheitskritische Not-Abschaltungen deterministisch im Millisekundenbereich laufen müssen und niemals von probabilistischen LLMs abhängen dürfen." }
+    ],
+    4: [
+      { label: "📈 OEE & ROI Berechnung", prompt: "Kalkuliere den konkreten Business Case: OEE-Steigerung um 3.4%, Reduktion des Ausschusses um 65% und ROI in 8.5 Monaten bei €450k Investition." },
+      { label: "🗓️ 3-Phasen-Roadmap (PoC->Pilot->Scale)", prompt: "Definiere den zeitlichen Phasenplan: 6 Wochen PoC an 2 Maschinen, 3 Monate Pilotlinie (24 Maschinen), Rollout auf alle 120 Anlagen in 9 Monaten." },
+      { label: "👔 Senior Workstream-Ownership", prompt: "Strukturiere die Verantwortlichkeiten in 3 Workstreams (OT-Integration, Cloud-Data-Plattform, Shopfloor-Enablement) mit klaren Deliverables." },
+      { label: "🔄 Change Management", prompt: "Entwickle das Change Management Konzept: Schulung der Maschinenbediener, Betriebsrat-Freigabe für Werker-Assistenz und kontinuierliche Modellvalidierung." }
+    ]
+  },
+
+  PHASE_TRANSITIONS: {
+    1: {
+      btnLabel: "➔ Phase 1 abschließen & Architektur-Blueprint in Phase 2 generieren",
+      prompt: "Basiert auf den geklärten Fakten und Kundenanforderungen aus Phase 1 (Clarify): Bitte erstelle nun den vollständigen 4-Schichten Architektur-Blueprint in Phase 2 (Architect) mit OT/Edge Ingest, Apache Kafka Event-Streaming, Snowflake Lakehouse und Agenten-Orchestrierung. Modelliere den zugehörigen Mermaid-Echtzeit-Graphen."
+    },
+    2: {
+      btnLabel: "➔ Architektur bestätigen & Deep-Dive / Trade-Offs in Phase 3 analysieren",
+      prompt: "Basierend auf dem freigegebenen Architektur-Blueprint aus Phase 2: Führe nun den detaillierten Deep-Dive in Phase 3 (Deep Dive) durch. Analysiere kritische Trade-Offs (Edge vs. Cloud, 48h Offline-Puffer bei Netzausfall, IEC 62443 Security-Zonen und deterministische SPS-Anbindung vs. LLM). Aktualisiere den Architektur-Graphen entsprechend."
+    },
+    3: {
+      btnLabel: "➔ Deep Dive abschließen & Business-Value / Roadmap in Phase 4 berechnen",
+      prompt: "Basierend auf den analysierten Trade-Offs und Sicherheitskonzepten aus Phase 3: Berechne nun in Phase 4 (Value & Roadmap) den konkreten Business Value. Ermittle die OEE-Steigerung (Overall Equipment Effectiveness), erstelle eine quantitative ROI-Kalkulation und definiere eine 3-Phasen-Implementierungs-Roadmap (PoC -> Pilot -> Scale) inklusive Change Management und Workstream-Ownership."
+    },
+    4: {
+      btnLabel: "🏆 Case-Studie finalisieren & Executive Summary kopieren",
+      action: "copySummary"
+    }
+  },
+
   state: {
     currentProjectId: null,
     currentSessionId: null,
@@ -12,12 +58,19 @@ const App = {
     projects: [],
     decisionGates: [],
     activeSkills: [],
-    inspectedNodeName: null
+    inspectedNodeName: null,
+    phaseData: {
+      1: { text: "", graph: "", hasRun: false },
+      2: { text: "", graph: "", hasRun: false },
+      3: { text: "", graph: "", hasRun: false },
+      4: { text: "", graph: "", hasRun: false }
+    }
   },
 
   async init() {
     GraphViewer.init();
     this.bindEvents();
+    this.renderQuickTriggers(1);
     await this.refreshTelemetry();
     await this.loadProjects();
     await this.loadSkillsCatalog();
@@ -238,17 +291,51 @@ const App = {
       if (profEl) profEl.innerText = `Gesprächspartner: ${project.persona_profile || 'C-Level Evaluator'}`;
     }
 
+    // Reset phaseData in memory
+    for (let i = 1; i <= 4; i++) {
+      this.state.phaseData[i] = { text: "", graph: "", hasRun: false };
+    }
+
     // Load Sessions
     const sessions = await API.getSessions(projectId);
     if (sessions && sessions.length > 0) {
       const activeSession = sessions[0];
       this.state.currentSessionId = activeSession.id;
-      this.switchPhase(activeSession.current_phase || 1);
-      if (activeSession.architecture_graph_mermaid) {
-        GraphViewer.renderGraph(activeSession.architecture_graph_mermaid);
-      } else {
-        GraphViewer.renderGraph("");
+
+      // Load saved phase states from SQLite
+      try {
+        const phaseStates = await API.getPhases(activeSession.id);
+        if (Array.isArray(phaseStates)) {
+          phaseStates.forEach(ps => {
+            this.state.phaseData[ps.phase] = {
+              text: ps.full_text || "",
+              graph: ps.architecture_graph_mermaid || "",
+              hasRun: !!(ps.full_text || ps.content_html)
+            };
+            if (ps.content_html) {
+              const pane = document.getElementById(`copilot-output-phase-${ps.phase}`);
+              if (pane) {
+                pane.innerHTML = ps.content_html;
+                const transBtn = pane.querySelector(".phase-transition-btn");
+                if (transBtn) {
+                  transBtn.onclick = () => App.advanceToNextPhase(ps.phase);
+                }
+              }
+            }
+          });
+        }
+      } catch (err) {
+        console.warn("Could not load phase states:", err);
       }
+
+      const curPhase = activeSession.current_phase || 1;
+      await this.switchPhase(curPhase);
+      
+      const graphToRender = this.state.phaseData[curPhase]?.graph || activeSession.architecture_graph_mermaid || "";
+      GraphViewer.renderGraph(graphToRender);
+    } else {
+      await this.switchPhase(1);
+      GraphViewer.renderGraph("");
     }
 
     await this.loadProjectDocuments();
@@ -269,21 +356,125 @@ const App = {
 
   async switchPhase(phase) {
     this.state.currentPhase = phase;
+
+    // 1. Update stepper buttons
     document.querySelectorAll(".phase-step-btn").forEach(btn => {
       btn.classList.toggle("active", parseInt(btn.dataset.phase, 10) === phase);
     });
 
-    const bannerDesc = document.getElementById("phase-banner-desc");
-    const phaseNames = {
-      1: "Phase 1: Clarify & Scoping – Problem eingrenzen, Schmerzpunkte erfassen, Annahmen prüfen.",
-      2: "Phase 2: Architect & Blueprint – 4-Schichten Entwurf (OT / Ingestion / Lakehouse / Apps) & Live-Graph.",
-      3: "Phase 3: Deep Dive & Trade-offs – Latenzgrenzen (<20ms), Ausfallsicherheit, IEC 62443 Security.",
-      4: "Phase 4: Value & Roadmap – Business Value (OEE, TCO), 3-Phasen-Rollout (PoC ➔ Pilot ➔ Global)."
-    };
-    if (bannerDesc) bannerDesc.innerText = phaseNames[phase] || "";
+    // 2. Switch output panes
+    document.querySelectorAll(".phase-output-pane").forEach(pane => {
+      pane.style.display = "none";
+    });
+    const activePane = document.getElementById(`copilot-output-phase-${phase}`);
+    if (activePane) {
+      activePane.style.display = "flex";
+      activePane.scrollTop = activePane.scrollHeight;
+    }
 
+    // 3. Update Banner description
+    const bannerDesc = document.getElementById("phase-banner-desc");
+    const phaseDescriptions = {
+      1: "Phase 1: Clarify & Scoping – Problem eingrenzen, Schmerzpunkte erfassen, Annahmen & Latenzen prüfen.",
+      2: "Phase 2: Architect & Blueprint – 4-Schichten Entwurf (OT / Edge / Streaming / Lakehouse) & Live-Graph.",
+      3: "Phase 3: Deep Dive & Trade-offs – Latenzgrenzen (<20ms), 48h Ausfallpuffer, IEC 62443 Security-Zonen.",
+      4: "Phase 4: Value & Roadmap – Business Value (OEE +3.4%, ROI in 8.5 Mon.), 3-Phasen-Rollout (PoC ➔ Pilot ➔ Scale)."
+    };
+    if (bannerDesc) bannerDesc.innerText = phaseDescriptions[phase] || "";
+
+    // 4. Update Quick-Triggers for active phase
+    this.renderQuickTriggers(phase);
+
+    // 5. Update prompt placeholders
+    const promptInput = document.getElementById("copilot-prompt");
+    if (promptInput) {
+      const placeholders = {
+        1: "z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8% Ausschuss. Welche Latenzen und Not-Aus-Bedingungen gelten?",
+        2: "z. B. Modelliere den 4-Schichten Blueprint von der SIMATIC S7 über Industrial Edge und Kafka bis zu Snowflake.",
+        3: "z. B. Wie puffern wir 48h Daten bei Netzwerkausfall und wie sichern wir die Zonen nach IEC 62443 ab?",
+        4: "z. B. Berechne OEE-Steigerung, ROI und erstelle die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale)."
+      };
+      promptInput.placeholder = placeholders[phase] || "Anforderung eingeben...";
+    }
+
+    const followupInput = document.getElementById("copilot-followup-input");
+    if (followupInput) {
+      followupInput.placeholder = `Eigene Rückfrage zu Phase ${phase} stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)`;
+    }
+
+    // 6. Restore phase-specific graph if present
+    const phaseGraph = this.state.phaseData[phase]?.graph;
+    if (phaseGraph) {
+      GraphViewer.renderGraph(phaseGraph);
+    }
+
+    // 7. Persist session phase
     if (this.state.currentSessionId) {
       await API.updateSession(this.state.currentSessionId, { current_phase: phase });
+    }
+  },
+
+  renderQuickTriggers(phase) {
+    const container = document.getElementById("quick-triggers-container");
+    if (!container) return;
+
+    container.innerHTML = "";
+    const triggers = this.PHASE_TRIGGERS[phase] || [];
+    triggers.forEach(t => {
+      const chip = document.createElement("span");
+      chip.className = "trigger-chip";
+      chip.innerText = t.label;
+      chip.dataset.prompt = t.prompt;
+      chip.addEventListener("click", () => {
+        const textarea = document.getElementById("copilot-prompt");
+        if (textarea) {
+          textarea.value = t.prompt;
+          textarea.focus();
+        }
+      });
+      container.appendChild(chip);
+    });
+  },
+
+  renderTransitionCard(phase, container) {
+    const existing = container.querySelector(".phase-transition-card");
+    if (existing) existing.remove();
+
+    const transition = this.PHASE_TRANSITIONS[phase];
+    if (!transition) return;
+
+    const card = document.createElement("div");
+    card.className = "phase-transition-card";
+    card.innerHTML = `
+      <div class="phase-transition-title">
+        <span>⚡ Nächster Schritt:</span> Synthese-Workflow
+      </div>
+      <button class="btn btn-violet phase-transition-btn" onclick="App.advanceToNextPhase(${phase})">
+        ${transition.btnLabel}
+      </button>
+    `;
+    container.appendChild(card);
+    container.scrollTop = container.scrollHeight;
+  },
+
+  async advanceToNextPhase(fromPhase) {
+    if (fromPhase === 4) {
+      const p4Pane = document.getElementById("copilot-output-phase-4");
+      const text = p4Pane ? p4Pane.innerText : "";
+      if (text) {
+        navigator.clipboard.writeText(text);
+        window.showToast("🏆 Executive Summary in die Zwischenablage kopiert! Bereit für die Präsentation.", "success");
+      }
+      return;
+    }
+
+    const nextPhase = fromPhase + 1;
+    window.showToast(`Wechsle in Phase ${nextPhase} und starte Synthese...`, "info");
+    await this.switchPhase(nextPhase);
+
+    const transition = this.PHASE_TRANSITIONS[fromPhase];
+    if (transition && transition.prompt) {
+      await this.runCopilotWithPrompt(transition.prompt, false);
     }
   },
 
@@ -316,6 +507,13 @@ const App = {
     if (this.state.isStreaming) return;
     this.state.isStreaming = true;
 
+    const currentPhase = this.state.currentPhase;
+    const outputEl = document.getElementById(`copilot-output-phase-${currentPhase}`);
+    if (!outputEl) {
+      this.state.isStreaming = false;
+      return;
+    }
+
     const runBtn = document.getElementById("btn-run-copilot");
     const followupBtn = document.getElementById("btn-send-followup");
     if (runBtn) {
@@ -327,16 +525,21 @@ const App = {
       followupBtn.innerText = "⏳ Nachschärfen...";
     }
 
-    const outputEl = document.getElementById("copilot-output");
+    // Remove empty phase guidance card if present
+    const emptyCard = outputEl.querySelector(".empty-phase-card");
+    if (emptyCard) emptyCard.remove();
 
-    // If initial run or placeholder was present, initialize output structure
-    if (isInitial || !document.getElementById("copilot-chat-stream")) {
-      outputEl.innerHTML = `
-        <div id="copilot-chat-stream" style="display:flex; flex-direction:column; gap:14px; width:100%;"></div>
-      `;
+    // Remove existing transition card
+    const oldTrans = outputEl.querySelector(".phase-transition-card");
+    if (oldTrans) oldTrans.remove();
+
+    let streamParent = outputEl.querySelector(".copilot-chat-stream");
+    if (!streamParent) {
+      streamParent = document.createElement("div");
+      streamParent.className = "copilot-chat-stream";
+      streamParent.style.cssText = "display:flex; flex-direction:column; gap:14px; width:100%;";
+      outputEl.appendChild(streamParent);
     }
-
-    const streamParent = document.getElementById("copilot-chat-stream") || outputEl;
 
     // Append User Card
     const userCard = document.createElement("div");
@@ -356,7 +559,7 @@ const App = {
     assistantCard.style.cssText = "align-self:flex-start; width:100%; background:rgba(168,85,247,0.06); border:1px solid rgba(168,85,247,0.25); border-radius:10px; padding:12px 16px;";
     assistantCard.innerHTML = `
       <div class="msg-sender" style="color:var(--violet); font-size:0.75rem; font-weight:700; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-        <span>👑</span> Master-Consultant Lead
+        <span>👑</span> Master-Consultant Lead (Phase ${currentPhase})
         <span class="telemetry-dot" style="background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
       </div>
       <div class="stream-content markdown-body" style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;"></div>
@@ -373,15 +576,15 @@ const App = {
         project_id: this.state.currentProjectId,
         session_id: this.state.currentSessionId,
         prompt: promptText,
-        phase: this.state.currentPhase
+        phase: currentPhase
       },
       (event) => {
         if (event.type === "token") {
           fullText += event.content;
-          // Filter raw mermaid and decision gate blocks from text display
           streamBody.innerHTML = this.renderMarkdown(fullText);
           outputEl.scrollTop = outputEl.scrollHeight;
         } else if (event.type === "graph") {
+          this.state.phaseData[currentPhase].graph = event.mermaid;
           GraphViewer.renderGraph(event.mermaid);
           window.showToast("🗺️ Neuer Architektur-Graph gerendert!", "info");
         } else if (event.type === "gates") {
@@ -393,11 +596,27 @@ const App = {
         window.showToast(`Fehler beim Streamen: ${err.message}`, "error");
         this.resetStreamBtn();
       },
-      () => {
+      async () => {
         this.resetStreamBtn();
-        window.showToast("Analyse nachgeschärft & in SQLite gesichert.", "success");
+        this.state.phaseData[currentPhase].hasRun = true;
+        this.state.phaseData[currentPhase].text = fullText;
+
+        // Render transition card
+        this.renderTransitionCard(currentPhase, outputEl);
+
+        // Save phase state to SQLite
+        try {
+          await API.savePhase(this.state.currentSessionId, currentPhase, {
+            content_html: outputEl.innerHTML,
+            full_text: fullText,
+            graph_mermaid: this.state.phaseData[currentPhase].graph || null
+          });
+        } catch (err) {
+          console.warn("Failed to persist phase state:", err);
+        }
+
+        window.showToast(`Phase ${currentPhase} aktualisiert & in SQLite gesichert.`, "success");
         this.refreshTelemetry();
-        // Load latest decision gates
         this.loadDecisionGates();
       }
     );

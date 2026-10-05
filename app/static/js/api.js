@@ -130,6 +130,20 @@ const API = {
     return await res.json();
   },
 
+  async getPhases(sessionId) {
+    const res = await fetch(`/api/copilot/sessions/${sessionId}/phases`);
+    return await res.json();
+  },
+
+  async savePhase(sessionId, phase, data) {
+    const res = await fetch(`/api/copilot/sessions/${sessionId}/phases/${phase}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  },
+
   async streamSSE(url, payload, onEvent, onError, onComplete) {
     try {
       const response = await fetch(url, {

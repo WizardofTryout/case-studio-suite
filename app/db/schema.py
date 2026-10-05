@@ -72,10 +72,23 @@ CREATE TABLE IF NOT EXISTS deliberation_messages (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 7. COPILOT PHASEN-SPEICHER (SEPARATER STATE PRO PHASE 1-4)
+CREATE TABLE IF NOT EXISTS copilot_phase_states (
+    id TEXT PRIMARY KEY,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    phase INTEGER NOT NULL,          -- 1: Clarify, 2: Architect, 3: Deep Dive, 4: Value
+    content_html TEXT,               -- Gerenderter Verlauf der Phase
+    full_text TEXT,                  -- Roh-Text / Markdown
+    architecture_graph_mermaid TEXT, -- Phasen-spezifischer Mermaid-Graph
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(session_id, phase)
+);
+
 -- Performance indices on foreign keys
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_project ON case_sessions(project_id);
 CREATE INDEX IF NOT EXISTS idx_gates_session ON decision_gates(session_id);
 CREATE INDEX IF NOT EXISTS idx_messages_session ON deliberation_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_phase_states_session ON copilot_phase_states(session_id);
 """

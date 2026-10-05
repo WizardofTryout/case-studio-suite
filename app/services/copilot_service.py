@@ -127,11 +127,19 @@ async def execute_copilot_stream(
     all_gates = await repositories.list_decision_gates(session_id)
     yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 
-    # 6. Save full model response to SQLite
+    # 6. Save full model response and per-phase state to SQLite
     msg_record = await repositories.create_deliberation_message(
         session_id=session_id,
         sender_role="master_consultant",
         sender_name="Master-Consultant Lead",
         content=full_response_text
     )
-    yield f"data: {json.dumps({'type': 'done', 'message_id': msg_record['id']})}\n\n"
+    await repositories.save_phase_state(
+        session_id=session_id,
+        phase=phase,
+        content_html="",
+        full_text=full_response_text,
+        graph_mermaid=mermaid_code
+    )
+    yield f"data: {json.dumps({'type': 'done', 'message_id': msg_record['id'], 'phase': phase})}\n\n"
+
