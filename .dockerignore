@@ -1,0 +1,15 @@
+.git
+.gitignore
+.env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+.DS_Store
+data/case_studio.db*
+data/projects/*
+!data/.gitkeep
+!data/projects/.gitkeep

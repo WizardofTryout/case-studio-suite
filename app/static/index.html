@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <!-- Mermaid.js for real-time live architecture graphing -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+</head>
+<body>
+
+  <!-- Top Navigation & Telemetry Bar -->
+  <header class="app-header">
+    <div class="header-left">
+      <div class="brand">
+        <span>🏛️ Case Studio Suite</span>
+        <span class="brand-badge">Standalone OS</span>
+      </div>
+
+      <div class="project-select-container">
+        <label for="project-selector" style="font-size:0.75rem; color:#94a3b8; font-weight:600;">PROJEKT:</label>
+        <select id="project-selector">
+          <option value="">Lade Projekte...</option>
+        </select>
+        <button id="btn-new-project" class="btn btn-secondary btn-sm" title="Neues Projekt anlegen">＋ Neu</button>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <div id="db-status-chip" class="telemetry-chip" title="SQLite Embedded WAL-Modus Status">
+        <span class="telemetry-dot"></span> SQLite: WAL
+      </div>
+      <div id="key-pool-telemetry" class="telemetry-chip" title="Klicken zur Konfiguration der Gemini API-Keys">
+        <span class="telemetry-dot"></span> Keys: Lädt...
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="app-nav">
+    <button class="nav-tab active" data-tab="copilot">
+      <span>🎯</span> 4-Phasen Case Copilot
+    </button>
+    <button class="nav-tab" data-tab="deliberation">
+      <span>⚔️</span> Multi-Agenten Deliberation
+    </button>
+    <button class="nav-tab" data-tab="dms">
+      <span>📁</span> Projekt-Setup & DMS
+    </button>
+    <button class="nav-tab" data-tab="skills">
+      <span>📦</span> Skill-Katalog & Snapshots
+    </button>
+  </nav>
+
+  <!-- Main Viewport -->
+  <main class="main-viewport">
+
+    <!-- TAB 1: 4-PHASEN CASE COPILOT (DEFAULT) -->
+    <section id="tab-copilot" class="tab-content active">
+      <div class="copilot-grid">
+        
+        <!-- Left Column: Workspace & Stepper -->
+        <div class="copilot-left">
+          <!-- 4-Phase Stepper -->
+          <div class="phase-stepper">
+            <button class="phase-step-btn active" data-phase="1">
+              <span class="phase-num">Phase 1</span>
+              <span class="phase-name">Clarify</span>
+            </button>
+            <button class="phase-step-btn" data-phase="2">
+              <span class="phase-num">Phase 2</span>
+              <span class="phase-name">Architect</span>
+            </button>
+            <button class="phase-step-btn" data-phase="3">
+              <span class="phase-num">Phase 3</span>
+              <span class="phase-name">Deep Dive</span>
+            </button>
+            <button class="phase-step-btn" data-phase="4">
+              <span class="phase-num">Phase 4</span>
+              <span class="phase-name">Value</span>
+            </button>
+          </div>
+
+          <!-- Phase Focus Banner -->
+          <div id="phase-banner-desc" class="phase-banner">
+            Phase 1: Clarify & Scoping – Problemstellung eingrenzen, Schmerzpunkte erfassen, Annahmen prüfen.
+          </div>
+
+          <!-- Prompt Input Box -->
+          <div class="prompt-box">
+            <label for="copilot-prompt" style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">
+              Eingabe der Problemstellung / Kunden-Anforderung:
+            </label>
+            <textarea id="copilot-prompt" class="prompt-textarea" placeholder="z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8 % Ausschuss durch Werkzeugverschleiß. Hohe Vibrationen, aber das Hallen-WLAN ist instabil..."></textarea>
+            
+            <!-- Quick-Triggers Toolbar -->
+            <div style="font-size:0.75rem; color:#64748b; font-weight:600; margin-top:2px;">Situative Quick-Triggers:</div>
+            <div class="quick-triggers">
+              <span class="trigger-chip" data-prompt="Kläre die maximal tolerierbare Latenz an der Linie (<20ms) und Not-Aus-Szenarien.">⏱️ Latenz / Realtime</span>
+              <span class="trigger-chip" data-prompt="Erstelle einen 4-Schichten Architektur-Blueprint mit Edge Ingest und Snowflake Lakehouse.">🏗️ 4-Schichten Blueprint</span>
+              <span class="trigger-chip" data-prompt="Prüfe EU AI Act Konformität (Hochrisiko-Klassifizierung) und lokale Audit-Trails.">⚖️ EU AI Act</span>
+              <span class="trigger-chip" data-prompt="Analysiere das Failover-Verhalten bei Netzwerkausfall für 48 Stunden.">🛡️ 48h Offline-Buffer</span>
+              <span class="trigger-chip" data-prompt="Kalkuliere Business Value: OEE-Steigerung um 3% und ROI im ersten Betriebsjahr.">💰 Business Value & ROI</span>
+            </div>
+
+            <div class="prompt-actions">
+              <span style="font-size:0.78rem; color:#64748b;">Round-Robin Gemini Pro Engine</span>
+              <button id="btn-run-copilot" class="btn btn-primary">
+                🚀 Analysieren & Streamen
+              </button>
+            </div>
+          </div>
+
+          <!-- Live Output Stream Window -->
+          <div id="copilot-output" class="copilot-output-container">
+            <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
+              💡 Gib oben die Anforderungen ein oder wähle einen Quick-Trigger.<br>
+              Der Master-Consultant strukturiert den Lösungsansatz und stoppt bei fehlenden Fakten via Decision Gates.
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Live-Graph & Decision Gates -->
+        <div class="copilot-right">
+          <!-- Live Graph Box -->
+          <div class="live-graph-box">
+            <div class="box-header">
+              <div class="box-title">
+                <span>🗺️</span> Live-Architektur (Mermaid Flow)
+              </div>
+              <span class="brand-badge">Echtzeit-Graph</span>
+            </div>
+            <div id="mermaid-viewport" class="mermaid-viewport">
+              <div style="color:#64748b; font-size:0.85rem; text-align:center;">
+                🗺️ Noch kein Architektur-Graph generiert.<br>
+                Starte den Case Copilot oder eine Multi-Agenten Debatte!
+              </div>
+            </div>
+          </div>
+
+          <!-- Decision Gates Container -->
+          <div class="live-graph-box" style="flex:0.9;">
+            <div class="box-header">
+              <div class="box-title" style="color:var(--amber);">
+                <span>🚨</span> Master-Consultant Decision Gates
+              </div>
+              <span class="gate-badge pending">Kunden-Rückfragen</span>
+            </div>
+            <div id="decision-gates-list" class="decision-gates-panel">
+              <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
+                Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- TAB 2: MULTI-AGENTEN DELIBERATION (DEBATTE) -->
+    <section id="tab-deliberation" class="tab-content">
+      <div class="deliberation-layout">
+        <div class="deliberation-header">
+          <div>
+            <div style="font-weight:700; font-size:1.05rem; color:#fff;">⚔️ Multi-Agenten Deliberation Studio</div>
+            <div style="font-size:0.8rem; color:#94a3b8;">Vier-Augen-Prinzip: Lead Strategist + Domain Expert + Hallucination Critic prüfen Annahmen</div>
+          </div>
+
+          <div class="agents-lineup">
+            <div class="agent-badge-chip lead">👑 Master-Consultant</div>
+            <div class="agent-badge-chip expert">⚡ Domain Specialist</div>
+            <div class="agent-badge-chip critic">🛡️ Hallucination Critic</div>
+          </div>
+
+          <button id="btn-clear-chat" class="btn btn-secondary btn-sm">Chat leeren</button>
+        </div>
+
+        <div id="chat-thread" class="chat-thread">
+          <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
+            💬 Noch keine Diskussionsbeiträge. Gib unten einen Entwurf ein und lass die Agenten debattieren!
+          </div>
+        </div>
+
+        <div class="deliberation-footer">
+          <input type="text" id="deliberation-input" class="gate-answer-input" placeholder="Architektur-These oder Diskussionspunkt (z.B. 'Wir senden alle 2kHz Vibrationsdaten direkt via 5G in Snowflake')..." />
+          <button id="btn-run-deliberation" class="btn btn-violet">
+            ⚔️ Agenten debattieren lassen
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PROJEKT-SETUP & DOKUMENTEN-MANAGEMENT (DMS) -->
+    <section id="tab-dms" class="tab-content">
+      <div class="copilot-grid">
+        <!-- Project Profile Box -->
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px;">
+          <div style="font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
+            🏢 Aktuelles Projektprofil
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px;">
+            <div id="project-details-name" style="font-size:1.15rem; font-weight:700; color:var(--cyan);"></div>
+            <div id="project-details-industry" style="font-size:0.85rem; color:#cbd5e1;"></div>
+            <div id="project-details-persona" style="font-size:0.85rem; color:#94a3b8;"></div>
+          </div>
+          <div style="font-size:0.82rem; color:#64748b; background:rgba(0,0,0,0.25); padding:10px; border-radius:8px;">
+            💾 <strong>Lokale Persistenz:</strong> Sämtliche Daten dieses Projekts sind in <code>/app/data/case_studio.db</code> und physisch im Ordner <code>/app/data/projects/{id}/</code> gesichert.
+          </div>
+        </div>
+
+        <!-- Document Upload & List Box -->
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
+          <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
+            <div style="font-weight:700; font-size:1rem;">📄 Dokumenten-Management (DMS)</div>
+            <label class="btn btn-primary btn-sm" style="cursor:pointer;">
+              ＋ Datei hochladen
+              <input type="file" id="doc-file-input" style="display:none;" accept=".pdf,.md,.txt,.markdown" />
+            </label>
+          </div>
+          <div style="font-size:0.82rem; color:#94a3b8;">
+            Lade Ausschreibungen, Spezifikationen oder Folien hoch (PDF, Markdown, TXT). Text wird automatisch für den RAG-Kontext extrahiert.
+          </div>
+          <div id="project-documents-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+            <div style="color:#64748b; font-size:0.85rem;">Lade Dokumente...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: SKILL-KATALOG & PHYSISCHE SNAPSHOTS -->
+    <section id="tab-skills" class="tab-content">
+      <div class="copilot-grid">
+        <!-- Active Project Skills -->
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
+          <div style="font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
+            ⚡ Physisch im Projekt gesicherte Skills (Snapshots)
+          </div>
+          <div style="font-size:0.82rem; color:#94a3b8;">
+            Diese Skills liegen als physische Kopie in <code>/app/data/projects/{id}/skills/*.md</code> und fließen in die Prompts ein.
+          </div>
+          <div id="active-skills-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;">
+            <div style="color:#64748b; font-size:0.85rem;">Lade aktive Skills...</div>
+          </div>
+        </div>
+
+        <!-- Available Skills Catalog -->
+        <div class="glass-panel" style="padding:20px; display:flex; flex-direction:column; gap:16px; overflow:hidden;">
+          <div style="font-weight:700; font-size:1rem; border-bottom:1px solid var(--border-subtle); padding-bottom:8px;">
+            📚 Globaler Skill-Katalog
+          </div>
+          <div style="font-size:0.82rem; color:#94a3b8;">
+            Wähle methodische Frameworks und Fachexpertisen aus, um sie im aktuellen Projekt zu snapshotten.
+          </div>
+          <div id="skills-catalog-list" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:10px;">
+            <div style="color:#64748b; font-size:0.85rem;">Lade Katalog...</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Generic Glassmorphism Modal (Zero Native Popups) -->
+  <div id="generic-modal-overlay" class="modal-overlay">
+    <div class="modal-card">
+      <div id="generic-modal-title" class="modal-title">Titel</div>
+      <div id="generic-modal-body" class="modal-body">Inhalt</div>
+      <div class="modal-actions">
+        <button id="generic-modal-cancel" class="btn btn-secondary btn-sm">Abbrechen</button>
+        <button id="generic-modal-confirm" class="btn btn-primary btn-sm">Bestätigen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- JavaScript Modules -->
+  <script src="/static/js/toast.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/graph.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

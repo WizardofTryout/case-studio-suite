@@ -1,0 +1,81 @@
+# SQLite Schema definition according to Chapter 4.2 of CASE_STUDIO_APP_MASTERPLAN.md
+
+SCHEMA_SQL = """
+-- Enable WAL mode and foreign keys
+PRAGMA journal_mode=WAL;
+PRAGMA foreign_keys=ON;
+
+-- 1. PROJEKTE & CASES
+CREATE TABLE IF NOT EXISTS projects (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    industry TEXT NOT NULL,           -- z. B. 'industrial_ot', 'cloud_enterprise'
+    persona_profile TEXT,             -- Profil des Interviewers / Kunden
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 2. PROJEKT-DOKUMENTE (DMS)
+CREATE TABLE IF NOT EXISTS project_documents (
+    id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    filename TEXT NOT NULL,
+    file_type TEXT NOT NULL,          -- 'pdf', 'md', 'txt'
+    extracted_text TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 3. PROJEKT-SKILLS (SNAPSHOTS)
+CREATE TABLE IF NOT EXISTS project_skills (
+    id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    skill_name TEXT NOT NULL,
+    skill_category TEXT NOT NULL,
+    file_path TEXT NOT NULL,          -- Pfad im Projektordner /app/data/projects/{id}/skills/
+    version_hash TEXT,
+    is_active INTEGER DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. CASE-SESSIONS & ENTSCHEIDUNGS-KNOTEN (PHASEN 1-4)
+CREATE TABLE IF NOT EXISTS case_sessions (
+    id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    current_phase INTEGER DEFAULT 1,  -- 1: Clarify, 2: Architect, 3: Deep Dive, 4: Value
+    case_summary TEXT,
+    architecture_graph_mermaid TEXT,  -- Aktueller Mermaid-Graph
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 5. DECISION GATES & KUNDEN-RÜCKFRAGEN
+CREATE TABLE IF NOT EXISTS decision_gates (
+    id TEXT PRIMARY KEY,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    topic TEXT NOT NULL,              -- z. B. 'Latenz vs. Bandbreite'
+    detected_missing_fact TEXT NOT NULL,
+    recommended_question TEXT NOT NULL, -- Die Frage, die Matthias stellen soll
+    customer_answer TEXT,             -- Was der Kunde geantwortet hat
+    status TEXT DEFAULT 'pending',    -- 'pending', 'resolved'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 6. MULTI-AGENTEN DELIBERATION-CHATS
+CREATE TABLE IF NOT EXISTS deliberation_messages (
+    id TEXT PRIMARY KEY,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    sender_role TEXT NOT NULL,        -- 'master_consultant', 'domain_expert', 'critic', 'user'
+    sender_name TEXT NOT NULL,
+    skill_source TEXT,                -- Verweis auf gespeicherten Skill
+    content TEXT NOT NULL,
+    is_critique INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Performance indices on foreign keys
+CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
+CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_project ON case_sessions(project_id);
+CREATE INDEX IF NOT EXISTS idx_gates_session ON decision_gates(session_id);
+CREATE INDEX IF NOT EXISTS idx_messages_session ON deliberation_messages(session_id);
+"""

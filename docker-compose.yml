@@ -1,0 +1,27 @@
+services:
+  case-studio-suite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: case-studio-suite
+    ports:
+      - "3088:8000"
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATA_DIR=/app/data
+      - DB_PATH=/app/data/case_studio.db
+      - SKILLS_CATALOG_DIR=/app/skills_catalog
+      - GEMINI_API_KEYS=${GEMINI_API_KEYS:-}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
