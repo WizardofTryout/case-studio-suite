@@ -275,6 +275,11 @@ const App = {
       keyChip.addEventListener("click", () => this.showKeyPoolModal());
     }
 
+    const headerKeyBtn = document.getElementById("btn-header-key-manager");
+    if (headerKeyBtn) {
+      headerKeyBtn.addEventListener("click", () => this.showKeyPoolModal());
+    }
+
     const closeKeyManagerBtn = document.getElementById("btn-close-key-manager");
     if (closeKeyManagerBtn) {
       closeKeyManagerBtn.addEventListener("click", () => this.closeKeyManagerModal());
@@ -779,7 +784,7 @@ const App = {
       <div class="msg-sender" style="color:var(--emerald); font-size:0.75rem; font-weight:700; margin-bottom:4px;">
         👤 Matthias (Lead Consultant)
       </div>
-      <div class="msg-body" style="font-size:0.88rem; color:#fff;">${this.escapeHtml(promptText)}</div>
+      <div class="msg-body" style="font-size:0.88rem; color:var(--text-main);">${this.escapeHtml(promptText)}</div>
     `;
     streamParent.appendChild(userCard);
 
@@ -792,7 +797,7 @@ const App = {
         <span>👑</span> Master-Consultant Lead (Phase ${currentPhase})
         <span class="telemetry-dot" style="background:var(--cyan); box-shadow:0 0 6px var(--cyan);"></span>
       </div>
-      <div class="stream-content markdown-body" style="font-size:0.88rem; color:#e2e8f0; line-height:1.6;"></div>
+      <div class="stream-content markdown-body" style="font-size:0.88rem; color:var(--text-main); line-height:1.6;"></div>
     `;
     streamParent.appendChild(assistantCard);
     outputEl.scrollTop = outputEl.scrollHeight;
@@ -881,7 +886,7 @@ const App = {
 
     if (!gates || gates.length === 0) {
       listContainer.innerHTML = `
-        <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
+        <div style="color:var(--text-dim); font-size:0.8rem; padding:8px 0;">
           Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
         </div>
       `;
@@ -901,8 +906,8 @@ const App = {
           </div>
           <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
         </div>
-        <div style="font-size:0.8rem; color:#cbd5e1; line-height:1.4;">
-          <strong style="color:var(--amber);">Fehlender Fakt:</strong> ${this.escapeHtml(g.detected_missing_fact)}
+        <div class="gate-missing-fact" style="font-size:0.8rem; color:var(--text-main); line-height:1.4;">
+          <strong style="color:var(--amber);">Fehlender Fakt:</strong> <span class="missing-fact-text" style="color:var(--text-muted);">${this.escapeHtml(g.detected_missing_fact)}</span>
         </div>
         <div class="gate-question-box">
           <div style="font-style:italic; font-size:0.84rem; flex:1;">💬 »${this.escapeHtml(g.recommended_question)}«</div>
@@ -911,7 +916,7 @@ const App = {
           </button>
         </div>
         ${isResolved ? `
-          <div style="font-size:0.82rem; color:#a7f3d0; background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); padding:8px 10px; border-radius:6px;">
+          <div style="font-size:0.82rem; color:var(--emerald); background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); padding:8px 10px; border-radius:6px;">
             <strong>Antwort des Kunden:</strong> ${this.escapeHtml(g.customer_answer)}
           </div>
         ` : `

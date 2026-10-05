@@ -273,6 +273,115 @@
   border-left-color: #e11d48;
 }
 
+/* Light Theme Message Cards & Copilot Stream */
+[data-theme="light"] .message-card {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .message-card.user {
+  background: rgba(16, 185, 129, 0.08) !important;
+  border-color: rgba(16, 185, 129, 0.35) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .message-card.master_consultant {
+  background: rgba(124, 58, 237, 0.04) !important;
+  border-color: rgba(124, 58, 237, 0.25) !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .msg-body,
+[data-theme="light"] .stream-content,
+[data-theme="light"] .stream-content *,
+[data-theme="light"] .markdown-body,
+[data-theme="light"] .markdown-body * {
+  color: #0f172a;
+}
+
+[data-theme="light"] .markdown-body strong,
+[data-theme="light"] .stream-content strong {
+  color: #000000 !important;
+  font-weight: 700;
+}
+
+[data-theme="light"] .markdown-body p,
+[data-theme="light"] .markdown-body li {
+  color: #1e293b !important;
+}
+
+/* Light Theme Decision Gates & Questions */
+[data-theme="light"] .gate-missing-fact,
+[data-theme="light"] .gate-missing-fact * {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .missing-fact-text {
+  color: #334155 !important;
+}
+
+[data-theme="light"] .gate-question-box {
+  background: #fffbeb !important;
+  border-color: #fcd34d !important;
+  color: #78350f !important;
+}
+
+[data-theme="light"] .gate-question-box * {
+  color: #78350f !important;
+}
+
+/* Light Theme Skill Cards & Catalog */
+[data-theme="light"] .skill-card-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .skill-card-item:hover {
+  background: #f8fafc;
+  border-color: #0284c7;
+}
+
+[data-theme="light"] .skill-card-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .skill-card-desc {
+  color: #334155;
+}
+
+[data-theme="light"] .agent-tile-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .agent-tile-card:hover {
+  background: #f0f9ff;
+  border-color: #0284c7;
+}
+
+[data-theme="light"] .agent-tile-title {
+  color: #0f172a;
+}
+
+[data-theme="light"] .agent-tile-desc {
+  color: #334155;
+}
+
+[data-theme="light"] .team-slot-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .team-slot-desc {
+  color: #334155;
+}
+
+[data-theme="light"] .team-slot-header strong {
+  color: #0f172a;
+}
+
 * {
 
   box-sizing: border-box;

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=2.5">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.2.0">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -19,7 +19,7 @@
       </div>
 
       <div class="project-select-container">
-        <label for="project-selector" style="font-size:0.75rem; color:#94a3b8; font-weight:600;">PROJEKT:</label>
+        <label for="project-selector" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">PROJEKT:</label>
         <select id="project-selector">
           <option value="">Lade Projekte...</option>
         </select>
@@ -28,13 +28,16 @@
     </div>
 
     <div class="header-right">
+      <button id="btn-header-key-manager" class="btn btn-secondary btn-sm" title="Gemini API-Keys verwalten & verschlüsseln" style="gap:5px; font-weight:600;">
+        <span>🔑</span> <span>API-Keys</span>
+      </button>
       <button id="theme-toggle-btn" class="theme-toggle-btn" title="Zwischen Dunkel- und Hell-Modus umschalten">
         <span class="theme-icon">☀️</span> <span class="theme-label">Hell</span>
       </button>
       <div id="db-status-chip" class="telemetry-chip" title="SQLite Embedded WAL-Modus Status">
         <span class="telemetry-dot"></span> SQLite: WAL
       </div>
-      <div id="key-pool-telemetry" class="telemetry-chip" title="Klicken zur Konfiguration der Gemini API-Keys">
+      <div id="key-pool-telemetry" class="telemetry-chip" title="Klicken zur Konfiguration der Gemini API-Keys" style="cursor:pointer;">
         <span class="telemetry-dot"></span> Keys: Lädt...
       </div>
     </div>
@@ -828,10 +831,10 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=2.5"></script>
-  <script src="/static/js/api.js?v=2.5"></script>
-  <script src="/static/js/graph.js?v=2.5"></script>
-  <script src="/static/js/app.js?v=2.5"></script>
+  <script src="/static/js/toast.js?v=3.2.0"></script>
+  <script src="/static/js/api.js?v=3.2.0"></script>
+  <script src="/static/js/graph.js?v=3.2.0"></script>
+  <script src="/static/js/app.js?v=3.2.0"></script>
 </body>
 </html>
 
