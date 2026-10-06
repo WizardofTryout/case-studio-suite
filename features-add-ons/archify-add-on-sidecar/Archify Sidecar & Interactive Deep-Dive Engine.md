@@ -1,3 +1,5 @@
+> **Hinweis:** Überholt durch `sprint_sub_sprint_roadmap_archify_integration.md` (v2) – nur noch Konzeptskizze.
+
 # Integrationsplan: Archify Sidecar & Interactive Deep-Dive Engine
 
 ## Vision

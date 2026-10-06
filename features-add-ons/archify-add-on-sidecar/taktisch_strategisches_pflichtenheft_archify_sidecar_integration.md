@@ -1,3 +1,5 @@
+> **Hinweis v2:** Endpunkte/Stack/Pfade sind in `sprint_sub_sprint_roadmap_archify_integration.md` (v2) präzisiert. Bei Widersprüchen gilt die Roadmap v2 (FastAPI + Vanilla JS, `/api/deep-dive/*`, additiv, Sidecar ohne Host-Port).
+
 # Taktisch-Strategisches Pflichtenheft
 ## Projekt: Integration der Archify Interactive Engine in den Case Copilot
 **Status:** In Spezifikation  
