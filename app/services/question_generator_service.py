@@ -71,7 +71,8 @@ async def generate_perspective_questions(
     session_id: Optional[str] = None,
     agents: Optional[List[Dict[str, Any]]] = None,
     focus_agent_key: Optional[str] = None,
-    source_context: Optional[str] = "top_prompt"
+    source_context: Optional[str] = "top_prompt",
+    language: str = "de"
 ) -> Dict[str, Any]:
     """
     Analyzes the case input and generates structured questions from the perspective of all active agents.
@@ -179,10 +180,26 @@ async def generate_perspective_questions(
     if skills_str:
         prompt_builder.append(f"METHODISCHE SKILLS AUS DEM PROJEKT:\n{skills_str}")
 
-    prompt_builder.append(
-        "Erstelle nun für jeden der aktiven Fachagenten 2-3 konkrete, hochqualitative Fragen mit Begründung (Warum entscheidend) und Risiko bei Nicht-Klärung. "
-        "Erzeuge zudem 4 direkte Quick-Triggers und den vollständigen Markdown-Fragenkatalog für den Export."
-    )
+    is_en = str(language or "").lower().strip() in ["en", "english"]
+    if is_en:
+        prompt_builder.append(
+            "Generate 2-3 concrete, high-quality questions for each active agent with rationale (why critical) and risk if left open. "
+            "Also generate 4 situational quick-triggers and the full markdown question catalog for export. "
+            "ALL OUTPUT FIELDS AND MARKDOWN MUST BE ENTIRELY IN ENGLISH."
+        )
+    else:
+        prompt_builder.append(
+            "Erstelle nun für jeden der aktiven Fachagenten 2-3 konkrete, hochqualitative Fragen mit Begründung (Warum entscheidend) und Risiko bei Nicht-Klärung. "
+            "Erzeuge zudem 4 direkte Quick-Triggers und den vollständigen Markdown-Fragenkatalog für den Export."
+        )
+
+    sys_instruction = QUESTION_GENERATOR_SYSTEM_PROMPT
+    if is_en:
+        sys_instruction = (
+            "LANGUAGE DIRECTIVE (MANDATORY & ABSOLUTE REQUIREMENT):\n"
+            "You MUST output the entire JSON, all questions, rationales, risks, labels, prompts, and the markdown_report strictly in ENGLISH (US/UK). Do NOT output German words or phrases.\n\n"
+            + QUESTION_GENERATOR_SYSTEM_PROMPT
+        )
 
     full_user_query = "\n\n".join(prompt_builder)
     contents = [{"role": "user", "parts": [{"text": full_user_query}]}]
@@ -190,7 +207,7 @@ async def generate_perspective_questions(
     try:
         response_text = await key_pool.generate(
             contents=contents,
-            system_instruction=QUESTION_GENERATOR_SYSTEM_PROMPT,
+            system_instruction=sys_instruction,
             temperature=0.3,
             max_output_tokens=8192,
             response_mime_type="application/json"

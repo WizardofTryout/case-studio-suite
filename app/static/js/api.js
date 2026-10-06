@@ -439,6 +439,7 @@ const API = {
   },
 
   async enhancePrompt(draftPrompt, skillKey, projectId = null, sessionId = null) {
+    const lang = (window.I18n ? window.I18n.currentLang : "de");
     const res = await fetch("/api/deliberation/enhance_prompt", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -446,7 +447,8 @@ const API = {
         draft_prompt: draftPrompt,
         skill_key: skillKey,
         project_id: projectId,
-        session_id: sessionId
+        session_id: sessionId,
+        language: lang
       })
     });
     if (!res.ok) {
@@ -482,6 +484,11 @@ const API = {
 
   async streamSSE(url, payload, onEvent, onError, onComplete) {
     try {
+      // Automatically attach active language if not explicitly provided
+      if (typeof payload === "object" && payload !== null && !payload.language) {
+        payload.language = (window.I18n ? window.I18n.currentLang : "de");
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -535,11 +542,15 @@ const API = {
     return await res.json();
   },
 
-  async generateAdaptiveTriggers(projectId, caseText) {
+  async generateAdaptiveTriggers(projectId, caseText, language = null) {
+    const lang = language || (window.I18n ? window.I18n.currentLang : "de");
     const res = await fetch(`/api/projects/${projectId}/triggers/generate`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ case_text: caseText })
+      body: JSON.stringify({
+        case_text: caseText,
+        language: lang
+      })
     });
     if (!res.ok) {
       const err = await res.json();
@@ -581,6 +592,9 @@ const API = {
   },
 
   async generatePhaseQuestions(payload) {
+    if (typeof payload === "object" && payload !== null && !payload.language) {
+      payload.language = (window.I18n ? window.I18n.currentLang : "de");
+    }
     const res = await fetch("/api/copilot/generate-questions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

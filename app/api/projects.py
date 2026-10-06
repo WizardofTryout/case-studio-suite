@@ -84,6 +84,7 @@ async def delete_project_by_id(project_id: str):
 
 class GenerateTriggersRequest(BaseModel):
     case_text: Optional[str] = None
+    language: Optional[str] = "de"
 
 
 class UpdateTriggerRequest(BaseModel):
@@ -115,6 +116,7 @@ async def get_project_triggers(project_id: str):
 async def generate_adaptive_triggers_endpoint(project_id: str, payload: Optional[GenerateTriggersRequest] = None):
     """
     Live Case-Adaptation: Generates 16 case-specific quick-triggers tailored to the project/text.
+    Supports German and English.
     """
     proj = await repositories.get_project(project_id)
     if not proj:
@@ -122,7 +124,8 @@ async def generate_adaptive_triggers_endpoint(project_id: str, payload: Optional
     
     from app.services import trigger_service
     case_text = payload.case_text if payload else None
-    triggers = await trigger_service.generate_adaptive_triggers(project_id, case_text)
+    language = (payload.language or "de") if payload else "de"
+    triggers = await trigger_service.generate_adaptive_triggers(project_id, case_text, language=language)
     return {
         "project_id": project_id,
         "triggers": triggers

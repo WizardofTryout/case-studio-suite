@@ -25,19 +25,22 @@
         <select id="project-selector">
           <option value="">Lade Projekte...</option>
         </select>
-        <button id="btn-new-project" class="btn btn-secondary btn-sm" title="Neues Projekt anlegen">＋ Neu</button>
+        <button id="btn-new-project" class="btn btn-secondary btn-sm" title="Neues Projekt anlegen" data-i18n="nav_new_project">＋ Neu</button>
         <button id="btn-open-projects-manager" class="btn btn-secondary btn-sm" title="Alle Projekte verwalten & löschen" style="gap:5px; font-weight:600;">
-          <span>🗂️</span> <span>Übersicht</span>
+          <span>🗂️</span> <span data-i18n="nav_overview">Übersicht</span>
         </button>
       </div>
     </div>
 
     <div class="header-right">
+      <button id="btn-language-selector" class="btn btn-secondary btn-sm" title="Sprache wechseln / Switch Language" style="gap:5px; font-weight:600; border-color:var(--cyan); background:rgba(0, 242, 254, 0.08);">
+        <span>🌐</span> <span id="current-lang-label">DE</span>
+      </button>
       <button id="btn-header-key-manager" class="btn btn-secondary btn-sm" title="Gemini API-Keys verwalten & verschlüsseln" style="gap:5px; font-weight:600;">
-        <span>🔑</span> <span>API-Keys</span>
+        <span>🔑</span> <span data-i18n="nav_api_keys">API-Keys</span>
       </button>
       <button id="theme-toggle-btn" class="theme-toggle-btn" title="Zwischen Dunkel- und Hell-Modus umschalten">
-        <span class="theme-icon">☀️</span> <span class="theme-label">Hell</span>
+        <span class="theme-icon">☀️</span> <span class="theme-label" data-i18n="nav_theme_light">Hell</span>
       </button>
       <div id="db-status-chip" class="telemetry-chip" title="SQLite Embedded WAL-Modus Status">
         <span class="telemetry-dot"></span> SQLite: WAL
@@ -51,16 +54,16 @@
   <!-- Navigation Tabs -->
   <nav class="app-nav">
     <button class="nav-tab active" data-tab="copilot">
-      <span>🎯</span> 4-Phasen Case Copilot
+      <span>🎯</span> <span data-i18n="nav_tab_copilot">4-Phasen Case Copilot</span>
     </button>
     <button class="nav-tab" data-tab="deliberation">
-      <span>⚔️</span> Multi-Agenten Deliberation
+      <span>⚔️</span> <span data-i18n="nav_tab_deliberation">Multi-Agenten Deliberation</span>
     </button>
     <button class="nav-tab" data-tab="dms">
-      <span>📁</span> Projekt-Setup & DMS
+      <span>📁</span> <span data-i18n="nav_tab_dms">Projekt-Setup & DMS</span>
     </button>
     <button class="nav-tab" data-tab="skills">
-      <span>📦</span> Skill-Katalog & Snapshots
+      <span>📦</span> <span data-i18n="nav_tab_skills">Skill-Katalog & Snapshots</span>
     </button>
   </nav>
 
@@ -78,18 +81,18 @@
           <div class="team-dashboard-banner copilot-team-banner" style="margin-bottom:12px;">
             <div class="team-dashboard-header">
               <div style="display:flex; align-items:center; gap:10px;">
-                <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">👥 Dein aktives Agententeam</span>
-                <span class="status-indicator-badge">🟢 Orchestrator online</span>
+                <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);" data-i18n="team_banner_title">👥 Dein aktives Agententeam</span>
+                <span class="status-indicator-badge" data-i18n="team_orchestrator_online">🟢 Orchestrator online</span>
               </div>
               <div class="team-header-actions">
                 <button id="btn-toggle-autopilot-copilot" class="btn-toggle-autopilot active" type="button" title="Auto-Pilot umschalten">
                   <span class="autopilot-icon">🤖</span>
-                  <span id="autopilot-status-text-copilot">Auto-Pilot: AKTIV</span>
+                  <span id="autopilot-status-text-copilot" data-i18n="team_autopilot_active">Auto-Pilot: AKTIV</span>
                 </button>
-                <button id="btn-add-agent-slot-copilot" class="btn btn-secondary btn-sm" type="button">
+                <button id="btn-add-agent-slot-copilot" class="btn btn-secondary btn-sm" type="button" data-i18n="team_add_expert">
                   ＋ Experte hinzufügen
                 </button>
-                <button id="btn-sync-catalog-copilot" class="btn btn-secondary btn-sm" type="button" title="Aus 35+ Fachdomänen wählen">
+                <button id="btn-sync-catalog-copilot" class="btn btn-secondary btn-sm" type="button" title="Aus 35+ Fachdomänen wählen" data-i18n="team_select_catalog">
                   🏛️ Aus Katalog wählen ▾
                 </button>
               </div>
@@ -103,19 +106,19 @@
           <div class="phase-stepper">
             <button class="phase-step-btn active" data-phase="1">
               <span class="phase-num">Phase 1</span>
-              <span class="phase-name">Clarify</span>
+              <span class="phase-name" data-i18n="phase_1_name">Clarify</span>
             </button>
             <button class="phase-step-btn" data-phase="2">
               <span class="phase-num">Phase 2</span>
-              <span class="phase-name">Architect</span>
+              <span class="phase-name" data-i18n="phase_2_name">Architect</span>
             </button>
             <button class="phase-step-btn" data-phase="3">
               <span class="phase-num">Phase 3</span>
-              <span class="phase-name">Deep Dive</span>
+              <span class="phase-name" data-i18n="phase_3_name">Deep Dive</span>
             </button>
             <button class="phase-step-btn" data-phase="4">
               <span class="phase-num">Phase 4</span>
-              <span class="phase-name">Value</span>
+              <span class="phase-name" data-i18n="phase_4_name">Value</span>
             </button>
           </div>
 
@@ -127,17 +130,17 @@
           <!-- Prompt Input Box -->
           <div class="prompt-box">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
-              <label for="copilot-prompt" style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">
+              <label for="copilot-prompt" style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase;" data-i18n="prompt_label">
                 Eingabe der Problemstellung / Kunden-Anforderung:
               </label>
               <div class="statement-history-toolbar" style="display:flex; align-items:center; gap:6px;">
                 <button id="btn-statement-history" class="btn btn-secondary btn-xs" type="button" title="Chronologie und bisherige Versionen der Problemstellung aufrufen">
-                  📜 Chronologie (<span id="statement-history-count">0</span>)
+                  <span data-i18n="btn_chronology">📜 Chronologie</span> (<span id="statement-history-count">0</span>)
                 </button>
-                <button id="btn-statement-save-milestone" class="btn btn-secondary btn-xs" type="button" title="Aktuellen Text als benannte Version / Meilenstein sichern">
+                <button id="btn-statement-save-milestone" class="btn btn-secondary btn-xs" type="button" title="Aktuellen Text als benannte Version / Meilenstein sichern" data-i18n="btn_save_milestone">
                   💾 Als Version sichern
                 </button>
-                <button id="btn-statement-presets" class="btn btn-secondary btn-xs" type="button" title="Ausgangs-Sachverhalt & typische Case-Vorlagen laden">
+                <button id="btn-statement-presets" class="btn btn-secondary btn-xs" type="button" title="Ausgangs-Sachverhalt & typische Case-Vorlagen laden" data-i18n="btn_case_templates">
                   📑 Case-Vorlagen ▾
                 </button>
               </div>
@@ -147,11 +150,11 @@
             <!-- Quick-Triggers Toolbar -->
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:2px;">
               <div style="display:flex; align-items:center; gap:8px;">
-                <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Situative Quick-Triggers:</span>
-                <button id="btn-adapt-triggers" class="btn btn-secondary btn-xs" type="button">🔄 Triggers an Case anpassen</button>
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600;" data-i18n="triggers_label">Situative Quick-Triggers:</span>
+                <button id="btn-adapt-triggers" class="btn btn-secondary btn-xs" type="button" data-i18n="btn_adapt_triggers">🔄 Triggers an Case anpassen</button>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <button id="btn-generate-phase-questions" class="btn btn-secondary btn-xs btn-highlight-ai" type="button" title="Analysiert den Sachverhalt tiefgründig aus den Perspektiven aller aktiven Fachagenten">
+                <button id="btn-generate-phase-questions" class="btn btn-secondary btn-xs btn-highlight-ai" type="button" title="Analysiert den Sachverhalt tiefgründig aus den Perspektiven aller aktiven Fachagenten" data-i18n="btn_analyze_questions">
                   🔍 Fachfragen-Katalog &amp; Sachverhalt analysieren
                 </button>
               </div>
@@ -161,8 +164,8 @@
             </div>
 
             <div class="prompt-actions">
-              <span style="font-size:0.78rem; color:#64748b;">Round-Robin Gemini Pro Engine</span>
-              <button id="btn-run-copilot" class="btn btn-primary">
+              <span style="font-size:0.78rem; color:#64748b;" data-i18n="gemini_engine_tag">Round-Robin Gemini Pro Engine</span>
+              <button id="btn-run-copilot" class="btn btn-primary" data-i18n="btn_run_copilot">
                 🚀 Analysieren & Streamen
               </button>
             </div>
@@ -174,15 +177,15 @@
               <div style="display:flex; align-items:center; gap:8px;">
                 <span style="font-size:1.15rem;">📋</span>
                 <div>
-                  <div class="catalog-title" id="questions-catalog-title">Fachfragenkatalog &amp; Sachverhalts-Analyse</div>
-                  <div class="catalog-subtitle" id="questions-catalog-subtitle">Generiert aus den Perspektiven deiner aktiven Fachagenten</div>
+                  <div class="catalog-title" id="questions-catalog-title" data-i18n="questions_catalog_title">Fachfragenkatalog &amp; Sachverhalts-Analyse</div>
+                  <div class="catalog-subtitle" id="questions-catalog-subtitle" data-i18n="questions_catalog_subtitle">Generiert aus den Perspektiven deiner aktiven Fachagenten</div>
                 </div>
               </div>
               <div class="catalog-header-actions">
-                <button id="btn-export-questions-md" class="btn btn-secondary btn-xs" type="button" title="Diesen Fragenkatalog als Markdown-Datei für Termine/Workshops herunterladen">
+                <button id="btn-export-questions-md" class="btn btn-secondary btn-xs" type="button" title="Diesen Fragenkatalog als Markdown-Datei für Termine/Workshops herunterladen" data-i18n="btn_export_md">
                   📥 Als .md exportieren
                 </button>
-                <button id="btn-toggle-questions-collapse" class="btn btn-secondary btn-xs" type="button" title="Fragenkatalog minimieren/maximieren">
+                <button id="btn-toggle-questions-collapse" class="btn btn-secondary btn-xs" type="button" title="Fragenkatalog minimieren/maximieren" data-i18n="btn_minimize">
                   ⤢ Minimieren
                 </button>
               </div>
@@ -198,8 +201,8 @@
           <!-- Live Output Stream Windows (Per-Phase Separate State & History) -->
           <div id="copilot-output-phase-1" class="copilot-output-container phase-output-pane">
             <div class="empty-phase-card">
-              <div class="empty-phase-title">🎯 Phase 1: Clarify & Scoping</div>
-              <div class="empty-phase-desc">
+              <div class="empty-phase-title" data-i18n="empty_phase_1_title">🎯 Phase 1: Clarify & Scoping</div>
+              <div class="empty-phase-desc" data-i18n="empty_phase_1_desc" data-i18n-html="true">
                 💡 Grenzt die Problemstellung ein, klärt Schmerzpunkte und prüft Latenzen & Not-Aus-Bedingungen.<br>
                 Der Master-Consultant stoppt Spekulationen an Entscheidungsknotenpunkten via Decision Gates.
               </div>
@@ -208,8 +211,8 @@
 
           <div id="copilot-output-phase-2" class="copilot-output-container phase-output-pane" style="display:none;">
             <div class="empty-phase-card">
-              <div class="empty-phase-title">🏗️ Phase 2: Architect & Blueprint</div>
-              <div class="empty-phase-desc">
+              <div class="empty-phase-title" data-i18n="empty_phase_2_title">🏗️ Phase 2: Architect & Blueprint</div>
+              <div class="empty-phase-desc" data-i18n="empty_phase_2_desc" data-i18n-html="true">
                 💡 Entwirf den 4-Schichten Blueprint (OT Ingest -> Edge AI -> Streaming -> Data Lakehouse & Agenten).<br>
                 Nutze die Quick-Triggers oder übernehme die Synthese aus Phase 1!
               </div>
@@ -218,8 +221,8 @@
 
           <div id="copilot-output-phase-3" class="copilot-output-container phase-output-pane" style="display:none;">
             <div class="empty-phase-card">
-              <div class="empty-phase-title">🔬 Phase 3: Deep Dive & Trade-Offs</div>
-              <div class="empty-phase-desc">
+              <div class="empty-phase-title" data-i18n="empty_phase_3_title">🔬 Phase 3: Deep Dive & Trade-Offs</div>
+              <div class="empty-phase-desc" data-i18n="empty_phase_3_desc" data-i18n-html="true">
                 💡 Analysiere Edge vs. Cloud Trade-Offs, 48h Offline-Pufferung bei Netzausfall und IEC 62443 Sicherheitszonen.
               </div>
             </div>
@@ -227,8 +230,8 @@
 
           <div id="copilot-output-phase-4" class="copilot-output-container phase-output-pane" style="display:none;">
             <div class="empty-phase-card">
-              <div class="empty-phase-title">💰 Phase 4: Value & Roadmap</div>
-              <div class="empty-phase-desc">
+              <div class="empty-phase-title" data-i18n="empty_phase_4_title">💰 Phase 4: Value & Roadmap</div>
+              <div class="empty-phase-desc" data-i18n="empty_phase_4_desc" data-i18n-html="true">
                 💡 Berechne die quantitative OEE-Steigerung, den ROI und die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale).
               </div>
             </div>
@@ -240,10 +243,10 @@
             <div class="followup-actions">
               <span class="shortcut-hint">Shortcut: ⌘/Ctrl + Enter</span>
               <div style="display:flex; align-items:center; gap:8px;">
-                <button id="btn-generate-followup-questions" class="btn btn-secondary btn-sm" type="button" title="Analysiert den bisherigen Phase-Output und generiert gezielte Klärungs- und Verständnisfragen">
+                <button id="btn-generate-followup-questions" class="btn btn-secondary btn-sm" type="button" title="Analysiert den bisherigen Phase-Output und generiert gezielte Klärungs- und Verständnisfragen" data-i18n="btn_followup_questions">
                   💡 Klärungsbedarf &amp; Fachfragen ermitteln
                 </button>
-                <button id="btn-send-followup" class="btn btn-primary btn-sm">
+                <button id="btn-send-followup" class="btn btn-primary btn-sm" data-i18n="btn_send_followup">
                   🚀 Senden &amp; Architektur nachschärfen
                 </button>
               </div>
@@ -257,7 +260,7 @@
           <div id="live-graph-box" class="live-graph-box" style="flex: 1.5;">
             <div class="box-header">
               <div class="box-title">
-                <span>🗺️</span> Live-Architektur (Mermaid Flow)
+                <span>🗺️</span> <span data-i18n="graph_title">Live-Architektur (Mermaid Flow)</span>
               </div>
               <div class="graph-toolbar">
                 <button id="btn-zoom-in" class="graph-tool-btn" title="Vergrößern (Zoom In)">➕ In</button>
@@ -266,14 +269,14 @@
                 <button id="btn-zoom-reset" class="graph-tool-btn" title="100% Zoom">⟲ 100%</button>
                 <button id="btn-graph-fullscreen" class="graph-tool-btn" title="Vollbild umschalten">⛶ Vollbild</button>
                 <button id="btn-toggle-inspector" class="graph-tool-btn active" title="Knoten-Inspektor & KI-Ast-Funktionen ein-/ausblenden">
-                  🔍 KI-Ast & Inspektor
+                  <span data-i18n="graph_inspector_toggle">🔍 KI-Ast & Inspektor</span>
                 </button>
               </div>
             </div>
             <div class="graph-workspace-row">
               <div id="mermaid-viewport" class="mermaid-viewport">
                 <div id="mermaid-canvas-layer" class="mermaid-canvas-layer">
-                  <div style="color:#64748b; font-size:0.85rem; text-align:center; padding: 40px 20px;">
+                  <div style="color:#64748b; font-size:0.85rem; text-align:center; padding: 40px 20px;" data-i18n="graph_empty_text" data-i18n-html="true">
                     🗺️ Noch kein Architektur-Graph generiert.<br>
                     Starte den Case Copilot oder eine Multi-Agenten Debatte!
                   </div>
@@ -284,10 +287,10 @@
               <aside id="node-inspector-drawer" class="node-inspector-drawer" style="display: none;">
                 <div class="drawer-header">
                   <div class="drawer-title-group">
-                    <div class="drawer-node-name" id="drawer-node-title">Baustein-Inspektor</div>
+                    <div class="drawer-node-name" id="drawer-node-title" data-i18n="inspector_title">Baustein-Inspektor</div>
                     <div class="drawer-badges">
-                      <span class="drawer-badge category" id="drawer-node-category">Architektur-Komponente</span>
-                      <span class="drawer-badge status" id="drawer-node-status">Aktiv im Graph</span>
+                      <span class="drawer-badge category" id="drawer-node-category" data-i18n="inspector_badge_cat">Architektur-Komponente</span>
+                      <span class="drawer-badge status" id="drawer-node-status" data-i18n="inspector_badge_status">Aktiv im Graph</span>
                     </div>
                   </div>
                   <button id="drawer-close-btn" class="drawer-close-btn" title="Inspektor schließen">&times;</button>
@@ -297,7 +300,7 @@
                   <!-- Rationale & Goal Alignment -->
                   <div class="drawer-card rationale-card">
                     <div class="drawer-card-title">
-                      <span>🎯</span> ARCHITEKTONISCHE BEDEUTUNG & ZIELERGÄNZUNG
+                      <span>🎯</span> <span data-i18n="inspector_rationale_title">ARCHITEKTONISCHE BEDEUTUNG & ZIELERGÄNZUNG</span>
                     </div>
                     <div class="drawer-card-content" id="drawer-node-rationale">
                       Lade architektonische Begründung...
@@ -307,7 +310,7 @@
                   <!-- Technical Profile & Standards -->
                   <div class="drawer-card tech-card">
                     <div class="drawer-card-title">
-                      <span>⚡</span> TECHNISCHER STECKBRIEF & STANDARDS
+                      <span>⚡</span> <span data-i18n="inspector_tech_title">TECHNISCHER STECKBRIEF & STANDARDS</span>
                     </div>
                     <div class="drawer-tech-grid" id="drawer-node-tech-grid">
                       <!-- Filled dynamically -->
@@ -316,7 +319,7 @@
 
                   <!-- Quick Action Buttons -->
                   <div class="drawer-actions-row">
-                    <button id="btn-drawer-refine" class="btn btn-primary btn-sm" style="flex:1;">
+                    <button id="btn-drawer-refine" class="btn btn-primary btn-sm" style="flex:1;" data-i18n="inspector_refine_btn">
                       🤖 KI-Ast hier vertiefen / Im Graphen aufsplitten
                     </button>
                     <button id="btn-drawer-research" class="btn btn-secondary btn-sm" style="flex:1;">
@@ -328,7 +331,7 @@
                   <div class="drawer-card chat-card">
                     <div class="drawer-card-title" style="justify-content:space-between;">
                       <div style="display:flex; align-items:center; gap:6px;">
-                        <span>💬</span> FRAGE / RECHERCHEAUFTRAG AN KI
+                        <span>💬</span> <span data-i18n="inspector_chat_tab">Architektur-Chat</span>
                       </div>
                       <!-- Bot Selector -->
                       <div class="drawer-bot-selector" id="drawer-bot-selector">
@@ -348,7 +351,7 @@
                       <textarea id="drawer-chat-input" class="drawer-chat-textarea" placeholder="Frage zu diesem Baustein oder Rechercheauftrag eingeben... (⌘/Ctrl + Enter)"></textarea>
                       <div class="drawer-chat-btn-row">
                         <span class="shortcut-hint">⌘/Ctrl + Enter</span>
-                        <button id="btn-drawer-send-chat" class="btn btn-primary btn-sm">
+                        <button id="btn-drawer-send-chat" class="btn btn-primary btn-sm" data-i18n="inspector_send_btn">
                           🚀 Senden
                         </button>
                       </div>
@@ -358,7 +361,7 @@
                   <!-- DMS Evidence & Citations -->
                   <div class="drawer-card dms-card">
                     <div class="drawer-card-title">
-                      <span>📄</span> FUNDSTELLEN & WÖRTLICHE BELEGE (PROJEKT-DMS)
+                      <span>📄</span> <span data-i18n="inspector_citations_title">FUNDSTELLEN & WÖRTLICHE BELEGE (PROJEKT-DMS)</span>
                     </div>
                     <div id="drawer-dms-citations" class="drawer-citations-list">
                       <!-- Filled dynamically -->
@@ -373,17 +376,17 @@
           <div class="live-graph-box decision-gates-container" style="flex: 1; min-height: 280px; display: flex; flex-direction: column;">
             <div class="box-header">
               <div class="box-title" style="color:var(--amber);">
-                <span>🚨</span> Master-Consultant Decision Gates
+                <span>🚨</span> <span data-i18n="decision_gates_title">Master-Consultant Decision Gates</span>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
-                <span id="decision-gates-count-badge" class="gate-badge pending">Kunden-Rückfragen</span>
-                <button id="btn-clear-decision-gates" class="btn-gate-clear-all" type="button" onclick="App.clearAllDecisionGates()" title="Alle offenen Rückfragen verwerfen" style="display:none;">
+                <span id="decision-gates-count-badge" class="gate-badge pending" data-i18n="decision_gates_pending">Kunden-Rückfragen</span>
+                <button id="btn-clear-decision-gates" class="btn-gate-clear-all" type="button" onclick="App.clearAllDecisionGates()" title="Alle offenen Rückfragen verwerfen" style="display:none;" data-i18n="decision_gates_clear_all">
                   🗑️ Alle verwerfen
                 </button>
               </div>
             </div>
             <div id="decision-gates-list" class="decision-gates-panel">
-              <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
+              <div style="color:#64748b; font-size:0.8rem; padding:8px 0;" data-i18n="decision_gates_empty">
                 Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
               </div>
             </div>
@@ -400,18 +403,18 @@
         <div class="team-dashboard-banner">
           <div class="team-dashboard-header">
             <div style="display:flex; align-items:center; gap:10px;">
-              <span style="font-weight:700; font-size:1rem; color:var(--text-main);">👥 Dein aktives Agententeam</span>
-              <span class="status-indicator-badge">🟢 Orchestrator online</span>
+              <span style="font-weight:700; font-size:1rem; color:var(--text-main);" data-i18n="team_banner_title">👥 Dein aktives Agententeam</span>
+              <span class="status-indicator-badge" data-i18n="team_orchestrator_online">🟢 Orchestrator online</span>
             </div>
             <div class="team-header-actions">
               <button id="btn-toggle-autopilot" class="btn-toggle-autopilot active" type="button" title="Auto-Pilot (KI-dirigiert) umschalten">
                 <span class="autopilot-icon">🤖</span>
-                <span id="autopilot-status-text">Auto-Pilot: AKTIV</span>
+                <span id="autopilot-status-text" data-i18n="team_autopilot_active">Auto-Pilot: AKTIV</span>
               </button>
-              <button id="btn-add-agent-slot" class="btn btn-secondary btn-sm" type="button">
+              <button id="btn-add-agent-slot" class="btn btn-secondary btn-sm" type="button" data-i18n="team_add_expert">
                 ＋ Experte hinzufügen
               </button>
-              <button id="btn-clear-chat" class="btn btn-secondary btn-sm" type="button" title="Chatverlauf leeren">
+              <button id="btn-clear-chat" class="btn btn-secondary btn-sm" type="button" title="Chatverlauf leeren" data-i18n="delib_clear_chat">
                 🗑️ Chat leeren
               </button>
             </div>
@@ -425,7 +428,7 @@
 
         <!-- Chat Discussion Thread -->
         <div id="chat-thread" class="chat-thread">
-          <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
+          <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;" data-i18n="delib_empty_thread">
             💬 Noch keine Diskussionsbeiträge. Wähle oben Dein Team oder nutze unten die Fachagenten-Veredelung, um die Debatte zu starten!
           </div>
         </div>
@@ -434,7 +437,7 @@
         <div class="deliberation-refiner-section">
           <div class="refiner-header">
             <div style="display:flex; align-items:center; gap:8px;">
-              <span class="refiner-label">🏛️ FACHAGENT FÜR PROMPT-VEREDELUNG:</span>
+              <span class="refiner-label" data-i18n="delib_refiner_label">🏛️ FACHAGENT FÜR PROMPT-VEREDELUNG:</span>
               <div id="selected-refiner-badge" class="selected-refiner-chip" title="Klicken um Veredler zu ändern">
                 <span id="refiner-badge-icon">⚡</span>
                 <span id="refiner-badge-name">Industrial OT & Edge Specialist</span>
@@ -442,17 +445,17 @@
               </div>
             </div>
             <div style="display:flex; gap:8px;">
-              <button id="btn-autoscan-refiner" class="btn btn-secondary btn-sm" type="button" title="Top-Fachagent für Rohentwurf ermitteln">
+              <button id="btn-autoscan-refiner" class="btn btn-secondary btn-sm" type="button" title="Top-Fachagent für Rohentwurf ermitteln" data-i18n="delib_btn_autoscan">
                 🔍 Autoscan (Top Fachagent)
               </button>
-              <button id="btn-open-tile-catalog" class="btn btn-secondary btn-sm" type="button">
+              <button id="btn-open-tile-catalog" class="btn btn-secondary btn-sm" type="button" data-i18n="delib_btn_catalog">
                 🔍 Katalog durchsuchen ▾
               </button>
             </div>
           </div>
 
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-            <button id="btn-enhance-prompt" class="btn btn-primary btn-sm btn-enhance-prompt" type="button" style="width:100%; justify-content:center; padding:9px 14px;">
+            <button id="btn-enhance-prompt" class="btn btn-primary btn-sm btn-enhance-prompt" type="button" style="width:100%; justify-content:center; padding:9px 14px;" data-i18n="delib_refine_prompt_btn">
               ✨ Prompt mit gewähltem Fachagenten veredeln
             </button>
             <button id="btn-generate-refiner-questions" class="btn btn-secondary btn-sm" type="button" style="width:100%; justify-content:center; padding:9px 14px; font-weight:700; border:1px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.08);" title="Erzeuge tiefgehende Fachfragen und Sachverhalts-Klärungen aus Perspektive dieses ausgewählten Fachagenten">
@@ -467,13 +470,13 @@
 
           <!-- User-editable Prompt Textarea -->
           <div class="deliberation-prompt-box">
-            <label for="deliberation-input" style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;">
+            <label for="deliberation-input" style="font-size:0.78rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; display:block; margin-bottom:4px;" data-i18n="delib_proposal_label">
               PROMPT & DISKUSSIONSTHESE (VOM USER ANPASSBAR):
             </label>
             <textarea id="deliberation-input" class="prompt-textarea" rows="3" placeholder="z. B. Wir wollen 120 Fräszentren überwachen und Schwingungsdaten zur OEE-Optimierung erfassen..."></textarea>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
               <span class="shortcut-hint">⌘/Ctrl + Enter zum Absenden</span>
-              <button id="btn-run-deliberation" class="btn btn-violet" type="button">
+              <button id="btn-run-deliberation" class="btn btn-violet" type="button" data-i18n="delib_start_btn">
                 🚀 Agenten debattieren lassen
               </button>
             </div>
@@ -1404,14 +1407,59 @@
     </div>
   </div>
 
+  <!-- Modal: Language Selection -->
+  <div id="modal-language-selector" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:520px; width:92%; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:12px; box-shadow:0 12px 36px rgba(0,0,0,0.4); padding:20px;">
+      <div class="modal-header-row" style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:16px;">
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <div class="modal-title" style="display:flex; align-items:center; gap:8px; font-size:1.15rem; font-weight:700; color:var(--text-main);">
+            <span>🌐</span>
+            <span data-i18n="lang_modal_title">Sprachauswahl / Language</span>
+          </div>
+          <span style="font-size:0.8rem; color:var(--text-muted);" data-i18n="lang_modal_subtitle">
+            Wähle die Arbeits- und Ausgabesprache für Benutzeroberfläche und KI-Generierung
+          </span>
+        </div>
+        <button id="btn-close-lang-modal" class="modal-close-btn" type="button" style="background:transparent; border:none; color:var(--text-muted); font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:12px;">
+        <!-- Option Deutsch -->
+        <div id="lang-opt-de" class="lang-option-card" style="display:flex; align-items:center; gap:14px; padding:16px; border-radius:10px; border:2px solid var(--cyan); cursor:pointer; background:rgba(255,255,255,0.03); transition:all 0.2s;">
+          <span style="font-size:2.2rem;">🇩🇪</span>
+          <div style="flex:1;">
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="lang_de_title">Deutsch (Standard)</div>
+            <div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;" data-i18n="lang_de_desc">Komplette Benutzeroberfläche, Fachbegriffe und KI-Antworten auf Deutsch</div>
+          </div>
+          <span class="lang-check" id="lang-check-de" style="font-size:1.4rem; color:var(--cyan); font-weight:bold;">✓</span>
+        </div>
+
+        <!-- Option English -->
+        <div id="lang-opt-en" class="lang-option-card" style="display:flex; align-items:center; gap:14px; padding:16px; border-radius:10px; border:2px solid var(--border-subtle); cursor:pointer; background:rgba(255,255,255,0.03); transition:all 0.2s;">
+          <span style="font-size:2.2rem;">🇬🇧</span>
+          <div style="flex:1;">
+            <div style="font-weight:700; color:var(--text-main); font-size:1.05rem;" data-i18n="lang_en_title">English</div>
+            <div style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;" data-i18n="lang_en_desc">Complete user interface, prompts and AI responses in English</div>
+          </div>
+          <span class="lang-check" id="lang-check-en" style="font-size:1.4rem; color:var(--cyan); font-weight:bold; display:none;">✓</span>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:20px; display:flex; justify-content:flex-end;">
+        <button id="btn-confirm-lang-modal" class="btn btn-primary" type="button" data-i18n="btn_close">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.7.0"></script>
-  <script src="/static/js/api.js?v=3.7.0"></script>
-  <script src="/static/js/graph.js?v=3.7.0"></script>
-  <script src="/static/js/app.js?v=3.7.0"></script>
+  <script src="/static/js/toast.js?v=3.8.0"></script>
+  <script src="/static/js/i18n.js?v=3.8.0"></script>
+  <script src="/static/js/api.js?v=3.8.0"></script>
+  <script src="/static/js/graph.js?v=3.8.0"></script>
+  <script src="/static/js/app.js?v=3.8.0"></script>
 </body>
 </html>
 

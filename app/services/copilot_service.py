@@ -7,7 +7,10 @@ from app.core.prompts import (
     MASTER_CONSULTANT_SYSTEM_PROMPT,
     DOMAIN_EXPERT_SYSTEM_PROMPT,
     HALLUCINATION_CRITIC_SYSTEM_PROMPT,
-    PHASE_PROMPTS
+    PHASE_PROMPTS,
+    PHASE_PROMPTS_EN,
+    get_language_directive,
+    get_abbreviation_rule
 )
 from app.core.decision_gate import (
     record_detected_gates,
@@ -22,14 +25,17 @@ logger = logging.getLogger("case_studio.copilot_service")
 async def build_context_prompt(
     project_id: str,
     session_id: str,
-    phase: int
+    phase: int,
+    language: str = "de"
 ) -> str:
     """Compiles comprehensive context from project metadata, DMS docs, active skills, and resolved gates."""
     project = await repositories.get_project(project_id)
     if not project:
         raise ValueError(f"Project {project_id} not found.")
 
-    phase_info = PHASE_PROMPTS.get(phase, PHASE_PROMPTS[1])
+    is_en = str(language or "").lower().strip() in ["en", "english"]
+    phase_dict = PHASE_PROMPTS_EN if is_en else PHASE_PROMPTS
+    phase_info = phase_dict.get(phase, phase_dict[1])
     
     # 1. Base project context
     sections = [
@@ -66,23 +72,29 @@ async def execute_copilot_stream(
     project_id: str,
     session_id: str,
     user_prompt: str,
-    phase: int = 1
+    phase: int = 1,
+    language: str = "de"
 ) -> AsyncGenerator[str, None]:
     """
     Executes streaming inference, yield SSE chunks to caller, and automatically
     persists messages, Mermaid graph updates, and detected Decision Gates.
     """
+    is_en = str(language or "").lower().strip() in ["en", "english"]
+    user_title = "Matthias (Lead Consultant)" if not is_en else "Matthias (Lead Architect)"
+
     # 1. Record user message
     await repositories.create_deliberation_message(
         session_id=session_id,
         sender_role="user",
-        sender_name="Matthias (Lead Consultant)",
+        sender_name=user_title,
         content=user_prompt
     )
 
     # 2. Assemble system prompt
-    context_str = await build_context_prompt(project_id, session_id, phase)
-    system_prompt = f"{MASTER_CONSULTANT_SYSTEM_PROMPT}\n\n{context_str}"
+    context_str = await build_context_prompt(project_id, session_id, phase, language=language)
+    lang_directive = get_language_directive(language)
+    abbrev_rule = get_abbreviation_rule(language)
+    system_prompt = f"{MASTER_CONSULTANT_SYSTEM_PROMPT}\n\n{lang_directive}\n\n{abbrev_rule}\n\n{context_str}"
 
     # 3. Prepare conversation contents
     recent_messages = await repositories.list_deliberation_messages(session_id)
@@ -128,10 +140,11 @@ async def execute_copilot_stream(
     yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 
     # 6. Save full model response and per-phase state to SQLite
+    consultant_title = "Master-Consultant Lead" if not is_en else "Master-Consultant Lead"
     msg_record = await repositories.create_deliberation_message(
         session_id=session_id,
         sender_role="master_consultant",
-        sender_name="Master-Consultant Lead",
+        sender_name=consultant_title,
         content=full_response_text
     )
     await repositories.save_phase_state(
@@ -151,13 +164,16 @@ async def execute_node_chat_stream(
     prompt: str,
     agent_role: str = "master_consultant",
     category: Optional[str] = None,
-    phase: int = 1
+    phase: int = 1,
+    language: str = "de"
 ) -> AsyncGenerator[str, None]:
     """
     Streams a targeted answer or research investigation for a specific architecture node.
     Supports Master-Consultant, Domain Specialist, or Hallucination Critic perspectives.
     """
-    context_str = await build_context_prompt(project_id, session_id, phase)
+    context_str = await build_context_prompt(project_id, session_id, phase, language=language)
+    lang_directive = get_language_directive(language)
+    abbrev_rule = get_abbreviation_rule(language)
 
     if agent_role == "domain_expert":
         role_title = "Domain Specialist (OT/Edge/Cloud)"
@@ -169,8 +185,25 @@ async def execute_node_chat_stream(
         role_title = "Master-Consultant Lead"
         base_role_prompt = MASTER_CONSULTANT_SYSTEM_PROMPT
 
-    system_instruction = f"""{base_role_prompt}
+    is_en = str(language or "").lower().strip() in ["en", "english"]
+    if is_en:
+        node_task_header = f"""
+ARCHITECTURE NODE IN FOCUS:
+- Node Name: {node_name}
+- Node Category: {category or 'Architecture Component'}
 
+TASK FOR THIS NODE:
+The user asks a specific in-depth technical question or gives a research assignment regarding node '{node_name}'.
+Answer precisely, soundly, and practically from the perspective of {role_title}.
+
+KEY GUIDELINES:
+1. Explain in detail why this component is architecturally mandatory and how it fulfills the customer's project goals.
+2. {abbrev_rule}
+3. Provide concrete technical specifications (latencies in ms, bus protocols, standards such as IEC 62443, buffer durations, redundancy).
+4. If a research request was given, provide a solid comparison of best practices and an unambiguous recommendation.
+"""
+    else:
+        node_task_header = f"""
 FOKUS-KNOTEN IM ARCHITEKTUR-GRAPHEN:
 - Baustein-Name: {node_name}
 - Baustein-Kategorie: {category or 'Architektur-Komponente'}
@@ -181,15 +214,23 @@ Antworte präzise, fundiert und praxisnah aus der Perspektive von {role_title}.
 
 WICHTIGE REGELN:
 1. Erkläre detailliert, warum diese Komponente architektonisch zwingend sinnvoll ist und wie sie das Projektziel des Kunden ergänzt.
-2. STRIKTE ABKÜRZUNGS-REGEL: Jede technische oder fachliche Abkürzung (z.B. SPS, PLC, OPC UA, DWH, IEC, MTLS, TPM, OEE) MUSS bei jedem Auftreten zwingend in runden Klammern vollständig ausgeschrieben und kurz erklärt werden.
+2. {abbrev_rule}
 3. Gib konkrete technische Spezifikationen (Latenzen in Millisekunden, Bus-Protokolle, Standards wie IEC 62443, Pufferungszeiten, Redundanz).
 4. Wenn ein Rechercheauftrag erteilt wurde, liefere eine fundierte Gegenüberstellung von Best Practices und eine klare Handlungsempfehlung.
+"""
+
+    system_instruction = f"""{base_role_prompt}
+
+{lang_directive}
+
+{node_task_header}
 
 {context_str}
 """
 
+    user_query_lead = f"Detail question / research task for architecture node '{node_name}':\n{prompt}" if is_en else f"Gezielte Detailfrage / Rechercheauftrag zum Architektur-Knoten '{node_name}':\n{prompt}"
     contents = [
-        {"role": "user", "parts": [{"text": f"Gezielte Detailfrage / Rechercheauftrag zum Architektur-Knoten '{node_name}':\n{prompt}"}]}
+        {"role": "user", "parts": [{"text": user_query_lead}]}
     ]
 
     full_text = ""

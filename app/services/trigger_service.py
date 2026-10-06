@@ -306,6 +306,34 @@ Gib AUSSCHLIESSLICH ein valides JSON-Array zurück, das exakt 16 Objekte enthäl
 ]
 """.strip()
 
+SYSTEM_INSTRUCTION_ADAPTIVE_TRIGGERS_EN = """
+You are a world-class Chief Solution Architect & Senior Engagement Manager for technical C-level case studies and enterprise workshops.
+Analyze the given problem statement / client case and generate exactly 16 situational, highly specific Quick-Triggers for the Case Copilot:
+- Exactly 4 triggers for Phase 1 (Clarify & Scoping)
+- Exactly 4 triggers for Phase 2 (Architect & Blueprint)
+- Exactly 4 triggers for Phase 3 (Deep Dive & Trade-offs)
+- Exactly 4 triggers for Phase 4 (Value & Implementation Roadmap)
+
+STRICT QUALITY REQUIREMENTS:
+1. ZERO HARDCODING: No generic platitudes! The triggers must specifically capture domain terminology, machine types, interfaces, protocols, and pain points of the provided client case.
+2. UNIVERSAL MCP PARADIGM: In Phase 2, the 4th trigger (phase: 2, trigger_index: 3) MUST be a tailored MCP agent trigger (e.g. '🤖 MCP Baggage Routing & Dispatch Agent' or '🤖 MCP Load Flow Control Agent' or '🤖 MCP Maintenance Agent').
+3. STRUCTURED LABELS: Every label MUST start with a fitting emoji and be at most 35 characters long (e.g. '🎯 Goal: ...', '⚙️ ... Ingest', '⚡ ... Pipeline', '❄️ ... Lakehouse', '⚖️ ... Trade-off', '🛡️ ... Resilience', '📈 ... ROI', '🗓️ ... Roadmap').
+4. ACTIONABLE PROMPTS: Every prompt is a precisely formulated ENGLISH instruction (1-2 sentences) to the Master Consultant to elaborate on the respective challenge.
+5. ALL CONTENT MUST BE IN ENGLISH: Labels and prompts MUST be completely written in English.
+
+RESPONSE FORMAT:
+Return EXCLUSIVELY a valid JSON array containing exactly 16 objects (no conversational filler, no markdown wrapping except optional ```json ... ```):
+[
+  {
+    "phase": 1,
+    "trigger_index": 0,
+    "label": "🎯 Goal: ...",
+    "prompt": "Clarify the client's primary objective: ..."
+  },
+  ...
+]
+""".strip()
+
 
 def _clean_json_response(raw_text: str) -> str:
     """Extracts raw JSON content from markdown code fences or surrounding text."""
@@ -318,10 +346,11 @@ def _clean_json_response(raw_text: str) -> str:
     return text
 
 
-async def generate_adaptive_triggers(project_id: str, case_text: Optional[str] = None) -> List[Dict[str, Any]]:
+async def generate_adaptive_triggers(project_id: str, case_text: Optional[str] = None, language: str = "de") -> List[Dict[str, Any]]:
     """
     Analyzes project profile and user input/case notes, generates 16 tailored triggers
     via Gemini Flash, saves them to SQLite WAL, and returns them.
+    Supports German and English.
     """
     project = await repositories.get_project(project_id)
     if not project:
@@ -330,6 +359,8 @@ async def generate_adaptive_triggers(project_id: str, case_text: Optional[str] =
     proj_name = project.get("name", "Neues Projekt")
     proj_industry = project.get("industry", "cross_domain")
     proj_persona = project.get("persona_profile", "Lead Evaluator & Technical Director")
+
+    is_english = (language or "de").strip().lower() == "en"
 
     # Gather additional document context if available
     doc_context = ""
@@ -351,7 +382,23 @@ async def generate_adaptive_triggers(project_id: str, case_text: Optional[str] =
         # Fall back to project name and industry
         input_text = f"Projekt: {proj_name}. Branche: {proj_industry}. Persona: {proj_persona}."
 
-    user_query = f"""
+    if is_english:
+        user_query = f"""
+Case Study Profile:
+- Project Name: {proj_name}
+- Industry / Domain: {proj_industry}
+- Target Persona / Evaluator: {proj_persona}
+
+Client Requirements / Case Context:
+{input_text}
+{doc_context}
+
+Now generate all 16 highly specific Quick-Triggers (4 per phase) as a valid JSON array.
+EVERY LABEL AND PROMPT MUST BE STRICTLY WRITTEN IN ENGLISH.
+""".strip()
+        system_instruction = SYSTEM_INSTRUCTION_ADAPTIVE_TRIGGERS_EN
+    else:
+        user_query = f"""
 Fallstudien-Profil:
 - Name des Projekts: {proj_name}
 - Branche / Domäne: {proj_industry}
@@ -363,16 +410,17 @@ Konkrete Problemstellung / Eingabe des Kunden:
 
 Erstelle nun die 16 hochspezifischen Quick-Trigger (4 pro Phase) als valides JSON-Array.
 """.strip()
+        system_instruction = SYSTEM_INSTRUCTION_ADAPTIVE_TRIGGERS
 
     contents = [{"role": "user", "parts": [{"text": user_query}]}]
 
     generated_triggers: List[Dict[str, Any]] = []
 
     try:
-        logger.info(f"Generating adaptive triggers for project '{proj_name}' ({project_id}) via Gemini Flash...")
+        logger.info(f"Generating adaptive triggers for project '{proj_name}' ({project_id}) via Gemini Flash (lang={language})...")
         response_text = await key_pool.generate(
             contents=contents,
-            system_instruction=SYSTEM_INSTRUCTION_ADAPTIVE_TRIGGERS,
+            system_instruction=system_instruction,
             model=settings.fallback_model, # gemini-2.5-flash
             temperature=0.3,
             max_output_tokens=3000

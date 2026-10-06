@@ -441,11 +441,88 @@ const App = {
       });
     }
 
+    // Language Switcher Modal
+    const langBtn = document.getElementById("btn-language-selector");
+    if (langBtn) {
+      langBtn.addEventListener("click", () => this.openLanguageModal());
+    }
+    const closeLangBtn = document.getElementById("btn-close-lang-modal");
+    if (closeLangBtn) {
+      closeLangBtn.addEventListener("click", () => this.closeLanguageModal());
+    }
+    const confirmLangBtn = document.getElementById("btn-confirm-lang-modal");
+    if (confirmLangBtn) {
+      confirmLangBtn.addEventListener("click", () => this.closeLanguageModal());
+    }
+    const langCardDe = document.getElementById("lang-opt-de");
+    if (langCardDe) {
+      langCardDe.addEventListener("click", () => {
+        if (window.I18n) window.I18n.setLanguage("de");
+      });
+    }
+    const langCardEn = document.getElementById("lang-opt-en");
+    if (langCardEn) {
+      langCardEn.addEventListener("click", () => {
+        if (window.I18n) window.I18n.setLanguage("en");
+      });
+    }
+
+    // Global Language Change Listener
+    window.addEventListener("caseStudioLanguageChanged", (e) => {
+      this.onLanguageChanged(e.detail.language);
+    });
+
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape") {
         this.closeNodeInspector();
+        this.closeLanguageModal();
       }
     });
+  },
+
+  openLanguageModal() {
+    const modal = document.getElementById("modal-language-selector");
+    if (modal) {
+      modal.style.display = "flex";
+      if (window.I18n) window.I18n.applyToDOM();
+    }
+  },
+
+  closeLanguageModal() {
+    const modal = document.getElementById("modal-language-selector");
+    if (modal) modal.style.display = "none";
+  },
+
+  onLanguageChanged(lang) {
+    // 1. Re-render phase texts & placeholders
+    const currentPhase = this.state.currentPhase || 1;
+    this.switchPhase(currentPhase, false);
+
+    // 2. Refresh empty phase cards in panes without messages
+    for (let p = 1; p <= 4; p++) {
+      const pane = document.getElementById(`copilot-output-phase-${p}`);
+      if (pane && !this.state.phaseData[p]?.messages?.length && pane.querySelector(".empty-phase-card")) {
+        pane.innerHTML = this.getEmptyPhaseCardHtml(p);
+      }
+    }
+
+    // 3. Update Decision Gates status or list if empty
+    if (!this.state.decisionGates || this.state.decisionGates.length === 0) {
+      const list = document.getElementById("decision-gates-list");
+      if (list && window.I18n) {
+        list.innerHTML = `<div style="color:#64748b; font-size:0.8rem; padding:8px 0;">${window.I18n.t("decision_gates_empty")}</div>`;
+      }
+    }
+
+    // 4. Update team autopilot status label
+    const autoStatus = document.getElementById("autopilot-status-text");
+    const autoStatusCopilot = document.getElementById("autopilot-status-text-copilot");
+    if (window.I18n) {
+      const isAuto = this.deliberationState?.autoPilot;
+      const autoText = isAuto ? window.I18n.t("team_autopilot_active") : window.I18n.t("team_autopilot_inactive");
+      if (autoStatus) autoStatus.innerText = autoText;
+      if (autoStatusCopilot) autoStatusCopilot.innerText = autoText;
+    }
   },
 
   // --- Design Theme Switcher (Dark Mode / Light Mode) ---
@@ -620,6 +697,12 @@ const App = {
   },
 
   getEmptyPhaseCardHtml(phase) {
+    if (window.I18n) {
+      return `<div class="empty-phase-card">
+        <div class="empty-phase-title">${window.I18n.t(`empty_phase_${phase}_title`)}</div>
+        <div class="empty-phase-desc">${window.I18n.t(`empty_phase_${phase}_desc`)}</div>
+      </div>`;
+    }
     const cards = {
       1: `<div class="empty-phase-card">
             <div class="empty-phase-title">🎯 Phase 1: Clarify & Scoping</div>
@@ -823,13 +906,19 @@ const App = {
 
     // 3. Update Banner description
     const bannerDesc = document.getElementById("phase-banner-desc");
-    const phaseDescriptions = {
-      1: "Phase 1: Clarify & Scoping – Problem eingrenzen, Schmerzpunkte erfassen, Annahmen & Latenzen prüfen.",
-      2: "Phase 2: Architect & Blueprint – 4-Schichten Entwurf (OT / Edge / Streaming / Lakehouse) & Live-Graph.",
-      3: "Phase 3: Deep Dive & Trade-offs – Latenzgrenzen (<20ms), 48h Ausfallpuffer, IEC 62443 Security-Zonen.",
-      4: "Phase 4: Value & Roadmap – Business Value (OEE +3.4%, ROI in 8.5 Mon.), 3-Phasen-Rollout (PoC ➔ Pilot ➔ Scale)."
-    };
-    if (bannerDesc) bannerDesc.innerText = phaseDescriptions[phase] || "";
+    if (bannerDesc) {
+      if (window.I18n) {
+        bannerDesc.innerText = window.I18n.t(`phase_banner_${phase}`);
+      } else {
+        const phaseDescriptions = {
+          1: "Phase 1: Clarify & Scoping – Problem eingrenzen, Schmerzpunkte erfassen, Annahmen & Latenzen prüfen.",
+          2: "Phase 2: Architect & Blueprint – 4-Schichten Entwurf (OT / Edge / Streaming / Lakehouse) & Live-Graph.",
+          3: "Phase 3: Deep Dive & Trade-offs – Latenzgrenzen (<20ms), 48h Ausfallpuffer, IEC 62443 Security-Zonen.",
+          4: "Phase 4: Value & Roadmap – Business Value (OEE +3.4%, ROI in 8.5 Mon.), 3-Phasen-Rollout (PoC ➔ Pilot ➔ Scale)."
+        };
+        bannerDesc.innerText = phaseDescriptions[phase] || "";
+      }
+    }
 
     // 4. Update Quick-Triggers for active phase
     this.renderQuickTriggers(phase);
@@ -837,18 +926,26 @@ const App = {
     // 5. Update prompt placeholders
     const promptInput = document.getElementById("copilot-prompt");
     if (promptInput) {
-      const placeholders = {
-        1: "z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8% Ausschuss. Welche Latenzen und Not-Aus-Bedingungen gelten?",
-        2: "z. B. Modelliere den 4-Schichten Blueprint von der SIMATIC S7 über Industrial Edge und Kafka bis zu Snowflake.",
-        3: "z. B. Wie puffern wir 48h Daten bei Netzwerkausfall und wie sichern wir die Zonen nach IEC 62443 ab?",
-        4: "z. B. Berechne OEE-Steigerung, ROI und erstelle die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale)."
-      };
-      promptInput.placeholder = placeholders[phase] || "Anforderung eingeben...";
+      if (window.I18n) {
+        promptInput.placeholder = window.I18n.t(`placeholder_prompt_${phase}`);
+      } else {
+        const placeholders = {
+          1: "z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8% Ausschuss. Welche Latenzen und Not-Aus-Bedingungen gelten?",
+          2: "z. B. Modelliere den 4-Schichten Blueprint von der SIMATIC S7 über Industrial Edge und Kafka bis zu Snowflake.",
+          3: "z. B. Wie puffern wir 48h Daten bei Netzwerkausfall und wie sichern wir die Zonen nach IEC 62443 ab?",
+          4: "z. B. Berechne OEE-Steigerung, ROI und erstelle die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale)."
+        };
+        promptInput.placeholder = placeholders[phase] || "Anforderung eingeben...";
+      }
     }
 
     const followupInput = document.getElementById("copilot-followup-input");
     if (followupInput) {
-      followupInput.placeholder = `Eigene Rückfrage zu Phase ${phase} stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)`;
+      if (window.I18n) {
+        followupInput.placeholder = window.I18n.format("placeholder_followup", { phase });
+      } else {
+        followupInput.placeholder = `Eigene Rückfrage zu Phase ${phase} stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)`;
+      }
     }
 
     // 6. Restore phase-specific graph if present

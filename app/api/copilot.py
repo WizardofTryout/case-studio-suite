@@ -19,6 +19,7 @@ class CopilotStreamRequest(BaseModel):
     session_id: str
     prompt: str = Field(..., min_length=1)
     phase: Optional[int] = 1
+    language: Optional[str] = "de"
 
 
 class DeliberationRequest(BaseModel):
@@ -28,6 +29,7 @@ class DeliberationRequest(BaseModel):
     phase: Optional[int] = 2
     auto_pilot: Optional[bool] = True
     configured_agents: Optional[List[Dict[str, Any]]] = None
+    language: Optional[str] = "de"
 
 
 @router.post("/stream")
@@ -49,7 +51,8 @@ async def stream_copilot_response(payload: CopilotStreamRequest):
             project_id=payload.project_id,
             session_id=payload.session_id,
             user_prompt=payload.prompt,
-            phase=payload.phase or 1
+            phase=payload.phase or 1,
+            language=payload.language or "de"
         ),
         media_type="text/event-stream",
         headers={
@@ -81,7 +84,8 @@ async def stream_deliberation(payload: DeliberationRequest):
             topic_or_proposal=payload.topic_or_proposal,
             phase=payload.phase or 2,
             auto_pilot=True if payload.auto_pilot is None else payload.auto_pilot,
-            configured_agents=payload.configured_agents
+            configured_agents=payload.configured_agents,
+            language=payload.language or "de"
         ),
         media_type="text/event-stream",
         headers={
@@ -154,6 +158,7 @@ class GenerateQuestionsRequest(BaseModel):
     focus_agent_key: Optional[str] = None
     focus_mode: Optional[str] = None
     source_context: Optional[str] = "top_prompt"
+    language: Optional[str] = "de"
 
 
 @router.post("/generate-questions")
@@ -186,7 +191,8 @@ async def generate_questions_endpoint(payload: GenerateQuestionsRequest):
             session_id=payload.session_id,
             agents=agents,
             focus_agent_key=payload.focus_agent_key,
-            source_context=payload.source_context or "top_prompt"
+            source_context=payload.source_context or "top_prompt",
+            language=payload.language or "de"
         )
         return res
     except Exception as e:
@@ -202,6 +208,7 @@ class NodeChatRequest(BaseModel):
     agent_role: Optional[str] = "master_consultant"
     category: Optional[str] = None
     phase: Optional[int] = 1
+    language: Optional[str] = "de"
 
 
 @router.post("/node-chat")
@@ -226,7 +233,8 @@ async def stream_node_chat(payload: NodeChatRequest):
             prompt=payload.prompt,
             agent_role=payload.agent_role or "master_consultant",
             category=payload.category,
-            phase=payload.phase or 1
+            phase=payload.phase or 1,
+            language=payload.language or "de"
         ),
         media_type="text/event-stream",
         headers={

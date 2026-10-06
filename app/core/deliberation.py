@@ -7,7 +7,9 @@ from app.core.gemini_pool import key_pool
 from app.core.prompts import (
     MASTER_CONSULTANT_SYSTEM_PROMPT,
     DOMAIN_EXPERT_SYSTEM_PROMPT,
-    HALLUCINATION_CRITIC_SYSTEM_PROMPT
+    HALLUCINATION_CRITIC_SYSTEM_PROMPT,
+    get_language_directive,
+    get_abbreviation_rule
 )
 from app.core.decision_gate import (
     record_detected_gates,
@@ -26,7 +28,8 @@ async def run_multi_agent_deliberation(
     topic_or_proposal: str,
     phase: int = 2,
     auto_pilot: bool = True,
-    configured_agents: Optional[List[Dict[str, Any]]] = None
+    configured_agents: Optional[List[Dict[str, Any]]] = None,
+    language: str = "de"
 ) -> AsyncGenerator[str, None]:
     """
     Dynamische N-Agenten Deliberation Engine (Sprints 9-11):
@@ -39,7 +42,9 @@ async def run_multi_agent_deliberation(
       3. Master-Consultant Lead synthesiert den Konsens, baut den Mermaid-Architekturgraphen
          und identifiziert offene Decision Gates.
     """
-    context_str = await build_context_prompt(project_id, session_id, phase)
+    context_str = await build_context_prompt(project_id, session_id, phase, language=language)
+    lang_directive = get_language_directive(language)
+    abbrev_rule = get_abbreviation_rule(language)
 
     # 1. Yield start event
     yield f"data: {json.dumps({'type': 'deliberation_start', 'topic': topic_or_proposal, 'auto_pilot': auto_pilot})}\n\n"
@@ -133,56 +138,92 @@ async def run_multi_agent_deliberation(
             except Exception as e:
                 logger.warning(f"Could not load skill content for {skill_key}: {e}")
 
+        is_en = str(language or "").lower().strip() in ["en", "english"]
+
         # Assemble prompt according to agent role and debate transcript
         if role == "critic":
-            agent_instruction = HALLUCINATION_CRITIC_SYSTEM_PROMPT
+            agent_instruction = f"{HALLUCINATION_CRITIC_SYSTEM_PROMPT}\n\n{lang_directive}\n\n{abbrev_rule}"
             if skill_text:
                 agent_instruction += f"\n\n--- SKILL-SPEZIFIKATION DES KRITIKERS:\n{skill_text[:1200]}"
 
-            agent_prompt = (
-                f"{agent_instruction}\n\n"
-                f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
-                f"--- PRÜFUNGSAUFTRAG:\n"
-                f"Analysiere die folgende These kritisch auf Realitätsferne, unrealistische Latenzen (<20ms in Cloud), "
-                f"Bandbreiten-Explosionen, Single Points of Failure, Sicherheitslücken (IEC 62443 Zonen) und unausgesprochene Annahmen. "
-                f"Liefere konkrete, schonungslose Kritik und konstruktive Korrekturvorschläge:\n\n{topic_or_proposal}"
-            )
+            if is_en:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJECT CONTEXT:\n{context_str}\n\n"
+                    f"--- AUDIT TASK:\n"
+                    f"Critically analyze the following proposal for unrealistic assumptions, cloud latencies (<20ms), "
+                    f"bandwidth surges, single points of failure, security zone gaps (IEC 62443) and unspoken assumptions. "
+                    f"Provide uncompromising critique and constructive corrective guidance:\n\n{topic_or_proposal}"
+                )
+            else:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
+                    f"--- PRÜFUNGSAUFTRAG:\n"
+                    f"Analysiere die folgende These kritisch auf Realitätsferne, unrealistische Latenzen (<20ms in Cloud), "
+                    f"Bandbreiten-Explosionen, Single Points of Failure, Sicherheitslücken (IEC 62443 Zonen) und unausgesprochene Annahmen. "
+                    f"Liefere konkrete, schonungslose Kritik und konstruktive Korrekturvorschläge:\n\n{topic_or_proposal}"
+                )
             is_critique = 1
 
         elif role == "master_consultant" or idx == len(team) - 1:
             # Master Consultant conducts synthesis and live Mermaid graph
-            agent_instruction = MASTER_CONSULTANT_SYSTEM_PROMPT
+            agent_instruction = f"{MASTER_CONSULTANT_SYSTEM_PROMPT}\n\n{lang_directive}\n\n{abbrev_rule}"
             if skill_text:
                 agent_instruction += f"\n\n--- SKILL-SPEZIFIKATION DER LEITUNG:\n{skill_text[:1200]}"
 
-            agent_prompt = (
-                f"{agent_instruction}\n\n"
-                f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
-                f"--- DEBATTEN-VERLAUF:\n{debate_transcript}\n\n"
-                f"--- SYNTHESE-AUFTRAG:\n"
-                f"Führe die Debatte aller vorangegangenen Experten zusammen:\n"
-                f"1. Fasse den finalen, gehärteten Architekturentwurf zusammen und adressiere die geäußerte Kritik.\n"
-                f"2. Erstelle einen vollständigen, syntaktisch einwandfreien Mermaid-Graphen im Block ```mermaid ... ```.\n"
-                f"3. Falls entscheidende Kundenfakten fehlen, formuliere die Decision Gates im Block [DECISION_GATE] ... [/DECISION_GATE].\n"
-                f"4. Beende mit klaren nächsten Architektur-Schritten."
-            )
+            if is_en:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJECT CONTEXT:\n{context_str}\n\n"
+                    f"--- DEBATE TRANSCRIPT:\n{debate_transcript}\n\n"
+                    f"--- SYNTHESIS TASK:\n"
+                    f"Consolidate the debate of all previous experts:\n"
+                    f"1. Summarize the final, hardened architecture blueprint addressing previous critique.\n"
+                    f"2. Generate a valid, clean Mermaid graph inside ```mermaid ... ``` block.\n"
+                    f"3. Formulate unresolved Decision Gates in [DECISION_GATE] ... [/DECISION_GATE] format if client facts are missing.\n"
+                    f"4. Conclude with clear immediate next architecture steps."
+                )
+            else:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
+                    f"--- DEBATTEN-VERLAUF:\n{debate_transcript}\n\n"
+                    f"--- SYNTHESE-AUFTRAG:\n"
+                    f"Führe die Debatte aller vorangegangenen Experten zusammen:\n"
+                    f"1. Fasse den finalen, gehärteten Architekturentwurf zusammen und adressiere die geäußerte Kritik.\n"
+                    f"2. Erstelle einen vollständigen, syntaktisch einwandfreien Mermaid-Graphen im Block ```mermaid ... ```.\n"
+                    f"3. Falls entscheidende Kundenfakten fehlen, formuliere die Decision Gates im Block [DECISION_GATE] ... [/DECISION_GATE].\n"
+                    f"4. Beende mit klaren nächsten Architektur-Schritten."
+                )
             is_critique = 0
 
         else:
             # Dynamic Domain Specialist
-            agent_instruction = DOMAIN_EXPERT_SYSTEM_PROMPT
+            agent_instruction = f"{DOMAIN_EXPERT_SYSTEM_PROMPT}\n\n{lang_directive}\n\n{abbrev_rule}"
             if skill_text:
                 agent_instruction += f"\n\n--- SPEZIFISCHES FACHWISSEN & DIREKTIVEN ({name}):\n{skill_text[:1500]}"
 
-            agent_prompt = (
-                f"{agent_instruction}\n\n"
-                f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
-                f"--- BISHERIGER DEBATTEN-VERLAUF:\n{debate_transcript}\n\n"
-                f"--- DISKUSSIONSAUFTRAG FÜR {name.upper()}:\n"
-                f"Nimm aus Sicht deiner Fachdomäne konkret Stellung. Löse die Kritikpunkte technisch auf: "
-                f"Welche Protokolle, Puffer, Hardware-Komponenten, Caching-Strategien oder mathematischen Modelle "
-                f"müssen exakt eingesetzt werden, um die Architektur robust und umsetzbar zu machen?"
-            )
+            if is_en:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJECT CONTEXT:\n{context_str}\n\n"
+                    f"--- DEBATE TRANSCRIPT SO FAR:\n{debate_transcript}\n\n"
+                    f"--- DISCUSSION TASK FOR {name.upper()}:\n"
+                    f"Provide concrete domain perspective. Resolve points of criticism technically: "
+                    f"Which protocols, buffers, hardware components, caching strategies, or mathematical models "
+                    f"must be applied to make the architecture resilient and executable?"
+                )
+            else:
+                agent_prompt = (
+                    f"{agent_instruction}\n\n"
+                    f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
+                    f"--- BISHERIGER DEBATTEN-VERLAUF:\n{debate_transcript}\n\n"
+                    f"--- DISKUSSIONSAUFTRAG FÜR {name.upper()}:\n"
+                    f"Nimm aus Sicht deiner Fachdomäne konkret Stellung. Löse die Kritikpunkte technisch auf: "
+                    f"Welche Protokolle, Puffer, Hardware-Komponenten, Caching-Strategien oder mathematischen Modelle "
+                    f"müssen exakt eingesetzt werden, um die Architektur robust und umsetzbar zu machen?"
+                )
             is_critique = 0
 
         # Stream tokens from Gemini

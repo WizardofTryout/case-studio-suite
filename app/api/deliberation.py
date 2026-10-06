@@ -20,6 +20,7 @@ class EnhancePromptRequest(BaseModel):
     skill_key: str = Field(..., min_length=1)
     project_id: Optional[str] = None
     session_id: Optional[str] = None
+    language: Optional[str] = "de"
 
 
 class SaveTeamRequest(BaseModel):
@@ -61,7 +62,8 @@ async def enhance_prompt(payload: EnhancePromptRequest):
             draft_prompt=payload.draft_prompt,
             skill_key=payload.skill_key,
             project_id=payload.project_id,
-            session_id=payload.session_id
+            session_id=payload.session_id,
+            language=payload.language or "de"
         )
         return result
     except ValueError as e:

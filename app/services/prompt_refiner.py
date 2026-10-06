@@ -36,7 +36,8 @@ async def enhance_user_prompt(
     draft_prompt: str,
     skill_key: str,
     project_id: Optional[str] = None,
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    language: str = "de"
 ) -> Dict[str, Any]:
     """
     Enriches a user's rough draft with domain-specific engineering depth,
@@ -69,7 +70,7 @@ async def enhance_user_prompt(
     context_str = ""
     if project_id and session_id:
         try:
-            context_str = await build_context_prompt(project_id, session_id, phase=2)
+            context_str = await build_context_prompt(project_id, session_id, phase=2, language=language)
         except Exception as e:
             logger.warning(f"Context build skipped: {e}")
 
@@ -92,9 +93,16 @@ async def enhance_user_prompt(
         except Exception as e:
             logger.warning(f"Could not load chat history for prompt refiner: {e}")
 
+    is_en = str(language or "").lower().strip() in ["en", "english"]
+    lang_directive = (
+        "\nLANGUAGE DIRECTIVE (MANDATORY REQUIREMENT):\nYou MUST formulate and output the refined thesis strictly and entirely in ENGLISH (US/UK). Do NOT output German.\n"
+        if is_en else ""
+    )
+
     # 4. Assemble refinement prompt
     instruction_prompt = f"""
 {PROMPT_REFINER_SYSTEM_INSTRUCTION}
+{lang_directive}
 
 --- GEWÄHLTER FACHAGENT & EXPERTISEN-PROFIL:
 Skill: {skill_name} (Kennung: {skill_key})
@@ -111,9 +119,10 @@ VEREDLE DIESEN ENTWURF JETZT ZU EINER HOCHPRÄZISEN DISKUSSIONSTHESE (BERÜCKSIC
 """
 
     refined_text = ""
+    sys_instruction = f"{PROMPT_REFINER_SYSTEM_INSTRUCTION}\n{lang_directive}"
     async for chunk in key_pool.stream_generate(
         contents=[{"role": "user", "parts": [{"text": instruction_prompt}]}],
-        system_instruction=PROMPT_REFINER_SYSTEM_INSTRUCTION,
+        system_instruction=sys_instruction,
         temperature=0.3
     ):
         refined_text += chunk
