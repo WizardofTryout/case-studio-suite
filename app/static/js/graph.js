@@ -392,6 +392,10 @@ const GraphViewer = {
         </div>
       `;
       this.currentMermaidCode = "";
+      this.scale = 1.0;
+      this.panX = 0;
+      this.panY = 0;
+      this.applyTransform();
       return;
     }
 
@@ -405,6 +409,10 @@ const GraphViewer = {
           <div style="font-size:0.75rem; margin-top:4px;">Starte eine Analyse im Copilot, um den Live-Architekturgraphen zu generieren.</div>
         </div>
       `;
+      this.scale = 1.0;
+      this.panX = 0;
+      this.panY = 0;
+      this.applyTransform();
       return;
     }
 

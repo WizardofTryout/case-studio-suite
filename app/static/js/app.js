@@ -598,6 +598,111 @@ const App = {
     });
   },
 
+  getDefaultTeamSlots() {
+    return [
+      {
+        role: "master_consultant",
+        name: "Master Consultant (Lead Strategist)",
+        skill_key: "base_master_consultant",
+        is_fixed: true,
+        category: "master_consultant",
+        description: "Führt die Synthese, trifft Architekturentscheidungen und baut den Mermaid-Graph."
+      },
+      {
+        role: "critic",
+        name: "Pragmatic Critic & Risk Assessor",
+        skill_key: "base_critic",
+        is_fixed: true,
+        category: "critic",
+        description: "Hinterfragt Latenzen, Kosten, Vendor-Lock-in und Ausfallsicherheit gnadenlos."
+      }
+    ];
+  },
+
+  getEmptyPhaseCardHtml(phase) {
+    const cards = {
+      1: `<div class="empty-phase-card">
+            <div class="empty-phase-title">🎯 Phase 1: Clarify & Scoping</div>
+            <div class="empty-phase-desc">
+              💡 Grenzt die Problemstellung ein, klärt Schmerzpunkte und prüft Latenzen & Not-Aus-Bedingungen.<br>
+              Der Master-Consultant stoppt Spekulationen an Entscheidungsknotenpunkten via Decision Gates.
+            </div>
+          </div>`,
+      2: `<div class="empty-phase-card">
+            <div class="empty-phase-title">🏗️ Phase 2: Architect & Blueprint</div>
+            <div class="empty-phase-desc">
+              💡 Entwirf den 4-Schichten Blueprint (OT Ingest -> Edge AI -> Streaming -> Data Lakehouse & Agenten).<br>
+              Nutze die Quick-Triggers oder übernehme die Synthese aus Phase 1!
+            </div>
+          </div>`,
+      3: `<div class="empty-phase-card">
+            <div class="empty-phase-title">🔬 Phase 3: Deep Dive & Trade-Offs</div>
+            <div class="empty-phase-desc">
+              💡 Analysiere Edge vs. Cloud Trade-Offs, 48h Offline-Pufferung bei Netzausfall und IEC 62443 Sicherheitszonen.
+            </div>
+          </div>`,
+      4: `<div class="empty-phase-card">
+            <div class="empty-phase-title">💰 Phase 4: Value & Roadmap</div>
+            <div class="empty-phase-desc">
+              💡 Berechne die quantitative OEE-Steigerung, den ROI und die 3-Phasen Implementierungs-Roadmap (PoC -> Pilot -> Scale).
+            </div>
+          </div>`
+    };
+    return cards[phase] || "";
+  },
+
+  resetProjectUIState() {
+    // 1. Textareas säubern
+    const promptArea = document.getElementById("copilot-prompt");
+    if (promptArea) promptArea.value = "";
+    const followupInput = document.getElementById("copilot-followup-input");
+    if (followupInput) followupInput.value = "";
+
+    // 2. Phasen-Daten im Speicher und alle 4 Phasen-DOM-Panes auf leeren Ursprungszustand zurücksetzen
+    for (let i = 1; i <= 4; i++) {
+      this.state.phaseData[i] = { text: "", graph: "", hasRun: false };
+      const pane = document.getElementById(`copilot-output-phase-${i}`);
+      if (pane) {
+        pane.innerHTML = this.getEmptyPhaseCardHtml(i);
+      }
+    }
+
+    // 3. Generierten Fachfragenkatalog verstecken und leeren
+    const questionsCard = document.getElementById("phase-questions-catalog-card");
+    if (questionsCard) questionsCard.style.display = "none";
+    const questionsSummary = document.getElementById("questions-catalog-summary");
+    if (questionsSummary) questionsSummary.innerHTML = "";
+    const questionsGrid = document.getElementById("questions-perspectives-grid");
+    if (questionsGrid) questionsGrid.innerHTML = "";
+
+    // 4. Node Inspector Drawer sofort schließen und Selektion auflösen
+    this.closeNodeInspector();
+
+    // 5. Decision Gates leeren
+    this.state.decisionGates = [];
+    this.renderDecisionGatesList([]);
+
+    // 6. Deliberation-Chat-Thread leeren
+    const thread = document.getElementById("chat-thread");
+    if (thread) {
+      thread.innerHTML = `
+        <div style="color:#64748b; font-size:0.85rem; text-align:center; margin:auto;">
+          💬 Noch keine Diskussionsbeiträge. Wähle oben Dein Team oder nutze unten die Fachagenten-Veredelung, um die Debatte zu starten!
+        </div>
+      `;
+    }
+
+    // 7. Deliberation-Team auf Standard-Basisteam zurücksetzen
+    this.deliberationState.teamSlots = this.getDefaultTeamSlots();
+    this.deliberationState.autoPilot = true;
+    this.renderDeliberationTeamGrid();
+
+    // 8. Live-Architektur-Graph auf leeren Canvas zurücksetzen
+    if (window.GraphViewer && typeof window.GraphViewer.renderGraph === "function") {
+      window.GraphViewer.renderGraph("");
+    }
+  },
+
   async selectProject(projectId) {
     this.state.currentProjectId = projectId;
     const project = this.state.projects.find(p => p.id === projectId);
@@ -611,10 +716,8 @@ const App = {
       if (profEl) profEl.innerText = `Gesprächspartner: ${project.persona_profile || 'C-Level Evaluator'}`;
     }
 
-    // Reset phaseData in memory
-    for (let i = 1; i <= 4; i++) {
-      this.state.phaseData[i] = { text: "", graph: "", hasRun: false };
-    }
+    // 0. Komplette UI-Isolation: Vor dem Laden neuer Daten alle alten Projektstände sauber purgen
+    this.resetProjectUIState();
 
     // Load Sessions
     const sessions = await API.getSessions(projectId);
@@ -659,7 +762,7 @@ const App = {
         GraphViewer.renderGraph("");
       }
 
-      // Auto-open inspector drawer for primary node so KI-Ast functions are immediately visible
+      // Auto-open inspector drawer for primary node so KI-Ast functions are immediately visible (nur falls Graph vorhanden)
       setTimeout(() => {
         if (graphToRender) {
           const layer = document.getElementById("mermaid-canvas-layer");
@@ -671,7 +774,9 @@ const App = {
         }
       }, 350);
     } else {
-      await this.switchPhase(1);
+      this.state.currentSession = null;
+      this.state.currentSessionId = null;
+      await this.switchPhase(1, false);
       GraphViewer.renderGraph("");
     }
 
@@ -755,6 +860,8 @@ const App = {
         const sessGraph = this.state.currentSession?.architecture_graph_mermaid || "";
         if (sessGraph) {
           await GraphViewer.renderGraph(sessGraph);
+        } else {
+          GraphViewer.renderGraph("");
         }
       }
     }
@@ -870,13 +977,13 @@ const App = {
       const promptArea = document.getElementById("copilot-prompt");
       if (promptArea) {
         const localDraft = localStorage.getItem(`case_studio_prompt_${projectId}`);
-        // If textarea is currently empty, try local draft first, then latest saved statement from database
-        if (!promptArea.value.trim()) {
-          if (localDraft && localDraft.trim()) {
-            promptArea.value = localDraft;
-          } else if (this.state.statementHistory.length > 0) {
-            promptArea.value = this.state.statementHistory[0].statement_text;
-          }
+        // Strikt isoliert: Nur den Entwurf DIESES Projekts, den neuesten DB-Stand oder ein leeres Feld anzeigen
+        if (localDraft && localDraft.trim()) {
+          promptArea.value = localDraft;
+        } else if (this.state.statementHistory.length > 0) {
+          promptArea.value = this.state.statementHistory[0].statement_text;
+        } else {
+          promptArea.value = "";
         }
       }
     } catch (err) {
@@ -1899,21 +2006,26 @@ const App = {
 
   async loadDeliberationTeam() {
     if (!this.state.currentSessionId) {
+      this.deliberationState.teamSlots = this.getDefaultTeamSlots();
+      this.deliberationState.autoPilot = true;
       this.renderDeliberationTeamGrid();
       return;
     }
     try {
       const team = await API.getDeliberationTeam(this.state.currentSessionId);
-      if (team) {
+      if (team && Array.isArray(team.configured_agents) && team.configured_agents.length > 0) {
+        this.deliberationState.teamSlots = team.configured_agents;
         if (team.auto_pilot !== undefined) {
           this.deliberationState.autoPilot = !!team.auto_pilot;
         }
-        if (team.configured_agents && team.configured_agents.length > 0) {
-          this.deliberationState.teamSlots = team.configured_agents;
-        }
+      } else {
+        this.deliberationState.teamSlots = this.getDefaultTeamSlots();
+        this.deliberationState.autoPilot = (team && team.auto_pilot !== undefined) ? !!team.auto_pilot : true;
       }
     } catch (e) {
       console.warn("Could not load deliberation team:", e);
+      this.deliberationState.teamSlots = this.getDefaultTeamSlots();
+      this.deliberationState.autoPilot = true;
     }
     this.renderDeliberationTeamGrid();
   },
