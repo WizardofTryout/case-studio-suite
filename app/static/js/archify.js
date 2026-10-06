@@ -88,11 +88,25 @@ const ArchifyUI = {
     document.querySelectorAll(".archify-chip").forEach(chip => {
       chip.addEventListener("click", (e) => {
         const text = e.currentTarget.getAttribute("data-prompt") || e.currentTarget.innerText;
+        const targetType = e.currentTarget.getAttribute("data-type");
         const input = document.getElementById("archify-modal-question");
+        const selectType = document.getElementById("archify-modal-type");
+
         if (input) {
           input.value = text.trim();
           input.focus();
         }
+        if (targetType && selectType) {
+          selectType.value = targetType;
+        }
+
+        // Visual active state on chips
+        document.querySelectorAll(".archify-chip").forEach(c => {
+          c.style.borderColor = "";
+          c.style.background = "";
+        });
+        e.currentTarget.style.borderColor = "var(--cyan)";
+        e.currentTarget.style.background = "rgba(6, 182, 212, 0.18)";
       });
     });
 

@@ -546,9 +546,9 @@ def apply_archify_diagnostic_fixes(diagram_type: str, spec: Dict[str, Any], diag
         if not msg:
             continue
 
-        # 1. Label overlap with node: "Label \"...\" overlaps node \"...\""
-        if "overlaps node" in msg:
-            lbl_match = re.search(r'Label\s+"([^"]+)"\s+overlaps\s+node\s+"([^"]+)"', msg)
+        # 1. Label overlap with component, node, or step
+        if "overlaps" in msg and "Label" in msg:
+            lbl_match = re.search(r'Label\s+"([^"]+)"\s+overlaps\s+(?:component|node|step)\s+"([^"]+)"', msg)
             lbl_name = lbl_match.group(1) if lbl_match else None
 
             # Suche nach Suggested fix: set labelAt [x, y]
