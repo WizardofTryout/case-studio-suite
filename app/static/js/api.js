@@ -68,6 +68,17 @@ const API = {
     return await res.json();
   },
 
+  async testAllApiKeys(tenantId = "default") {
+    const res = await fetch(`/api/keys/test_all?tenant_id=${encodeURIComponent(tenantId)}`, {
+      method: "POST"
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fehler beim erneuten Prüfen der Keys");
+    }
+    return await res.json();
+  },
+
   async getProjects() {
     const res = await fetch("/api/projects");
     return await res.json();

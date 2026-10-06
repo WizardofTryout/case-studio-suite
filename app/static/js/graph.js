@@ -33,6 +33,7 @@ const GraphViewer = {
     if (window.mermaid) {
       mermaid.initialize({
         startOnLoad: false,
+        suppressErrorRendering: true,
         theme: isLight ? "neutral" : "dark",
         themeVariables: isLight ? {
           darkMode: false,
@@ -56,6 +57,36 @@ const GraphViewer = {
         securityLevel: "loose"
       });
     }
+  },
+
+  cleanMermaidSyntax(rawCode) {
+    if (!rawCode) return "";
+    let code = rawCode.trim();
+    // Strip markdown code fences if present
+    code = code.replace(/^```(?:mermaid)?\s*\n?/i, "").replace(/\n?```\s*$/i, "").trim();
+
+    // Strip initialization directives
+    code = code.replace(/%%\{init:[\s\S]*?\}%%\n?/g, "").trim();
+
+    // 1. Sanitize pipe edge labels: e.g. -->|NEIN (Netzausfall)| to -->|"NEIN (Netzausfall)"|
+    code = code.replace(/(-->|--|-\.->|==>)\s*\|([^|\r\n]+)\|/g, (match, arrow, label) => {
+      const trimmed = label.trim();
+      if (/[()[\]{}:;,]/.test(trimmed) && !(trimmed.startsWith('"') && trimmed.endsWith('"'))) {
+        return `${arrow}|"${trimmed.replace(/"/g, "'")}"|`;
+      }
+      return `${arrow}|${trimmed}|`;
+    });
+
+    // 2. Sanitize inline edge labels: e.g. -- NEIN (Netzausfall) --> to -- "NEIN (Netzausfall)" -->
+    code = code.replace(/--\s+([^"\r\n-]+?[()[\]{}:;,][^"\r\n-]*?)\s+-->/g, (match, label) => {
+      const trimmed = label.trim();
+      if (!(trimmed.startsWith('"') && trimmed.endsWith('"'))) {
+        return `-- "${trimmed.replace(/"/g, "'")}" -->`;
+      }
+      return match;
+    });
+
+    return code;
   },
 
   setTheme(theme) {
@@ -328,7 +359,18 @@ const GraphViewer = {
       return;
     }
 
-    this.currentMermaidCode = code.trim();
+    this.currentMermaidCode = this.cleanMermaidSyntax(code);
+
+    if (!this.currentMermaidCode) {
+      layer.innerHTML = `
+        <div style="padding:24px; text-align:center; color:var(--text-muted);">
+          <div style="font-size:1.8rem; margin-bottom:8px;">📐</div>
+          <div style="font-size:0.86rem; font-weight:600; color:var(--text-main);">Kein Architektur-Blueprint vorhanden</div>
+          <div style="font-size:0.75rem; margin-top:4px;">Starte eine Analyse im Copilot, um den Live-Architekturgraphen zu generieren.</div>
+        </div>
+      `;
+      return;
+    }
 
     if (!window.mermaid) {
       layer.innerHTML = `<pre style="color:#00d4ff; font-family:monospace; font-size:0.8rem; overflow:auto; padding:20px;">${this.currentMermaidCode}</pre>`;
@@ -340,15 +382,12 @@ const GraphViewer = {
       this.currentTheme = isLight ? "light" : "dark";
       this.applyMermaidTheme(this.currentTheme);
 
-      // Clean out existing theme directives
-      let cleanedCode = this.currentMermaidCode.replace(/%%\{init:[\s\S]*?\}%%\n?/g, "").trim();
-
       // Explicitly inject theme directive
       const themeDirective = isLight
         ? `%%{init: {'theme': 'neutral', 'themeVariables': {'darkMode': false, 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#0284c7', 'lineColor': '#475569', 'primaryTextColor': '#0f172a', 'primaryColor': '#ffffff', 'primaryBorderColor': '#0284c7'}}}%%\n`
         : `%%{init: {'theme': 'dark', 'themeVariables': {'darkMode': true, 'background': '#090c12', 'mainBkg': '#151a26', 'nodeBorder': '#38bdf8', 'lineColor': '#64748b', 'primaryTextColor': '#f8fafc', 'primaryColor': '#151a26', 'primaryBorderColor': '#00d4ff'}}}%%\n`;
 
-      const codeWithTheme = themeDirective + cleanedCode;
+      const codeWithTheme = themeDirective + this.currentMermaidCode;
 
       const id = "mermaid-svg-" + Date.now();
       const { svg } = await mermaid.render(id, codeWithTheme);
@@ -398,12 +437,18 @@ const GraphViewer = {
       this.fit();
     } catch (err) {
       console.warn("Mermaid render error:", err);
-      layer.innerHTML = `
-        <div style="padding:16px;">
-          <div style="color:#f59e0b; font-size:0.78rem; margin-bottom:6px;">⚠️ Rohdaten (Mermaid-Parsing-Warnung):</div>
-          <pre style="color:#cbd5e1; font-family:monospace; font-size:0.8rem; overflow:auto; background:rgba(0,0,0,0.3); padding:8px; border-radius:6px;">${this.currentMermaidCode}</pre>
-        </div>
-      `;
+      // Remove any intrusive error elements injected by Mermaid into body
+      document.querySelectorAll('[id^="dmermaid-svg-"], [id^="dmermaid-"]').forEach(el => el.remove());
+
+      if (!layer.querySelector("svg")) {
+        layer.innerHTML = `
+          <div style="padding:24px; text-align:center; color:var(--text-muted);">
+            <div style="font-size:1.8rem; margin-bottom:8px;">📐</div>
+            <div style="font-size:0.86rem; font-weight:600; color:var(--text-main);">Architektur-Blueprint wird synchronisiert...</div>
+            <div style="font-size:0.75rem; margin-top:4px;">Knoten und Relationen werden nach Abschluss der Synthese gerendert.</div>
+          </div>
+        `;
+      }
     }
   },
 

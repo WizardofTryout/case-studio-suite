@@ -108,9 +108,38 @@ async def record_detected_gates(session_id: str, text: str) -> List[Dict[str, An
     return saved_gates
 
 
+def sanitize_mermaid_syntax(code: str) -> str:
+    """Sanitizes generated Mermaid syntax to avoid syntax errors with special chars in edge labels."""
+    if not code:
+        return ""
+    code = re.sub(r"%%\{init:[\s\S]*?\}%%\n?", "", code).strip()
+
+    def quote_pipe_label(m):
+        arrow = m.group(1)
+        label = m.group(2).strip()
+        if re.search(r"[()\[\]{}:;,]", label) and not (label.startswith('"') and label.endswith('"')):
+            clean_label = label.replace('"', "'")
+            return f'{arrow}|"{clean_label}"|'
+        return f'{arrow}|{label}|'
+
+    code = re.sub(r"(-->|--|-\.->|==>)\s*\|([^|\r\n]+)\|", quote_pipe_label, code)
+
+    def quote_inline_label(m):
+        label = m.group(1).strip()
+        if re.search(r"[()\[\]{}:;,]", label) and not (label.startswith('"') and label.endswith('"')):
+            clean_label = label.replace('"', "'")
+            return f'-- "{clean_label}" -->'
+        return f'-- {label} -->'
+
+    code = re.sub(r"--\s+([^\"\r\n-]+?[()\[\]{}:;,][^\"\r\n-]*?)\s+-->", quote_inline_label, code)
+    return code
+
+
 def extract_mermaid_from_text(text: str) -> Optional[str]:
-    """Extracts Mermaid graph definition from code blocks."""
+    """Extracts Mermaid graph definition from code blocks and sanitizes syntax."""
     match = re.search(r"```mermaid\s*\n([\s\S]*?)\n```", text, re.IGNORECASE)
     if match:
-        return match.group(1).strip()
+        raw_code = match.group(1).strip()
+        return sanitize_mermaid_syntax(raw_code)
     return None
+

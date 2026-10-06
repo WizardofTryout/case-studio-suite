@@ -296,6 +296,11 @@ const App = {
       addKeyRowBtn.addEventListener("click", () => this.addKeyInputRow(""));
     }
 
+    const recheckAllKeysBtn = document.getElementById("btn-recheck-all-keys");
+    if (recheckAllKeysBtn) {
+      recheckAllKeysBtn.addEventListener("click", () => this.recheckAllKeys());
+    }
+
     const saveKeyManagerBtn = document.getElementById("btn-save-key-manager");
     if (saveKeyManagerBtn) {
       saveKeyManagerBtn.addEventListener("click", () => this.saveKeyManager());
@@ -3130,6 +3135,41 @@ const App = {
       await this.refreshTelemetry();
     } catch (err) {
       window.showToast(`Löschen fehlgeschlagen: ${err.message}`, "error");
+    }
+  },
+
+  async recheckAllKeys() {
+    const btn = document.getElementById("btn-recheck-all-keys");
+    const originalText = btn ? btn.innerHTML : "🔄 Alle Schlüssel live prüfen";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `⏳ Prüfe Keys...`;
+    }
+
+    try {
+      window.showToast("🔍 Validiere alle hinterlegten Schlüssel live mit Google Gemini...", "info");
+      const res = await API.testAllApiKeys();
+      await this.loadAndRenderSavedKeys();
+      await this.refreshTelemetry();
+
+      const healthy = res.healthy_count || 0;
+      const total = res.total_tested || 0;
+      if (healthy === total && total > 0) {
+        window.showToast(`✅ Alle ${total} hinterlegten API-Schlüssel sind voll funktionsfähig!`, "success");
+      } else if (healthy > 0) {
+        window.showToast(`⚠️ ${healthy} von ${total} Schlüsseln einsatzbereit (einige ungültig oder überlastet).`, "warning");
+      } else if (total === 0) {
+        window.showToast("ℹ️ Keine gespeicherten Schlüssel zum Prüfen vorhanden.", "info");
+      } else {
+        window.showToast(`❌ Keiner der ${total} Schlüssel konnte sich autorisieren. Bitte neue Gemini API-Keys hinterlegen.`, "error");
+      }
+    } catch (err) {
+      window.showToast(`Fehler beim Prüfen: ${err.message}`, "error");
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
     }
   },
 

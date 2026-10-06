@@ -675,9 +675,14 @@
 
         <!-- Section 1: Gespeicherte Keys -->
         <div class="km-section">
-          <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="km-section-title" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">
             <span>📋 Gespeicherte API-Schlüssel (<span id="km-saved-count">0</span>)</span>
-            <span style="font-size:0.72rem; color:var(--text-dim);">Verschlüsselt (AES-128 / Fernet)</span>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <button id="btn-recheck-all-keys" type="button" class="btn btn-secondary btn-xs" style="display:flex; align-items:center; gap:4px; font-weight:600; cursor:pointer;" title="Alle hinterlegten API-Schlüssel erneut live gegen Google Gemini prüfen">
+                🔄 Alle Schlüssel live prüfen
+              </button>
+              <span style="font-size:0.72rem; color:var(--text-dim);">Verschlüsselt (AES-128 / Fernet)</span>
+            </div>
           </div>
           <div id="km-saved-keys-list" class="km-saved-list">
             <!-- Dynamically rendered rows -->

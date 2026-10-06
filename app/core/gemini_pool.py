@@ -216,12 +216,14 @@ class GeminiKeyPool:
             return
 
         models_to_try = [chosen_model]
-        if fallback_model and fallback_model != chosen_model:
-            models_to_try.append(fallback_model)
+        for cand in ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"]:
+            if cand not in models_to_try:
+                models_to_try.append(cand)
 
         total_keys = len(self.keys)
         max_attempts = max(3, total_keys * len(models_to_try))
         attempt = 0
+        had_503 = False
 
         for current_model in models_to_try:
             while attempt < max_attempts:
@@ -254,9 +256,15 @@ class GeminiKeyPool:
                             if response.status_code == 429:
                                 self.mark_cooldown(key_info.key, 60.0)
                                 logger.info(f"Failover triggered (<50ms). Switching key from {key_info.masked_key} to next key...")
-                                await asyncio.sleep(0.02)  # Tiny yield to switch
+                                await asyncio.sleep(0.02)
                                 continue
                             
+                            if response.status_code == 503:
+                                had_503 = True
+                                error_text = await response.aread()
+                                logger.warning(f"Google 503 (High Demand) on model {current_model}: {error_text.decode('utf-8', 'ignore')[:200]}. Switching to fallback model...")
+                                break  # Switch to next model in models_to_try
+
                             if response.status_code in (400, 401, 403):
                                 error_text = await response.aread()
                                 logger.error(f"Client error HTTP {response.status_code} on key {key_info.masked_key}: {error_text.decode('utf-8', 'ignore')}")
@@ -307,7 +315,17 @@ class GeminiKeyPool:
         # All keys failed or are in cooldown: inform user clearly without fake simulation
         logger.error("All Gemini API keys exhausted or rate-limited.")
         cooldown_keys = [k for k in self.keys if k.status == KeyStatus.COOLDOWN]
-        if cooldown_keys:
+        if had_503:
+            yield (
+                "⚠️ **Google Gemini Modell temporär überlastet (HTTP 503 - High Demand)**\n\n"
+                "Google meldet derzeit für das Modell eine Auslastungsspitze (*High Demand*). "
+                "Deine API-Schlüssel sind gespeichert und vollkommen intakt.\n\n"
+                "👉 **Empfohlene Schritte:**\n"
+                "1. Klicke oben rechts auf **🔑 API-Keys**.\n"
+                "2. Wähle im Dropdown **gemini-3.5-flash-lite** (extrem robust gegen Burst-Auslastung).\n"
+                "3. Starte deine Anfrage erneut."
+            )
+        elif cooldown_keys:
             earliest = min(k.cooldown_until for k in cooldown_keys)
             wait_seconds = max(5, int(earliest - time.time()))
             yield (
@@ -320,11 +338,11 @@ class GeminiKeyPool:
             )
         else:
             yield (
-                "❌ **Gemini API-Schlüssel nicht verfügbar**\n\n"
+                "❌ **Gemini API-Schlüssel nicht erreichbar**\n\n"
                 "Die hinterlegten API-Schlüssel meldeten Fehler bei der Übertragung (z. B. ungültige Authentifizierung oder Netzwerkfehler).\n\n"
                 "👉 **Empfohlene Schritte:**\n"
                 "1. Klicke oben rechts auf **🔑 API-Keys**.\n"
-                "2. Überprüfe die Gültigkeit deiner hinterlegten Schlüssel mit dem Button **Alle prüfen**.\n"
+                "2. Überprüfe die Gültigkeit deiner hinterlegten Schlüssel mit dem Button **🔄 Alle Schlüssel live prüfen**.\n"
                 "3. Hinterlege bei Bedarf einen neuen, funktionierenden Gemini API-Key."
             )
 

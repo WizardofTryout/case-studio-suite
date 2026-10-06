@@ -92,6 +92,55 @@ async def validate_key_endpoint(payload: KeyValidateRequest):
     return await test_gemini_key(payload.key)
 
 
+@router.post("/keys/test_all")
+async def test_all_keys_endpoint(tenant_id: str = Query("default")):
+    """
+    Re-tests all stored keys in the database against Google Gemini API,
+    updates their status in DB and key pool, and returns the refreshed result.
+    """
+    rows = await repositories.list_api_keys(tenant_id=tenant_id)
+    results = []
+    healthy_count = 0
+
+    for row in rows:
+        key_id = row["id"]
+        encrypted = row["key_encrypted"]
+        try:
+            plain_key = decrypt_key(encrypted)
+            test_res = await test_gemini_key(plain_key)
+            status_str = "ok" if test_res["valid"] else test_res["status"]
+
+            await repositories.update_api_key_status(key_id, status_str)
+            if test_res["valid"]:
+                key_pool.add_or_update_key(plain_key, KeyStatus.HEALTHY)
+                healthy_count += 1
+            else:
+                key_pool.mark_error(plain_key)
+
+            results.append({
+                "id": key_id,
+                "masked_key": row["masked_key"],
+                "status": status_str,
+                "message": test_res["message"]
+            })
+        except Exception as e:
+            logger.error(f"Error retesting key {key_id}: {e}")
+            results.append({
+                "id": key_id,
+                "masked_key": row["masked_key"],
+                "status": "error",
+                "message": str(e)
+            })
+
+    return {
+        "success": True,
+        "total_tested": len(rows),
+        "healthy_count": healthy_count,
+        "results": results,
+        "pool_status": key_pool.get_pool_status()
+    }
+
+
 @router.get("/keys")
 async def list_keys_endpoint(tenant_id: str = Query("default")):
     """
