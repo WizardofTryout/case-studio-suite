@@ -1556,9 +1556,20 @@
           </div>
         </div>
 
-        <!-- Status Indicator -->
-        <div id="archify-modal-status" style="display:none; font-size:0.82rem; color:var(--cyan); text-align:center; padding:6px; background:rgba(0,255,255,0.05); border-radius:6px;" data-i18n="archify_loading">
-          Archify berechnet Traces & Komponenten...
+        <!-- Status Indicator mit rotierenden Farbverläufen & Dual-Color Spinner -->
+        <div id="archify-modal-status" class="catalog-loading-card" style="display:none; margin-top:8px; padding:14px; border:1px solid rgba(139, 92, 246, 0.4); background:rgba(139, 92, 246, 0.08); border-radius:10px;">
+          <div class="catalog-loading-top" style="display:flex; align-items:center; gap:14px;">
+            <div class="catalog-loading-spinner-ring"></div>
+            <div class="catalog-loading-title-group" style="display:flex; flex-direction:column; gap:3px;">
+              <div class="catalog-loading-title-text" style="font-weight:700; font-size:0.95rem;">
+                Archify berechnet Traces &amp; Komponenten...
+              </div>
+              <div class="catalog-loading-desc-text" style="font-size:0.78rem; color:var(--text-muted);">
+                Synthese von Topologie, Validierungsprüfung &amp; interaktivem Showcase
+              </div>
+            </div>
+          </div>
+          <div class="catalog-loading-progress-bar" style="margin-top:10px;"></div>
         </div>
       </div>
 
@@ -1575,12 +1586,12 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.9.1"></script>
-  <script src="/static/js/i18n.js?v=3.9.1"></script>
-  <script src="/static/js/api.js?v=3.9.1"></script>
-  <script src="/static/js/archify.js?v=3.9.1"></script>
-  <script src="/static/js/graph.js?v=3.9.1"></script>
-  <script src="/static/js/app.js?v=3.9.1"></script>
+  <script src="/static/js/toast.js?v=3.9.2"></script>
+  <script src="/static/js/i18n.js?v=3.9.2"></script>
+  <script src="/static/js/api.js?v=3.9.2"></script>
+  <script src="/static/js/archify.js?v=3.9.2"></script>
+  <script src="/static/js/graph.js?v=3.9.2"></script>
+  <script src="/static/js/app.js?v=3.9.2"></script>
 </body>
 
 </html>

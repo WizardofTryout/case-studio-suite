@@ -13,6 +13,7 @@ from app.core.gemini_pool import key_pool
 from app.db import repositories
 from app.services.archify_service import archify_client
 from app.services.archify_recipes import get_recipe, ARCHIFY_RECIPES
+from app.services.archify_sanitizer import sanitize_archify_spec
 from app.services.mermaid_subgraph import extract_node_subgraph_context
 
 logger = logging.getLogger("case_studio.deep_dive")
@@ -175,7 +176,8 @@ Alle Bezeichner und Erklärungen MÜSSEN auf {lang_name} sein!
             response_mime_type="application/json",
             timeout_seconds=45.0
         )
-        spec_json = json.loads(clean_llm_json(raw_llm))
+        parsed = json.loads(clean_llm_json(raw_llm))
+        spec_json = sanitize_archify_spec(diagram_type, parsed)
     except Exception as e:
         logger.error(f"[DeepDive] LLM Fehler in Runde 1: {e}")
         raise HTTPException(status_code=502, detail=f"LLM Generierung fehlgeschlagen: {str(e)}")
@@ -186,7 +188,7 @@ Alle Bezeichner und Erklärungen MÜSSEN auf {lang_name} sein!
     # 8. Runde 2: Automatische Reparaturschleife bei Validierungsfehlern (HTTP 422)
     if not render_res.get("success") and render_res.get("stage") == "validate":
         diagnostics = render_res.get("diagnostics", [])
-        logger.warning(f"[DeepDive] Validierungsfehler in Runde 1: {len(diagnostics)} Diagnostics. Starte Reparaturschleife...")
+        logger.warning(f"[DeepDive] Validierungsfehler in Runde 1: {len(diagnostics)} Diagnostics: {json.dumps(diagnostics)}")
 
         repair_prompt = f"""
 Deine zuvor generierte Archify JSON-Spezifikation enthält Validierungsfehler:
@@ -197,6 +199,8 @@ Bisheriges JSON:
 
 Bitte korrigiere ALLE genannten Fehler präzise und gib die reparierte Spezifikation als valides JSON zurück.
 schema_version MUSS 1 sein. diagram_type MUSS '{diagram_type}' sein.
+Komponenten-Typen dürfen NUR sein: 'frontend', 'backend', 'database', 'cloud', 'security', 'messagebus', 'external'.
+IDs dürfen KEINE Leerzeichen oder Sonderzeichen enthalten.
 """
         try:
             repaired_raw = await key_pool.generate(
@@ -206,11 +210,14 @@ schema_version MUSS 1 sein. diagram_type MUSS '{diagram_type}' sein.
                 response_mime_type="application/json",
                 timeout_seconds=45.0
             )
-            spec_json = json.loads(clean_llm_json(repaired_raw))
+            repaired_parsed = json.loads(clean_llm_json(repaired_raw))
+            spec_json = sanitize_archify_spec(diagram_type, repaired_parsed)
             render_res = await archify_client.render(diagram_type, spec_json, quality="showcase")
             logger.info(f"[DeepDive] Reparaturschleife Runde 2 Ergebnis: success={render_res.get('success')}")
         except Exception as e:
-            logger.error(f"[DeepDive] Reparaturschleife fehlgeschlagen: {e}")
+            logger.error(f"[DeepDive] Reparaturschleife Fehler: {e}")
+            # Fallback: Versuche erneut mit bereinigtem Spec_json aus Runde 1
+            render_res = await archify_client.render(diagram_type, sanitize_archify_spec(diagram_type, spec_json), quality="showcase")
 
     if not render_res.get("success"):
         err_msg = render_res.get("error") or "Archify Validierung konnte auch nach 2 Runden nicht erfüllt werden."

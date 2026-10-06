@@ -274,11 +274,18 @@ const ArchifyUI = {
 
     const btn = document.getElementById("btn-submit-archify-generate");
     const statusText = document.getElementById("archify-modal-status");
+    const origBtnHtml = btn ? btn.innerHTML : "";
 
-    if (btn) btn.disabled = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-icon"></span> <span>Wird generiert...</span>`;
+    }
     if (statusText) {
       statusText.style.display = "block";
-      statusText.innerText = (window.I18n ? window.I18n.t("archify_loading") : "Archify berechnet Traces & Komponenten...");
+      const titleEl = statusText.querySelector(".catalog-loading-title-text");
+      if (titleEl && window.I18n) {
+        titleEl.innerText = window.I18n.t("archify_loading");
+      }
     }
 
     try {
@@ -306,7 +313,10 @@ const ArchifyUI = {
     } catch (err) {
       if (window.showToast) window.showToast("Fehler: " + err.message, "error");
     } finally {
-      if (btn) btn.disabled = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origBtnHtml;
+      }
       if (statusText) statusText.style.display = "none";
     }
   },

@@ -149,11 +149,15 @@ class GeminiKeyPool:
             if cooldown_keys:
                 cooldown_keys.sort(key=lambda x: x.cooldown_until)
                 best = cooldown_keys[0]
-                wait_time = max(0.05, best.cooldown_until - time.time())
-                logger.warning(f"All keys in cooldown. Waiting {wait_time:.1f}s for {best.masked_key}")
-                await asyncio.sleep(min(wait_time, 2.0))
-                best.status = KeyStatus.HEALTHY
-                return best
+                wait_time = best.cooldown_until - time.time()
+                if wait_time <= 0:
+                    best.status = KeyStatus.HEALTHY
+                    return best
+                if wait_time <= 8.0:
+                    logger.warning(f"All keys in cooldown. Waiting {wait_time:.1f}s for {best.masked_key}")
+                    await asyncio.sleep(wait_time)
+                    best.status = KeyStatus.HEALTHY
+                    return best
                 
             return None
 
@@ -361,7 +365,7 @@ class GeminiKeyPool:
         """
         chosen_model = model or settings.fallback_model
         models_to_try = [chosen_model]
-        for cand in ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]:
+        for cand in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
             if cand not in models_to_try:
                 models_to_try.append(cand)
 
@@ -408,7 +412,8 @@ class GeminiKeyPool:
                         if response.status_code == 503:
                             logger.warning(f"Google 503 on {current_model}. Switching model...")
                             break
-                        if response.status_code in (400, 401, 403):
+                        if response.status_code in (400, 401, 403, 404):
+                            logger.warning(f"Google HTTP {response.status_code} for key {key_info.masked_key} on {current_model}.")
                             self.mark_error(key_info.key)
                             continue
                         if response.status_code != 200:
