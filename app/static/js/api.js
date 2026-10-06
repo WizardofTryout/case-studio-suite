@@ -214,6 +214,32 @@ const API = {
     return await res.json();
   },
 
+  async synthesizeSkill(payload) {
+    const res = await fetch("/api/skills/synthesize", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Skill-Synthese fehlgeschlagen");
+    }
+    return await res.json();
+  },
+
+  async saveSkillPackage(payload) {
+    const res = await fetch("/api/skills/package", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Konnte Skill-Paket nicht speichern");
+    }
+    return await res.json();
+  },
+
   async deleteSkill(skillKey, deleteSource = false) {
     const query = deleteSource ? "?delete_source=true" : "";
     const res = await fetch(`/api/skills/${encodeURIComponent(skillKey)}${query}`, {

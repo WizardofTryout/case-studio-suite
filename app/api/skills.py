@@ -1,3 +1,4 @@
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
@@ -12,6 +13,8 @@ from app.services.skill_service import (
     save_skill_content,
     create_new_custom_skill
 )
+
+logger = logging.getLogger("case_studio.skills_api")
 
 router = APIRouter(prefix="/api", tags=["skills"])
 
@@ -168,6 +171,92 @@ async def create_custom_skill(payload: SkillCustomCreateRequest):
         return created
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create custom skill: {str(e)}")
+
+
+class SkillSynthesizeRequest(BaseModel):
+    domain: str = "industrial_iot"
+    domain_custom_label: Optional[str] = None
+    skill_name: Optional[str] = None
+    name: Optional[str] = None
+    skill_key: Optional[str] = None
+    category: str = "domain_specialist"
+    tags_csv: Optional[str] = ""
+    role_profile: Optional[str] = None
+    tasks_goals: Optional[str] = None
+    goals: Optional[str] = None
+    standards_norms: Optional[str] = None
+    standards: Optional[str] = None
+    methodology: str = "gutachten_ampel"
+    methodology_custom: Optional[str] = None
+    generate_script: bool = True
+    generate_reference: bool = False
+
+
+class SkillPackageSaveRequest(BaseModel):
+    skill_key: str
+    display_name: str
+    category: str = "domain_specialist"
+    tags_csv: Optional[str] = ""
+    description: Optional[str] = ""
+    skill_md: str
+    script_code: Optional[str] = None
+    script_filename: Optional[str] = "routine.py"
+    reference_md: Optional[str] = None
+    reference_filename: Optional[str] = "spec.md"
+    activate_in_project: bool = True
+    project_id: Optional[str] = None
+    activate_for_project_id: Optional[str] = None
+
+
+@router.post("/skills/synthesize")
+async def synthesize_skill_endpoint(payload: SkillSynthesizeRequest):
+    """
+    AI-driven synthesis of a Claude/Anthropic v2.1 compliant skill bundle with optional scripts and references.
+    """
+    from app.services.skill_wizard_service import synthesize_skill_with_ai
+    try:
+        data = payload.model_dump()
+        if not data.get("skill_name") and data.get("name"):
+            data["skill_name"] = data["name"]
+        if not data.get("tasks_goals") and data.get("goals"):
+            data["tasks_goals"] = data["goals"]
+        if not data.get("standards_norms") and data.get("standards"):
+            data["standards_norms"] = data["standards"]
+        res = await synthesize_skill_with_ai(data)
+        return {"success": True, "package": res}
+    except Exception as e:
+        logger.error(f"Skill synthesis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/skills/package")
+async def save_skill_package_endpoint(payload: SkillPackageSaveRequest):
+    """
+    Persists a complete skill package (SKILL.md, scripts/, references/) to the catalog.
+    """
+    from app.services.skill_wizard_service import save_synthesized_skill_package
+    try:
+        project_target = payload.project_id or payload.activate_for_project_id
+        if not payload.activate_in_project:
+            project_target = None
+
+        res = await save_synthesized_skill_package(
+            skill_key=payload.skill_key,
+            display_name=payload.display_name,
+            category=payload.category,
+            skill_md=payload.skill_md,
+            tags_csv=payload.tags_csv or "",
+            script_code=payload.script_code,
+            script_filename=payload.script_filename or "routine.py",
+            reference_md=payload.reference_md,
+            reference_filename=payload.reference_filename or "spec.md",
+            activate_for_project_id=project_target
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Skill package saving failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 class SkillDeleteBatchRequest(BaseModel):

@@ -2209,11 +2209,12 @@ const App = {
       executeImportBtn.addEventListener("click", () => this.executeSkillImport());
     }
 
-    // Editor Modal triggers
+    // Skill Wizard trigger (Anthropic Spec v2.1)
     const newCustomSkillBtn = document.getElementById("btn-new-custom-skill");
     if (newCustomSkillBtn) {
-      newCustomSkillBtn.addEventListener("click", () => this.openSkillEditor(null, false));
+      newCustomSkillBtn.addEventListener("click", () => this.skillWizard.open());
     }
+    this.skillWizard.init();
 
     const closeEditorBtn = document.getElementById("btn-close-skill-editor");
     if (closeEditorBtn) {
@@ -2852,6 +2853,522 @@ const App = {
       }
     } catch (err) {
       window.showToast(`Fehler beim Speichern: ${err.message}`, "error");
+    }
+  },
+
+  // --- Sprint 12: Skill-Wizard & AI-Synthese nach Anthropic Spec v2.1 ---
+
+  skillWizard: {
+    currentStep: 1,
+    selectedDomain: "ot_siemens",
+    selectedDomainTitle: "OT / Industrial Edge",
+    selectedMethod: "gutachten_ampel",
+    selectedMethodTitle: "Gutachtenstil & Ampel",
+    generatedPackage: null,
+    activeTab: "skill_md",
+    initialized: false,
+
+    init() {
+      if (this.initialized) return;
+      this.initialized = true;
+
+      // 1. Close and Cancel buttons
+      const closeBtn = document.getElementById("btn-close-skill-wizard");
+      if (closeBtn) closeBtn.addEventListener("click", () => this.close());
+      const cancelBtn = document.getElementById("btn-wizard-cancel-1");
+      if (cancelBtn) cancelBtn.addEventListener("click", () => this.close());
+
+      // 2. Stepper Pills
+      document.querySelectorAll(".wizard-step-pill").forEach(pill => {
+        pill.addEventListener("click", () => {
+          const step = parseInt(pill.dataset.step, 10);
+          if (step < this.currentStep) {
+            this.goToStep(step);
+          } else if (step === 4 && this.generatedPackage) {
+            this.goToStep(4);
+          }
+        });
+      });
+
+      // 3. Domain Cards Selection
+      const domainCards = document.querySelectorAll(".wizard-domain-card");
+      domainCards.forEach(card => {
+        card.addEventListener("click", () => {
+          domainCards.forEach(c => c.classList.remove("active"));
+          card.classList.add("active");
+          const domainKey = card.dataset.domain;
+          this.selectedDomain = domainKey;
+
+          const titleEl = card.querySelector(".domain-title");
+          this.selectedDomainTitle = titleEl ? titleEl.innerText.trim() : domainKey;
+
+          const customWrapper = document.getElementById("wizard-custom-domain-wrapper");
+          const customInput = document.getElementById("wizard-domain-custom-input");
+          if (domainKey === "custom") {
+            if (customWrapper) customWrapper.style.display = "block";
+            if (customInput) customInput.focus();
+          } else {
+            if (customWrapper) customWrapper.style.display = "none";
+          }
+
+          // Suggest name / key if empty or default
+          const nameInput = document.getElementById("wizard-skill-name");
+          const keyInput = document.getElementById("wizard-skill-key");
+          if (nameInput && (!nameInput.value || nameInput.dataset.autoFilled === "true")) {
+            nameInput.dataset.autoFilled = "true";
+            if (domainKey === "ot_siemens") {
+              nameInput.value = "Industrial Edge IPC Architekt";
+              if (keyInput) keyInput.value = "industrial-edge-ipc-architekt";
+            } else if (domainKey === "legal_compliance") {
+              nameInput.value = "IT-Governance & Compliance Prüfer";
+              if (keyInput) keyInput.value = "it-governance-compliance-pruefer";
+            } else if (domainKey === "cloud_dwh") {
+              nameInput.value = "Cloud DWH & Event Stream Specialist";
+              if (keyInput) keyInput.value = "cloud-dwh-stream-specialist";
+            } else if (domainKey === "security_compliance") {
+              nameInput.value = "IEC 62443 Security Lead Auditor";
+              if (keyInput) keyInput.value = "iec-62443-security-auditor";
+            } else if (domainKey === "data_ai") {
+              nameInput.value = "RAG Pipeline & Model Drift Specialist";
+              if (keyInput) keyInput.value = "rag-pipeline-model-drift-specialist";
+            } else if (domainKey === "business_roi") {
+              nameInput.value = "OEE & Capex Business Case Analyst";
+              if (keyInput) keyInput.value = "oee-capex-business-analyst";
+            }
+          }
+        });
+      });
+
+      // 4. Name input slugify to skill-key
+      const nameInput = document.getElementById("wizard-skill-name");
+      const keyInput = document.getElementById("wizard-skill-key");
+      if (nameInput && keyInput) {
+        nameInput.addEventListener("input", () => {
+          nameInput.dataset.autoFilled = "false";
+          if (!keyInput.dataset.manuallyEdited) {
+            const slug = nameInput.value
+              .toLowerCase()
+              .replace(/ä/g, "ae")
+              .replace(/ö/g, "oe")
+              .replace(/ü/g, "ue")
+              .replace(/ß/g, "ss")
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "");
+            keyInput.value = slug;
+          }
+        });
+        keyInput.addEventListener("input", () => {
+          keyInput.dataset.manuallyEdited = "true";
+        });
+      }
+
+      // 5. Methodology Cards Selection
+      const methodCards = document.querySelectorAll(".wizard-method-card");
+      methodCards.forEach(card => {
+        card.addEventListener("click", () => {
+          methodCards.forEach(c => c.classList.remove("active"));
+          card.classList.add("active");
+          this.selectedMethod = card.dataset.method;
+          const titleEl = card.querySelector(".method-title");
+          this.selectedMethodTitle = titleEl ? titleEl.innerText.trim() : card.dataset.method;
+        });
+      });
+
+      // 6. Step 1 -> Step 2
+      const next1Btn = document.getElementById("btn-wizard-next-1");
+      if (next1Btn) {
+        next1Btn.addEventListener("click", () => {
+          const nameVal = document.getElementById("wizard-skill-name")?.value.trim();
+          const keyVal = document.getElementById("wizard-skill-key")?.value.trim();
+          if (!nameVal) {
+            window.showToast("Bitte gib eine Skill-Bezeichnung an.", "warning");
+            document.getElementById("wizard-skill-name")?.focus();
+            return;
+          }
+          if (!keyVal) {
+            window.showToast("Bitte gib eine Skill-Kennung (Key) an.", "warning");
+            document.getElementById("wizard-skill-key")?.focus();
+            return;
+          }
+          this.goToStep(2);
+        });
+      }
+
+      // 7. Step 2 -> Step 1
+      const back2Btn = document.getElementById("btn-wizard-back-2");
+      if (back2Btn) {
+        back2Btn.addEventListener("click", () => this.goToStep(1));
+      }
+
+      // 8. Step 2 -> Step 3 (Trigger AI Synthesis)
+      const startSynthBtn = document.getElementById("btn-wizard-start-synthesis");
+      if (startSynthBtn) {
+        startSynthBtn.addEventListener("click", () => {
+          const role = document.getElementById("wizard-role-profile")?.value.trim();
+          const goals = document.getElementById("wizard-tasks-goals")?.value.trim();
+          if (!role && !goals) {
+            window.showToast("Bitte formuliere kurz eine Rolle oder ein Fachziel / deine Gedanken.", "warning");
+            document.getElementById("wizard-tasks-goals")?.focus();
+            return;
+          }
+          this.startSynthesis();
+        });
+      }
+
+      // 9. Step 4 -> Step 2 (Back to inputs)
+      const back4Btn = document.getElementById("btn-wizard-back-4");
+      if (back4Btn) {
+        back4Btn.addEventListener("click", () => this.goToStep(2));
+      }
+
+      // 10. Step 4 Output Tabs
+      const tabBtns = document.querySelectorAll(".wizard-tab-btn");
+      tabBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          const tabKey = btn.dataset.tab;
+          this.switchOutputTab(tabKey);
+        });
+      });
+
+      // 11. Live counter & preview update when typing in SKILL.md
+      const skillMdTextarea = document.getElementById("wizard-output-skill-md");
+      if (skillMdTextarea) {
+        skillMdTextarea.addEventListener("input", () => {
+          this.updateTokenCounter();
+          if (this.activeTab === "html_preview") {
+            this.renderHtmlPreview();
+          }
+        });
+      }
+
+      // 12. Save Package Button
+      const saveBtn = document.getElementById("btn-wizard-save-package");
+      if (saveBtn) {
+        saveBtn.addEventListener("click", () => this.savePackage());
+      }
+    },
+
+    open() {
+      this.reset();
+      const modal = document.getElementById("skill-wizard-modal-overlay");
+      if (modal) modal.classList.add("active");
+      this.goToStep(1);
+    },
+
+    close() {
+      const modal = document.getElementById("skill-wizard-modal-overlay");
+      if (modal) modal.classList.remove("active");
+    },
+
+    reset() {
+      this.currentStep = 1;
+      this.generatedPackage = null;
+      this.activeTab = "skill_md";
+
+      // Reset step 1 inputs
+      const nameInput = document.getElementById("wizard-skill-name");
+      const keyInput = document.getElementById("wizard-skill-key");
+      const tagsInput = document.getElementById("wizard-skill-tags");
+      const catSelect = document.getElementById("wizard-skill-category");
+      const customDomainInput = document.getElementById("wizard-domain-custom-input");
+      const customWrapper = document.getElementById("wizard-custom-domain-wrapper");
+
+      if (nameInput) {
+        nameInput.value = "Industrial Edge IPC Architekt";
+        nameInput.dataset.autoFilled = "true";
+      }
+      if (keyInput) {
+        keyInput.value = "industrial-edge-ipc-architekt";
+        delete keyInput.dataset.manuallyEdited;
+      }
+      if (tagsInput) tagsInput.value = "ot, edge, failover, siemens, realtime";
+      if (catSelect) catSelect.value = "domain_specialist";
+      if (customDomainInput) customDomainInput.value = "";
+      if (customWrapper) customWrapper.style.display = "none";
+
+      // Reset Step 2 inputs
+      const roleInput = document.getElementById("wizard-role-profile");
+      const goalsInput = document.getElementById("wizard-tasks-goals");
+      const standardsInput = document.getElementById("wizard-standards-norms");
+      if (roleInput) roleInput.value = "Leitender Industrie-Edge Architekt für sicherheitskritische Fertigungssysteme";
+      if (goalsInput) goalsInput.value = "Auslegung eines 48h Offline-Ringpuffers auf Siemens Industrial Edge IPCs bei Netzwerk-Totalausfall. Definition von Latenzgrenzen <20ms für Sicherheitsfunktionen und Berechnung des Puffer-Speicherbedarfs.";
+      if (standardsInput) standardsInput.value = "IEC 62443-4-2, ISA-95, SIMATIC S7-1500, ISO 27001";
+
+      // Select default domain and method cards
+      document.querySelectorAll(".wizard-domain-card").forEach((c, idx) => {
+        c.classList.toggle("active", idx === 0);
+      });
+      this.selectedDomain = "ot_siemens";
+      this.selectedDomainTitle = "OT / Industrial Edge";
+
+      document.querySelectorAll(".wizard-method-card").forEach((c, idx) => {
+        c.classList.toggle("active", idx === 0);
+      });
+      this.selectedMethod = "gutachten_ampel";
+      this.selectedMethodTitle = "Gutachtenstil & Ampel";
+
+      // Default toggles
+      const scriptToggle = document.getElementById("wizard-toggle-script");
+      const refToggle = document.getElementById("wizard-toggle-reference");
+      const activateToggle = document.getElementById("wizard-auto-activate-project");
+      if (scriptToggle) scriptToggle.checked = true;
+      if (refToggle) refToggle.checked = true;
+      if (activateToggle) activateToggle.checked = true;
+    },
+
+    goToStep(stepNumber) {
+      this.currentStep = stepNumber;
+
+      // Update Step Views
+      for (let i = 1; i <= 4; i++) {
+        const view = document.getElementById(`wizard-step-view-${i}`);
+        if (view) {
+          view.classList.toggle("active", i === stepNumber);
+        }
+      }
+
+      // Update Stepper Bar Pills
+      document.querySelectorAll(".wizard-step-pill").forEach(pill => {
+        const pStep = parseInt(pill.dataset.step, 10);
+        pill.classList.remove("active", "completed");
+        if (pStep < stepNumber) {
+          pill.classList.add("completed");
+        } else if (pStep === stepNumber) {
+          pill.classList.add("active");
+        }
+      });
+    },
+
+    async startSynthesis() {
+      this.goToStep(3);
+
+      const stStep1 = document.getElementById("st-step-1");
+      const stStep2 = document.getElementById("st-step-2");
+      const stStep3 = document.getElementById("st-step-3");
+      const stStep4 = document.getElementById("st-step-4");
+      const stStep5 = document.getElementById("st-step-5");
+      const subline = document.getElementById("synthesis-status-subline");
+
+      const setTracker = (row, state) => {
+        if (!row) return;
+        row.classList.remove("active", "completed");
+        const icon = row.querySelector(".st-icon");
+        if (state === "completed") {
+          row.classList.add("completed");
+          if (icon) icon.innerText = "✓";
+        } else if (state === "active") {
+          row.classList.add("active");
+          if (icon) icon.innerText = "⏳";
+        } else {
+          if (icon) icon.innerText = "○";
+        }
+      };
+
+      setTracker(stStep1, "completed");
+      setTracker(stStep2, "active");
+      setTracker(stStep3, "pending");
+      setTracker(stStep4, "pending");
+      setTracker(stStep5, "pending");
+      if (subline) subline.innerText = "Prompt & YAML-Header werden vorbereitet...";
+
+      let finalDomain = this.selectedDomainTitle;
+      if (this.selectedDomain === "custom") {
+        const customInput = document.getElementById("wizard-domain-custom-input")?.value.trim();
+        if (customInput) finalDomain = customInput;
+      }
+
+      const payload = {
+        domain: finalDomain,
+        name: document.getElementById("wizard-skill-name")?.value.trim() || "Neuer Fachskill",
+        skill_key: document.getElementById("wizard-skill-key")?.value.trim() || "custom-skill",
+        category: document.getElementById("wizard-skill-category")?.value || "domain_specialist",
+        tags_csv: document.getElementById("wizard-skill-tags")?.value.trim() || "",
+        role_profile: document.getElementById("wizard-role-profile")?.value.trim() || "",
+        goals: document.getElementById("wizard-tasks-goals")?.value.trim() || "",
+        standards: document.getElementById("wizard-standards-norms")?.value.trim() || "",
+        methodology: this.selectedMethodTitle,
+        generate_script: document.getElementById("wizard-toggle-script")?.checked ?? true,
+        generate_reference: document.getElementById("wizard-toggle-reference")?.checked ?? true
+      };
+
+      // Progress animation timer
+      const animTimer = setTimeout(() => {
+        setTracker(stStep2, "completed");
+        setTracker(stStep3, "active");
+        if (subline) subline.innerText = "Direktiven, Leitplanken und Bewertungsmatrix werden ausgearbeitet...";
+      }, 1800);
+
+      const animTimer2 = setTimeout(() => {
+        setTracker(stStep3, "completed");
+        setTracker(stStep4, "active");
+        if (subline) subline.innerText = "Deterministische Python-Routinen und Validierungen werden kompiliert...";
+      }, 3600);
+
+      try {
+        const res = await API.synthesizeSkill(payload);
+        clearTimeout(animTimer);
+        clearTimeout(animTimer2);
+
+        setTracker(stStep2, "completed");
+        setTracker(stStep3, "completed");
+        setTracker(stStep4, "completed");
+        setTracker(stStep5, "completed");
+        if (subline) subline.innerText = "Skill-Paket erfolgreich nach Anthropic Spec v2.1 generiert!";
+
+        const pkg = res?.package || res;
+        if (!pkg || (!pkg.skill_md && !pkg.skill_key)) {
+          throw new Error("Ungültige Antwort von der KI-Synthese erhalten.");
+        }
+
+        this.generatedPackage = pkg;
+        this.renderStep4(pkg);
+
+        setTimeout(() => {
+          this.goToStep(4);
+        }, 600);
+      } catch (err) {
+        clearTimeout(animTimer);
+        clearTimeout(animTimer2);
+        console.error("Skill synthesis failed:", err);
+        window.showToast(`KI-Synthese fehlgeschlagen: ${err.message}`, "error");
+        this.goToStep(2);
+      }
+    },
+
+    renderStep4(pkg) {
+      const titleEl = document.getElementById("wizard-preview-title");
+      if (titleEl) {
+        titleEl.innerText = `✨ ${pkg.display_name || pkg.name || 'Neuer Skill'} (Anthropic Paket)`;
+      }
+
+      const skillMdTextarea = document.getElementById("wizard-output-skill-md");
+      const scriptTextarea = document.getElementById("wizard-output-script-code");
+      const refTextarea = document.getElementById("wizard-output-reference-md");
+
+      if (skillMdTextarea) skillMdTextarea.value = pkg.skill_md || "";
+      if (scriptTextarea) scriptTextarea.value = pkg.script_code || "";
+      if (refTextarea) refTextarea.value = pkg.reference_md || "";
+
+      // Tab button visibility / labels
+      const scriptTabBtn = document.getElementById("wizard-tab-script-btn");
+      const refTabBtn = document.getElementById("wizard-tab-ref-btn");
+
+      if (scriptTabBtn) {
+        scriptTabBtn.style.opacity = pkg.script_code ? "1" : "0.5";
+        scriptTabBtn.innerText = pkg.script_code ? "🐍 scripts/routine.py" : "🐍 (Kein Skript)";
+      }
+      if (refTabBtn) {
+        refTabBtn.style.opacity = pkg.reference_md ? "1" : "0.5";
+        refTabBtn.innerText = pkg.reference_md ? "📚 references/spec.md" : "📚 (Keine Referenz)";
+      }
+
+      this.updateTokenCounter();
+      this.switchOutputTab("skill_md");
+    },
+
+    updateTokenCounter() {
+      const skillMd = document.getElementById("wizard-output-skill-md")?.value || "";
+      const words = skillMd.trim() ? skillMd.trim().split(/\s+/).length : 0;
+      const approxTokens = Math.round(words * 1.3);
+      const tokenBadge = document.getElementById("wizard-token-badge");
+      if (tokenBadge) {
+        if (words <= 1000) {
+          tokenBadge.className = "wizard-token-counter counter-optimal";
+          tokenBadge.innerText = `⚡ ~${approxTokens} Tokens (${words} Wörter) ✓ Token-Effizient (<1000 W)`;
+        } else {
+          tokenBadge.className = "wizard-token-counter counter-heavy";
+          tokenBadge.innerText = `⚠️ ~${approxTokens} Tokens (${words} Wörter) (Empfehlung: <1000 W)`;
+        }
+      }
+    },
+
+    switchOutputTab(tabKey) {
+      this.activeTab = tabKey;
+      document.querySelectorAll(".wizard-tab-btn").forEach(btn => {
+        btn.classList.toggle("active", btn.dataset.tab === tabKey);
+      });
+
+      const paneMap = {
+        skill_md: "wizard-pane-skill-md",
+        script_code: "wizard-pane-script-code",
+        reference_md: "wizard-pane-reference-md",
+        html_preview: "wizard-pane-html-preview"
+      };
+
+      Object.entries(paneMap).forEach(([key, paneId]) => {
+        const pane = document.getElementById(paneId);
+        if (pane) pane.classList.toggle("active", key === tabKey);
+      });
+
+      if (tabKey === "html_preview") {
+        this.renderHtmlPreview();
+      }
+    },
+
+    renderHtmlPreview() {
+      const skillMd = document.getElementById("wizard-output-skill-md")?.value || "";
+      const previewEl = document.getElementById("wizard-output-preview-html");
+      if (previewEl) {
+        previewEl.innerHTML = App.renderMarkdown(skillMd);
+      }
+    },
+
+    async savePackage() {
+      const saveBtn = document.getElementById("btn-wizard-save-package");
+      const origText = saveBtn ? saveBtn.innerHTML : "";
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `⏳ Speichern...`;
+      }
+
+      try {
+        const skillKey = document.getElementById("wizard-skill-key")?.value.trim() || "custom-skill";
+        const displayName = document.getElementById("wizard-skill-name")?.value.trim() || skillKey;
+        const category = document.getElementById("wizard-skill-category")?.value || "domain_specialist";
+        const tagsCsv = document.getElementById("wizard-skill-tags")?.value.trim() || "";
+        const skillMd = document.getElementById("wizard-output-skill-md")?.value || "";
+        const scriptCode = document.getElementById("wizard-output-script-code")?.value || "";
+        const referenceMd = document.getElementById("wizard-output-reference-md")?.value || "";
+        const activateInProject = document.getElementById("wizard-auto-activate-project")?.checked ?? true;
+
+        if (!skillMd.trim()) {
+          throw new Error("SKILL.md darf nicht leer sein.");
+        }
+
+        const payload = {
+          skill_key: skillKey,
+          display_name: displayName,
+          category: category,
+          tags_csv: tagsCsv,
+          description: this.generatedPackage?.description || `Synthetisierter Anthropic Spec v2.1 Skill für ${displayName}`,
+          skill_md: skillMd,
+          script_code: scriptCode || null,
+          script_filename: "routine.py",
+          reference_md: referenceMd || null,
+          reference_filename: "spec.md",
+          activate_in_project: activateInProject,
+          project_id: App.state.currentProjectId || null
+        };
+
+        const res = await API.saveSkillPackage(payload);
+        window.showToast(`✅ Skill "${displayName}" erfolgreich als Anthropic-Paket gespeichert!`, "success");
+
+        this.close();
+
+        // Reload Catalogs
+        await App.loadSkillsCatalog();
+        if (activateInProject && App.state.currentProjectId) {
+          await App.loadProjectSkills();
+        }
+      } catch (err) {
+        console.error("Save skill package failed:", err);
+        window.showToast(`Fehler beim Speichern des Skill-Pakets: ${err.message}`, "error");
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = origText;
+        }
+      }
     }
   },
 

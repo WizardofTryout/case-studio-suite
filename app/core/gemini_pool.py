@@ -352,23 +352,87 @@ class GeminiKeyPool:
         system_instruction: Optional[str] = None,
         model: Optional[str] = None,
         temperature: float = 0.4,
-        max_output_tokens: int = 4096,
-        timeout_seconds: float = 60.0
+        max_output_tokens: int = 8192,
+        response_mime_type: Optional[str] = None,
+        timeout_seconds: float = 90.0
     ) -> str:
         """
-        Non-streaming text generation with multi-key failover and strict live execution.
+        Non-streaming atomic text generation with multi-key failover and direct :generateContent endpoint.
         """
-        chunks = []
-        async for chunk in self.stream_generate(
-            contents=contents,
-            system_instruction=system_instruction,
-            model=model or settings.fallback_model,
-            temperature=temperature,
-            max_output_tokens=max_output_tokens,
-            timeout_seconds=timeout_seconds
-        ):
-            chunks.append(chunk)
-        return "".join(chunks)
+        chosen_model = model or settings.fallback_model
+        models_to_try = [chosen_model]
+        for cand in ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]:
+            if cand not in models_to_try:
+                models_to_try.append(cand)
+
+        total_keys = len(self.keys)
+        max_attempts = max(3, total_keys * len(models_to_try))
+        attempt = 0
+
+        gen_config: Dict[str, Any] = {
+            "temperature": temperature,
+            "maxOutputTokens": max_output_tokens
+        }
+        if response_mime_type:
+            gen_config["responseMimeType"] = response_mime_type
+
+        payload: Dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": gen_config
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction}]
+            }
+
+        headers = {"Content-Type": "application/json"}
+
+        for current_model in models_to_try:
+            while attempt < max_attempts:
+                attempt += 1
+                key_info = await self.get_next_key()
+                if not key_info:
+                    logger.warning("No available API key found in pool.")
+                    break
+
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{current_model}:generateContent?key={key_info.key}"
+
+                try:
+                    start_time = time.time()
+                    async with httpx.AsyncClient(timeout=timeout_seconds) as client:
+                        response = await client.post(url, headers=headers, json=payload)
+                        if response.status_code == 429:
+                            self.mark_cooldown(key_info.key, 60.0)
+                            await asyncio.sleep(0.02)
+                            continue
+                        if response.status_code == 503:
+                            logger.warning(f"Google 503 on {current_model}. Switching model...")
+                            break
+                        if response.status_code in (400, 401, 403):
+                            self.mark_error(key_info.key)
+                            continue
+                        if response.status_code != 200:
+                            continue
+
+                        self.mark_success(key_info.key)
+                        data = response.json()
+                        candidates = data.get("candidates", [])
+                        if candidates:
+                            parts = candidates[0].get("content", {}).get("parts", [])
+                            text = "".join(p.get("text", "") for p in parts)
+                            elapsed = (time.time() - start_time) * 1000
+                            logger.info(f"GenerateContent completed in {elapsed:.1f}ms on {current_model}. Length: {len(text)}")
+                            return text
+                        return ""
+                except (httpx.ConnectError, httpx.TimeoutException) as exc:
+                    logger.warning(f"Network error with key {key_info.masked_key}: {exc}")
+                    self.mark_cooldown(key_info.key, 30.0)
+                    continue
+                except Exception as exc:
+                    logger.error(f"Unexpected error in generate(): {exc}")
+                    continue
+
+        raise RuntimeError("Alle Gemini API-Schlüssel sind derzeit erschöpft oder im Cooldown.")
 
 
 # Global singleton instance of GeminiKeyPool

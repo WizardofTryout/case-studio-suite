@@ -3192,3 +3192,439 @@ svg .node.selected text {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.1);
 }
+
+/* =====================================================================
+   🚀 KI-Skill-Synthese Wizard Modal (Anthropic Spec v2.1)
+   ===================================================================== */
+.skill-wizard-modal-card {
+  max-width: 980px !important;
+  width: 95vw !important;
+  max-height: 92vh !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.wizard-stepper-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0 16px 0;
+  border-bottom: 1px solid var(--border-subtle);
+  overflow-x: auto;
+}
+
+.wizard-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.wizard-step-pill:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.wizard-step-pill.active {
+  background: var(--cyan-glow);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+.wizard-step-pill.completed {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: #10b981;
+  color: #10b981;
+}
+
+.wizard-step-pill .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.7rem;
+}
+
+.wizard-step-pill.completed .step-num {
+  background: #10b981;
+  color: #ffffff;
+}
+
+.wizard-step-arrow {
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  user-select: none;
+}
+
+.wizard-content-body {
+  flex: 1;
+  overflow-y: auto;
+  padding-top: 14px;
+  padding-right: 4px;
+}
+
+.wizard-step-view {
+  display: none;
+  animation: kmSlideDown 0.25s ease-out;
+}
+
+.wizard-step-view.active {
+  display: block;
+}
+
+.wizard-section-header {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--cyan);
+  margin-bottom: 12px;
+}
+
+/* Domain Selection Cards */
+.wizard-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.wizard-domain-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wizard-domain-card:hover {
+  border-color: var(--cyan);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.wizard-domain-card.active {
+  border-color: var(--cyan);
+  background: rgba(0, 212, 255, 0.08);
+  box-shadow: 0 0 14px var(--cyan-glow);
+}
+
+.domain-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.domain-icon {
+  font-size: 1.25rem;
+}
+
+.domain-title {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.domain-card-desc {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+}
+
+/* Methodology Cards */
+.wizard-methodology-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+
+.wizard-method-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.wizard-method-card:hover {
+  border-color: var(--amber);
+  transform: translateY(-2px);
+}
+
+.wizard-method-card.active {
+  border-color: var(--amber);
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 12px var(--amber-glow);
+}
+
+.method-icon {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+
+.method-title {
+  font-weight: 700;
+  font-size: 0.82rem;
+  color: var(--text-main);
+}
+
+.method-desc {
+  font-size: 0.73rem;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.wizard-bundle-options-box {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px dashed var(--border-active);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  margin-top: 6px;
+}
+
+.wizard-checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: var(--text-main);
+}
+
+.wizard-checkbox-label input {
+  margin-top: 3px;
+  cursor: pointer;
+}
+
+/* Synthesis Step Box */
+.wizard-synthesis-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 20px;
+  text-align: center;
+}
+
+.synthesis-rocket-icon {
+  font-size: 3.5rem;
+  animation: rocketPulse 1.4s infinite ease-in-out;
+  margin-bottom: 12px;
+}
+
+@keyframes rocketPulse {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.08); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.synthesis-headline {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 6px;
+}
+
+.synthesis-subline {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  max-width: 520px;
+  margin-bottom: 24px;
+}
+
+.synthesis-steps-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 480px;
+  text-align: left;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+}
+
+.synthesis-tracker-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.synthesis-tracker-row.completed {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.synthesis-tracker-row.active {
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.synthesis-tracker-row .st-icon {
+  font-family: monospace;
+  font-size: 0.88rem;
+}
+
+/* Output Step Panes & Tabs */
+.wizard-output-tabs-bar {
+  display: flex;
+  gap: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+  overflow-x: auto;
+}
+
+.wizard-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.wizard-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+.wizard-tab-btn.active {
+  background: var(--cyan-glow);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.wizard-output-pane {
+  display: none;
+}
+
+.wizard-output-pane.active {
+  display: block;
+}
+
+.wizard-token-counter {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 700;
+  background: rgba(0, 212, 255, 0.12);
+  color: var(--cyan);
+  border: 1px solid rgba(0, 212, 255, 0.3);
+  border-radius: 12px;
+  padding: 3px 10px;
+}
+
+.wizard-footer-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Light Theme overrides for Skill Wizard */
+[data-theme="light"] .wizard-step-pill {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .wizard-step-pill:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .wizard-step-pill.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0284c7;
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .wizard-step-pill.completed {
+  background: #f0fdf4;
+  border-color: #10b981;
+  color: #059669;
+}
+
+[data-theme="light"] .wizard-domain-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .wizard-domain-card:hover {
+  border-color: #0284c7;
+  background: #f8fafc;
+}
+
+[data-theme="light"] .wizard-domain-card.active {
+  border-color: #0284c7;
+  background: #f0f9ff;
+  box-shadow: 0 0 12px rgba(2, 132, 199, 0.15);
+}
+
+[data-theme="light"] .wizard-method-card {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .wizard-method-card:hover {
+  border-color: #d97706;
+  background: #fffbeb;
+}
+
+[data-theme="light"] .wizard-method-card.active {
+  border-color: #d97706;
+  background: #fffbeb;
+  box-shadow: 0 0 10px rgba(217, 119, 6, 0.15);
+}
+
+[data-theme="light"] .wizard-bundle-options-box {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .synthesis-steps-tracker {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+
+[data-theme="light"] .wizard-tab-btn.active {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0284c7;
+}
+
+[data-theme="light"] .wizard-token-counter {
+  background: #f0f9ff;
+  color: #0284c7;
+  border-color: #bae6fd;
+}
+

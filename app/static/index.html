@@ -775,6 +775,343 @@
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- 🚀 KI-Skill-Synthese Wizard Modal (Anthropic Spec v2.1) -->
+  <!-- ========================================== -->
+  <div id="skill-wizard-modal-overlay" class="modal-overlay">
+    <div class="modal-card skill-wizard-modal-card">
+      <div class="modal-header-row">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="modal-title">🚀 KI-Skill-Synthese (Claude / Anthropic Spec v2.1)</span>
+          <span class="brand-badge" style="font-size:0.7rem;">Wizard Studio</span>
+        </div>
+        <button class="btn-close-modal" id="btn-close-skill-wizard">&times;</button>
+      </div>
+
+      <!-- Stepper Header -->
+      <div class="wizard-stepper-bar">
+        <div class="wizard-step-pill active" id="wizard-pill-1" data-step="1">
+          <span class="step-num">1</span> <span class="step-label">Domäne &amp; Name</span>
+        </div>
+        <div class="wizard-step-arrow">›</div>
+        <div class="wizard-step-pill" id="wizard-pill-2" data-step="2">
+          <span class="step-num">2</span> <span class="step-label">Rolle &amp; Normen</span>
+        </div>
+        <div class="wizard-step-arrow">›</div>
+        <div class="wizard-step-pill" id="wizard-pill-3" data-step="3">
+          <span class="step-num">3</span> <span class="step-label">KI-Synthese</span>
+        </div>
+        <div class="wizard-step-arrow">›</div>
+        <div class="wizard-step-pill" id="wizard-pill-4" data-step="4">
+          <span class="step-num">4</span> <span class="step-label">Vorschau &amp; Speichern</span>
+        </div>
+      </div>
+
+      <!-- Wizard Content Body -->
+      <div class="wizard-content-body">
+        
+        <!-- ================= STEP 1: Domäne & Name ================= -->
+        <div id="wizard-step-view-1" class="wizard-step-view active">
+          <div class="wizard-section-header">
+            🌐 1. Wähle die Domäne / Disziplin deines Skills:
+          </div>
+
+          <!-- Domain Cards Grid -->
+          <div class="wizard-domain-grid">
+            <div class="wizard-domain-card active" data-domain="industrial_iot">
+              <div class="domain-card-header">
+                <span class="domain-icon">🏭</span>
+                <span class="domain-title">Industrial IoT &amp; OT</span>
+              </div>
+              <div class="domain-card-desc">SIMATIC S7, OPC-UA, Edge, Not-Aus, IEC 62443, Realtime</div>
+            </div>
+
+            <div class="wizard-domain-card" data-domain="cloud_architecture">
+              <div class="domain-card-header">
+                <span class="domain-icon">☁️</span>
+                <span class="domain-title">Cloud Architecture &amp; DWH</span>
+              </div>
+              <div class="domain-card-desc">Kafka, Snowflake, Medallion, AWS/GCP, Microservices</div>
+            </div>
+
+            <div class="wizard-domain-card" data-domain="security_compliance">
+              <div class="domain-card-header">
+                <span class="domain-icon">🛡️</span>
+                <span class="domain-title">Security &amp; Safety</span>
+              </div>
+              <div class="domain-card-desc">ISO 27001, NIS-2, IEC 62443, Zero-Trust, Audits</div>
+            </div>
+
+            <div class="wizard-domain-card" data-domain="data_ai">
+              <div class="domain-card-header">
+                <span class="domain-icon">🤖</span>
+                <span class="domain-title">KI &amp; Data Engineering</span>
+              </div>
+              <div class="domain-card-desc">MLOps, RAG Pipelines, Agents, PyTorch, Model Drift</div>
+            </div>
+
+            <div class="wizard-domain-card" data-domain="business_roi">
+              <div class="domain-card-header">
+                <span class="domain-icon">📈</span>
+                <span class="domain-title">Business Value &amp; ROI</span>
+              </div>
+              <div class="domain-card-desc">OEE +3.4%, Capex/Opex, 3-Phasen-Roadmap, Rollout</div>
+            </div>
+
+            <div class="wizard-domain-card" data-domain="custom">
+              <div class="domain-card-header">
+                <span class="domain-icon">🌐</span>
+                <span class="domain-title">Freie / Eigene Domäne</span>
+              </div>
+              <div class="domain-card-desc">Individuelle multidisziplinäre Eingabe nach Wunsch</div>
+            </div>
+          </div>
+
+          <!-- Custom Domain Input (conditionally visible) -->
+          <div id="wizard-custom-domain-wrapper" style="display:none; margin-top:8px;">
+            <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Name der freien Domäne:</label>
+            <input type="text" id="wizard-domain-custom-input" class="gate-answer-input" placeholder="z. B. Automotive Powertrain Software oder MedTech Regulatory" />
+          </div>
+
+          <!-- Basic Metadata Grid -->
+          <div style="display:grid; grid-template-columns: 1.5fr 1fr; gap:12px; margin-top:14px;">
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main);">Skill-Bezeichnung / Name *</label>
+              <input type="text" id="wizard-skill-name" class="gate-answer-input" placeholder="z. B. Edge Failover Architekt oder IEC 62443 Auditor" style="width:100%; margin-top:4px;" />
+            </div>
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main);">Kategorie-Zuordnung *</label>
+              <select id="wizard-skill-category" class="gate-answer-input" style="width:100%; margin-top:4px;">
+                <option value="domain_specialist" selected>⚡ Domain Specialist</option>
+                <option value="master_consultant">👑 Master Consultant</option>
+                <option value="critic_validator">🛡️ Critic / Validator</option>
+                <option value="research_analyst">🔬 Research Analyst</option>
+                <option value="tool_specialist">🔧 Tool Specialist</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 1.2fr 1fr; gap:12px; margin-top:10px;">
+            <div>
+              <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Skill-Key (Kennung für Anthropic Bundle) *</label>
+              <input type="text" id="wizard-skill-key" class="gate-answer-input" placeholder="z. B. edge-failover-architekt" style="width:100%; margin-top:4px; font-family:var(--font-mono); font-size:0.84rem;" />
+            </div>
+            <div>
+              <label style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Tags (kommagetrennt für Library-Filter)</label>
+              <input type="text" id="wizard-skill-tags" class="gate-answer-input" placeholder="ot, edge, failover, siemens, realtime" style="width:100%; margin-top:4px;" />
+            </div>
+          </div>
+
+          <div class="wizard-footer-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-wizard-cancel-1">Abbrechen</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-wizard-next-1">
+              Weiter zu Schritt 2 (Rolle &amp; Normen) ➔
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= STEP 2: Rolle & Normen ================= -->
+        <div id="wizard-step-view-2" class="wizard-step-view">
+          <div class="wizard-section-header">
+            👤 2. Spezifische Rolle, Fachaufgaben &amp; Regelwerke:
+          </div>
+
+          <div style="display:flex; flex-direction:column; gap:10px;">
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main);">
+                👤 Spezifische Rolle &amp; Experten-Profil:
+              </label>
+              <input type="text" id="wizard-role-profile" class="gate-answer-input" placeholder="z. B. Leitender Industrie-Edge Architekt für sicherheitskritische Fertigungssysteme" style="width:100%; margin-top:4px;" />
+            </div>
+
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main);">
+                🎯 Hauptaufgaben &amp; Konkrete Zielstellung (Gedanken / Anforderungen):
+              </label>
+              <textarea id="wizard-tasks-goals" class="gate-answer-input" rows="3" placeholder="z. B. Auslegung eines 48h Offline-Ringpuffers auf Siemens Industrial Edge IPCs bei Netzwerk-Totalausfall. Definition von Latenzgrenzen &lt;20ms für Sicherheitsfunktionen und Berechnung des Puffer-Speicherbedarfs." style="width:100%; margin-top:4px; font-size:0.84rem; resize:vertical;"></textarea>
+            </div>
+
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main);">
+                📚 Maßgebliche Regelwerke, Normen, Formeln &amp; Paragraphen:
+              </label>
+              <input type="text" id="wizard-standards-norms" class="gate-answer-input" placeholder="z. B. 'Such Dir die richtigen aus' ODER IEC 62443-4-2, ISA-95, SIMATIC S7-1500, ISO 27001" style="width:100%; margin-top:4px;" />
+            </div>
+
+            <div>
+              <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:6px; display:block;">
+                ⚖️ Gewünschte Prüfmethodik &amp; Tonalität:
+              </label>
+              <div class="wizard-methodology-grid">
+                <div class="wizard-method-card active" data-method="gutachten_ampel">
+                  <span class="method-icon">⚖️</span>
+                  <div class="method-title">Gutachtenstil &amp; Ampel</div>
+                  <div class="method-desc">Obersatz, Subsumtion, Ergebnis &amp; 🟢🟡🔴 Bewertungsmatrix</div>
+                </div>
+                <div class="wizard-method-card" data-method="red_teaming">
+                  <span class="method-icon">🛡️</span>
+                  <div class="method-title">Red-Teaming &amp; Stress-Test</div>
+                  <div class="method-desc">Kritische Gegenprüfung, Schwachstellen &amp; Angriffsvektoren</div>
+                </div>
+                <div class="wizard-method-card" data-method="step_by_step">
+                  <span class="method-icon">📋</span>
+                  <div class="method-title">Schritt-für-Schritt Blueprint</div>
+                  <div class="method-desc">Strikter deterministischer Algorithmus nach Fachnormen</div>
+                </div>
+                <div class="wizard-method-card" data-method="executive_roi">
+                  <span class="method-icon">🚀</span>
+                  <div class="method-title">Executive Roadmap &amp; ROI</div>
+                  <div class="method-desc">Praxisreife Rollout-Phasen, OEE-Steigerung &amp; Business Case</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anthropic Guide Components (Scripts & References) -->
+            <div class="wizard-bundle-options-box">
+              <div style="font-size:0.82rem; font-weight:700; color:var(--text-main); margin-bottom:8px;">
+                📦 Anthropic Best-Practice Komponenten (Automatische Codegenerierung):
+              </div>
+              <div style="display:flex; flex-direction:column; gap:8px;">
+                <label class="wizard-checkbox-label">
+                  <input type="checkbox" id="wizard-toggle-script" checked />
+                  <span>
+                    <strong>🐍 Python-Hilfsskript erzeugen (<code>scripts/routine.py</code>)</strong>
+                    <small style="display:block; color:var(--text-dim); margin-top:2px;">Erzeugt eine deterministische Berechnungs- oder Validierungsroutine (Python 3.11 Standardbibliothek) für exakte Zahlen &amp; Formel-Checks.</small>
+                  </span>
+                </label>
+                <label class="wizard-checkbox-label">
+                  <input type="checkbox" id="wizard-toggle-reference" checked />
+                  <span>
+                    <strong>📚 Referenz-Dokumentation erzeugen (<code>references/spec.md</code>)</strong>
+                    <small style="display:block; color:var(--text-dim); margin-top:2px;">Lagert tiefe Normtabellen und Spezifikationen modular aus (Progressive Disclosure gegen Token-Bloat).</small>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <div class="wizard-footer-actions">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-wizard-back-2">⬅️ Zurück</button>
+            <button type="button" class="btn btn-primary btn-sm" id="btn-wizard-start-synthesis" style="display:flex; align-items:center; gap:6px;">
+              ✨ KI-Synthese durchführen (Schritt 3) 🚀
+            </button>
+          </div>
+        </div>
+
+        <!-- ================= STEP 3: KI-Synthese (Progress Animation) ================= -->
+        <div id="wizard-step-view-3" class="wizard-step-view">
+          <div class="wizard-synthesis-box">
+            <div class="synthesis-rocket-icon">🚀</div>
+            <div class="synthesis-headline" id="synthesis-status-headline">
+              KI-Skill-Synthese nach Anthropic Spec v2.1 läuft...
+            </div>
+            <div class="synthesis-subline" id="synthesis-status-subline">
+              Unsere Gemini Engine generiert das strukturierte YAML-Frontmatter und optimierte Direktiven.
+            </div>
+
+            <div class="synthesis-steps-tracker">
+              <div class="synthesis-tracker-row completed" id="st-step-1">
+                <span class="st-icon">✓</span>
+                <span>Domäne, Rolle und Expertenprofil erfasst</span>
+              </div>
+              <div class="synthesis-tracker-row active" id="st-step-2">
+                <span class="st-icon">⏳</span>
+                <span>YAML Frontmatter &amp; Trigger-Phrasen formatieren</span>
+              </div>
+              <div class="synthesis-tracker-row" id="st-step-3">
+                <span class="st-icon">○</span>
+                <span>Handlungsanweisungen, Leitplanken &amp; Ampel-Matrix ausarbeiten</span>
+              </div>
+              <div class="synthesis-tracker-row" id="st-step-4">
+                <span class="st-icon">○</span>
+                <span>Deterministische Python-Routinen (scripts/) kompilieren</span>
+              </div>
+              <div class="synthesis-tracker-row" id="st-step-5">
+                <span class="st-icon">○</span>
+                <span>Referenz-Spezifikation (references/) paketieren</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ================= STEP 4: Vorschau, Scripts & Speichern ================= -->
+        <div id="wizard-step-view-4" class="wizard-step-view">
+          <!-- Header Bar with Token Estimator & Badges -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);" id="wizard-preview-title">
+                ✨ Synthetisiertes Skill-Paket
+              </span>
+              <span class="brand-badge" style="font-size:0.7rem; background:rgba(16,185,129,0.15); color:#10b981; border-color:rgba(16,185,129,0.3);">
+                Anthropic Spec v2.1
+              </span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="wizard-token-counter" id="wizard-token-badge">⚡ ~850 Tokens (Optimiert)</span>
+            </div>
+          </div>
+
+          <!-- Tab Bar -->
+          <div class="wizard-output-tabs-bar">
+            <button type="button" class="wizard-tab-btn active" data-tab="skill_md">
+              📝 SKILL.md (Hauptprompt)
+            </button>
+            <button type="button" class="wizard-tab-btn" data-tab="script_code" id="wizard-tab-script-btn">
+              🐍 scripts/routine.py
+            </button>
+            <button type="button" class="wizard-tab-btn" data-tab="reference_md" id="wizard-tab-ref-btn">
+              📚 references/spec.md
+            </button>
+            <button type="button" class="wizard-tab-btn" data-tab="html_preview">
+              👁️ Live HTML-Vorschau
+            </button>
+          </div>
+
+          <!-- Tab Panes -->
+          <div class="wizard-output-panes-wrapper">
+            <!-- Pane 1: SKILL.md -->
+            <div class="wizard-output-pane active" id="wizard-pane-skill-md">
+              <textarea id="wizard-output-skill-md" class="editor-code-textarea" spellcheck="false" style="height:340px; font-size:0.82rem;"></textarea>
+            </div>
+
+            <!-- Pane 2: script_code -->
+            <div class="wizard-output-pane" id="wizard-pane-script-code">
+              <textarea id="wizard-output-script-code" class="editor-code-textarea" spellcheck="false" style="height:340px; font-size:0.82rem;" placeholder="# Keine Python-Routine generiert"></textarea>
+            </div>
+
+            <!-- Pane 3: reference_md -->
+            <div class="wizard-output-pane" id="wizard-pane-reference-md">
+              <textarea id="wizard-output-reference-md" class="editor-code-textarea" spellcheck="false" style="height:340px; font-size:0.82rem;" placeholder="# Keine Referenz-Spezifikation generiert"></textarea>
+            </div>
+
+            <!-- Pane 4: Live HTML Preview -->
+            <div class="wizard-output-pane" id="wizard-pane-html-preview">
+              <div id="wizard-output-preview-html" class="editor-preview-pane markdown-body" style="height:340px; overflow-y:auto;"></div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="wizard-footer-actions" style="margin-top:12px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <input type="checkbox" id="wizard-auto-activate-project" checked style="cursor:pointer;" />
+              <label for="wizard-auto-activate-project" style="font-size:0.8rem; color:var(--text-main); cursor:pointer;">
+                Sofort für aktives Case-Projekt aktivieren
+              </label>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-wizard-back-4">⬅️ Zurück zu Eingaben</button>
+              <button type="button" class="btn btn-primary btn-sm" id="btn-wizard-save-package" style="display:flex; align-items:center; gap:6px;">
+                💾 Skill im Katalog speichern &amp; aktivieren
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
   <!-- Fachagenten-Katalog & Kachel-Auswahl-Modal (Sprint 10 & 11) -->
   <div id="agent-tile-modal-overlay" class="modal-overlay">
     <div class="modal-card agent-tile-modal-card">
