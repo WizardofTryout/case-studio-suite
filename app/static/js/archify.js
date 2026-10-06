@@ -8,13 +8,15 @@
  */
 
 const ArchifyUI = {
+  _eventsBound: false,
   state: {
     enabled: false,
     available: false,
     activeTab: "mermaid", // "mermaid" | "archify"
     currentArtifactId: null,
     projectArtifacts: [],
-    selectedNode: null
+    selectedNode: null,
+    isGenerating: false
   },
 
   async init() {
@@ -41,6 +43,9 @@ const ArchifyUI = {
   },
 
   bindEvents() {
+    if (this._eventsBound) return;
+    this._eventsBound = true;
+
     // Segmented Control Tabs
     const btnMermaid = document.getElementById("tab-btn-mermaid");
     const btnArchify = document.getElementById("tab-btn-archify");
@@ -255,8 +260,20 @@ const ArchifyUI = {
   },
 
   async handleGenerate() {
+    if (this.state.isGenerating) return;
+    this.state.isGenerating = true;
+
+    const btn = document.getElementById("btn-submit-archify-generate");
+    const origBtnHtml = btn ? btn.innerHTML : "";
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-icon"></span> <span>Wird generiert...</span>`;
+    }
+
     const projectId = window.App?.state?.currentProjectId || window.App?.state?.currentProject?.id;
     if (!projectId) {
+      this.state.isGenerating = false;
+      if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; }
       if (window.showToast) window.showToast("Kein aktives Projekt ausgewählt.", "error");
       return;
     }
@@ -268,18 +285,13 @@ const ArchifyUI = {
     const sessionId = window.App?.state?.currentSessionId || null;
 
     if (!question) {
+      this.state.isGenerating = false;
+      if (btn) { btn.disabled = false; btn.innerHTML = origBtnHtml; }
       if (window.showToast) window.showToast("Bitte gib eine Fragestellung für den Deep-Dive ein.", "warning");
       return;
     }
 
-    const btn = document.getElementById("btn-submit-archify-generate");
     const statusText = document.getElementById("archify-modal-status");
-    const origBtnHtml = btn ? btn.innerHTML : "";
-
-    if (btn) {
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-icon"></span> <span>Wird generiert...</span>`;
-    }
     if (statusText) {
       statusText.style.display = "block";
       const titleEl = statusText.querySelector(".catalog-loading-title-text");
@@ -313,6 +325,7 @@ const ArchifyUI = {
     } catch (err) {
       if (window.showToast) window.showToast("Fehler: " + err.message, "error");
     } finally {
+      this.state.isGenerating = false;
       if (btn) {
         btn.disabled = false;
         btn.innerHTML = origBtnHtml;

@@ -36,11 +36,18 @@ class KeyInfo:
         if self.status == KeyStatus.HEALTHY:
             return True
         if self.status == KeyStatus.COOLDOWN:
-            # Check if 60s cooldown has expired
+            # Check if cooldown has expired
             if time.time() >= self.cooldown_until:
                 self.status = KeyStatus.HEALTHY
                 self.cooldown_until = 0.0
                 logger.info(f"API key {self.masked_key} cooldown expired. Restored to HEALTHY.")
+                return True
+        if self.status == KeyStatus.ERROR:
+            # Auto-recovery: after 180s, give key another chance
+            if self.cooldown_until > 0 and time.time() >= self.cooldown_until:
+                self.status = KeyStatus.HEALTHY
+                self.cooldown_until = 0.0
+                logger.info(f"API key {self.masked_key} auto-recovered from ERROR. Restored to HEALTHY.")
                 return True
         return False
 
@@ -140,6 +147,11 @@ class GeminiKeyPool:
                 attempts += 1
                 
                 if candidate.is_available():
+                    now = time.time()
+                    if candidate.last_used_at > 0:
+                        elapsed = now - candidate.last_used_at
+                        if elapsed < 2.0:
+                            await asyncio.sleep(2.0 - elapsed)
                     candidate.request_count += 1
                     candidate.last_used_at = time.time()
                     return candidate
@@ -153,7 +165,7 @@ class GeminiKeyPool:
                 if wait_time <= 0:
                     best.status = KeyStatus.HEALTHY
                     return best
-                if wait_time <= 8.0:
+                if wait_time <= 15.0:
                     logger.warning(f"All keys in cooldown. Waiting {wait_time:.1f}s for {best.masked_key}")
                     await asyncio.sleep(wait_time)
                     best.status = KeyStatus.HEALTHY
@@ -172,12 +184,13 @@ class GeminiKeyPool:
                 break
 
     def mark_error(self, key_str: str) -> None:
-        """Mark a key as permanently errored (e.g. invalid key)."""
+        """Mark a key as errored (e.g. invalid key) with 180s auto-recovery window."""
         for k in self.keys:
             if k.key == key_str:
                 k.status = KeyStatus.ERROR
+                k.cooldown_until = time.time() + 180.0
                 k.error_count += 1
-                logger.error(f"API key {k.masked_key} marked as ERROR.")
+                logger.error(f"API key {k.masked_key} marked as ERROR (auto-retry in 180s).")
                 break
 
     def mark_success(self, key_str: str) -> None:
@@ -356,7 +369,7 @@ class GeminiKeyPool:
         system_instruction: Optional[str] = None,
         model: Optional[str] = None,
         temperature: float = 0.4,
-        max_output_tokens: int = 8192,
+        max_output_tokens: int = 2048,
         response_mime_type: Optional[str] = None,
         timeout_seconds: float = 90.0
     ) -> str:
@@ -365,7 +378,7 @@ class GeminiKeyPool:
         """
         chosen_model = model or settings.fallback_model
         models_to_try = [chosen_model]
-        for cand in ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]:
+        for cand in ["gemini-3.5-flash-lite", "gemini-3.8-flash"]:
             if cand not in models_to_try:
                 models_to_try.append(cand)
 
@@ -407,14 +420,25 @@ class GeminiKeyPool:
                         response = await client.post(url, headers=headers, json=payload)
                         if response.status_code == 429:
                             self.mark_cooldown(key_info.key, 60.0)
-                            await asyncio.sleep(0.02)
+                            await asyncio.sleep(0.05)
                             continue
                         if response.status_code == 503:
-                            logger.warning(f"Google 503 on {current_model}. Switching model...")
+                            logger.warning(f"Google 503 (High Demand) on {current_model}. Switching model...")
                             break
-                        if response.status_code in (400, 401, 403, 404):
-                            logger.warning(f"Google HTTP {response.status_code} for key {key_info.masked_key} on {current_model}.")
-                            self.mark_error(key_info.key)
+                        if response.status_code == 404:
+                            logger.warning(f"Google 404 (Model not found/deprecated) on {current_model}. Switching model...")
+                            break
+                        if response.status_code == 400:
+                            logger.warning(f"Google 400 (Bad Request) on {current_model}: {response.text[:200]}")
+                            break
+                        if response.status_code in (401, 403):
+                            err_txt = response.text
+                            if "RESOURCE_EXHAUSTED" in err_txt or "quota" in err_txt.lower():
+                                logger.warning(f"Quota exhausted (HTTP {response.status_code}) on key {key_info.masked_key}. Cooldown for 60s.")
+                                self.mark_cooldown(key_info.key, 60.0)
+                            else:
+                                logger.error(f"Auth error HTTP {response.status_code} on key {key_info.masked_key}: {err_txt[:200]}")
+                                self.mark_error(key_info.key)
                             continue
                         if response.status_code != 200:
                             continue

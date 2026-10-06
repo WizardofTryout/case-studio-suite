@@ -13,7 +13,7 @@ from app.core.gemini_pool import key_pool
 from app.db import repositories
 from app.services.archify_service import archify_client
 from app.services.archify_recipes import get_recipe, ARCHIFY_RECIPES
-from app.services.archify_sanitizer import sanitize_archify_spec
+from app.services.archify_sanitizer import sanitize_archify_spec, apply_archify_diagnostic_fixes
 from app.services.mermaid_subgraph import extract_node_subgraph_context
 
 logger = logging.getLogger("case_studio.deep_dive")
@@ -143,38 +143,39 @@ async def generate_deep_dive(req: DeepDiveGenerateRequest):
                 "question": cached["question"]
             }
 
-    # 5. LLM Prompt zusammenstellen
+    # 5. LLM Prompt zusammenstellen (Token-ökonomisch gestrafft)
     lang_name = "Deutsch" if lang == "de" else "English"
+    raw_lines = subgraph_ctx.get('raw_context_lines', [])[:8]
     user_prompt = f"""
-Kontext des Systems:
-- Projekt: {proj.get('name')} (Branche: {proj.get('industry')})
+Kontext:
+- Projekt: {proj.get('name')} ({proj.get('industry')})
 - Fokus-Knoten: {req.node_name} (ID: {req.node_id})
-- Benutzerfrage: "{req.question}"
+- Frage: "{req.question}"
 - Zielsprache: {lang_name}
 
-Gefundene Nachbarschaft und Relationen im Mermaid-Diagramm:
+Topologie-Kontext:
 - Subgraphs: {', '.join(subgraph_ctx.get('subgraphs', []))}
-- Eingehende Kanten: {json.dumps(subgraph_ctx.get('incoming', []))}
-- Ausgehende Kanten: {json.dumps(subgraph_ctx.get('outgoing', []))}
-- Kontext-Zeilen:
-{chr(10).join(subgraph_ctx.get('raw_context_lines', []))}
+- Eingehend: {json.dumps(subgraph_ctx.get('incoming', []))}
+- Ausgehend: {json.dumps(subgraph_ctx.get('outgoing', []))}
+{chr(10).join(raw_lines)}
 
 AUFGABE:
-Erstelle eine vollständige und valide Archify '{diagram_type}' Spezifikation, die diese Fragestellung im Detail visualisiert.
-Alle Bezeichner und Erklärungen MÜSSEN auf {lang_name} sein!
+Erstelle eine kompakte, valide Archify '{diagram_type}' JSON-Spezifikation zur Visualisierung dieser Fragestellung.
+Alle Bezeichner auf {lang_name}. Nur JSON ausgeben!
 """
 
     logger.info(f"[DeepDive] Starte LLM-Generierung für Node '{req.node_name}' ({diagram_type})...")
 
-    # 6. Runde 1: LLM-Generierung
+    # 6. Runde 1: LLM-Generierung (gestrafft auf max 1500 Output-Tokens)
     spec_json = None
     try:
         raw_llm = await key_pool.generate(
             contents=[{"role": "user", "parts": [{"text": user_prompt}]}],
             system_instruction=recipe["system_prompt"],
-            temperature=0.2,
+            temperature=0.1,
+            max_output_tokens=1500,
             response_mime_type="application/json",
-            timeout_seconds=45.0
+            timeout_seconds=30.0
         )
         parsed = json.loads(clean_llm_json(raw_llm))
         spec_json = sanitize_archify_spec(diagram_type, parsed)
@@ -183,44 +184,56 @@ Alle Bezeichner und Erklärungen MÜSSEN auf {lang_name} sein!
         raise HTTPException(status_code=502, detail=f"LLM Generierung fehlgeschlagen: {str(e)}")
 
     # 7. Render-Versuch 1 am Sidecar
-    render_res = await archify_client.render(diagram_type, spec_json, quality="showcase")
+    render_res = await archify_client.render(diagram_type, spec_json, quality="standard")
 
-    # 8. Runde 2: Automatische Reparaturschleife bei Validierungsfehlern (HTTP 422)
+    # 8. Reparaturschleife bei Validierungsfehlern (HTTP 422)
     if not render_res.get("success") and render_res.get("stage") == "validate":
         diagnostics = render_res.get("diagnostics", [])
         logger.warning(f"[DeepDive] Validierungsfehler in Runde 1: {len(diagnostics)} Diagnostics: {json.dumps(diagnostics)}")
 
-        repair_prompt = f"""
-Deine zuvor generierte Archify JSON-Spezifikation enthält Validierungsfehler:
-{json.dumps(diagnostics, indent=2)}
+        # 8a. Zuerst deterministischer Sofort-Fix (0 LLM-Tokens verbraucht!)
+        try:
+            fixed_spec = apply_archify_diagnostic_fixes(diagram_type, spec_json, diagnostics)
+            render_auto = await archify_client.render(diagram_type, fixed_spec, quality="standard")
+            if render_auto.get("success"):
+                logger.info("[DeepDive] Deterministischer Diagnostic-Fix erfolgreich! 0 LLM-Tokens verbraucht.")
+                render_res = render_auto
+                spec_json = fixed_spec
+        except Exception as auto_err:
+            logger.warning(f"[DeepDive] Automatischer Diagnostic-Fix fehlgeschlagen: {auto_err}")
+
+        # 8b. Nur falls weiterhin Fehler: LLM-Reparatur
+        if not render_res.get("success"):
+            diag_hints = [f"- {d.get('message', str(d))}" for d in diagnostics[:2]]
+            repair_prompt = f"""
+Korrigiere folgende Validierungsfehler im JSON:
+{chr(10).join(diag_hints)}
 
 Bisheriges JSON:
-{json.dumps(spec_json, indent=2)}
+{json.dumps(spec_json)}
 
-Bitte korrigiere ALLE genannten Fehler präzise und gib die reparierte Spezifikation als valides JSON zurück.
-schema_version MUSS 1 sein. diagram_type MUSS '{diagram_type}' sein.
-Komponenten-Typen dürfen NUR sein: 'frontend', 'backend', 'database', 'cloud', 'security', 'messagebus', 'external'.
-IDs dürfen KEINE Leerzeichen oder Sonderzeichen enthalten.
+Gib ausschließlich das reparierte JSON zurück.
+schema_version: 1, diagram_type: '{diagram_type}'.
 """
-        try:
-            repaired_raw = await key_pool.generate(
-                contents=[{"role": "user", "parts": [{"text": repair_prompt}]}],
-                system_instruction=recipe["system_prompt"],
-                temperature=0.1,
-                response_mime_type="application/json",
-                timeout_seconds=45.0
-            )
-            repaired_parsed = json.loads(clean_llm_json(repaired_raw))
-            spec_json = sanitize_archify_spec(diagram_type, repaired_parsed)
-            render_res = await archify_client.render(diagram_type, spec_json, quality="showcase")
-            logger.info(f"[DeepDive] Reparaturschleife Runde 2 Ergebnis: success={render_res.get('success')}")
-        except Exception as e:
-            logger.error(f"[DeepDive] Reparaturschleife Fehler: {e}")
-            # Fallback: Versuche erneut mit bereinigtem Spec_json aus Runde 1
-            render_res = await archify_client.render(diagram_type, sanitize_archify_spec(diagram_type, spec_json), quality="showcase")
+            try:
+                repaired_raw = await key_pool.generate(
+                    contents=[{"role": "user", "parts": [{"text": repair_prompt}]}],
+                    system_instruction=recipe["system_prompt"],
+                    temperature=0.1,
+                    max_output_tokens=1500,
+                    response_mime_type="application/json",
+                    timeout_seconds=30.0
+                )
+                repaired_parsed = json.loads(clean_llm_json(repaired_raw))
+                spec_json = sanitize_archify_spec(diagram_type, repaired_parsed)
+                render_res = await archify_client.render(diagram_type, spec_json, quality="standard")
+                logger.info(f"[DeepDive] Reparaturschleife Runde 2 Ergebnis: success={render_res.get('success')}")
+            except Exception as e:
+                logger.error(f"[DeepDive] Reparaturschleife Fehler: {e}")
+                render_res = await archify_client.render(diagram_type, sanitize_archify_spec(diagram_type, spec_json), quality="standard")
 
     if not render_res.get("success"):
-        err_msg = render_res.get("error") or "Archify Validierung konnte auch nach 2 Runden nicht erfüllt werden."
+        err_msg = render_res.get("error") or "Archify Validierung konnte auch nach Reparatur nicht erfüllt werden."
         raise HTTPException(status_code=422, detail=f"Visualisierung fehlgeschlagen: {err_msg}")
 
     html_content = render_res["html"]

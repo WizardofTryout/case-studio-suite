@@ -46,6 +46,29 @@ def clean_id(raw_id: Any) -> str:
     return cleaned
 
 
+def split_long_label(raw_label: Any, max_len: int = 15) -> tuple[str, Optional[str]]:
+    """Kürzt lange Labels auf max_len (z. B. für Box-Constraints in Archify) und lagert den Rest in sublabel aus."""
+    text = str(raw_label or "").strip()
+    if len(text) <= max_len:
+        return text, None
+
+    words = text.split()
+    short = ""
+    for w in words:
+        if not short:
+            short = w
+        elif len(short) + 1 + len(w) <= max_len:
+            short += " " + w
+        else:
+            break
+
+    if not short or len(short) > max_len:
+        short = text[:max_len]
+
+    extra = text[len(short):].strip(" -:&,/")
+    return short, extra if extra else None
+
+
 def normalize_type(raw_type: Any) -> str:
     """Normalisiert beliebige Komponententypen auf die 7 Archify Kern-Typen."""
     t = str(raw_type or "").strip().lower()
@@ -82,7 +105,7 @@ def _sanitize_meta(raw_meta: Any, default_title: str) -> Dict[str, Any]:
     clean_meta: Dict[str, Any] = {
         "title": title,
         "output": "diagram.html",
-        "quality_profile": "showcase"
+        "quality_profile": "standard"
     }
     if meta.get("subtitle") and isinstance(meta["subtitle"], str):
         clean_meta["subtitle"] = meta["subtitle"].strip()
@@ -137,16 +160,20 @@ def _sanitize_architecture(spec: Dict[str, Any]) -> Dict[str, Any]:
             except (ValueError, TypeError):
                 size = [140, 60]
 
+        raw_label = str(c.get("label") or cid).strip() or cid
+        short_lbl, extra_sub = split_long_label(raw_label, 18)
+        sublabel = c.get("sublabel") or extra_sub
+
         comp_dict: Dict[str, Any] = {
             "id": cid,
             "type": normalize_type(c.get("type")),
-            "label": str(c.get("label") or cid).strip() or cid,
+            "label": short_lbl,
             "pos": pos,
             "size": size
         }
 
-        if c.get("sublabel") and isinstance(c["sublabel"], str):
-            comp_dict["sublabel"] = c["sublabel"].strip()
+        if sublabel and isinstance(sublabel, str):
+            comp_dict["sublabel"] = str(sublabel).strip()
         if c.get("tag") and isinstance(c["tag"], str):
             comp_dict["tag"] = c["tag"].strip()
 
@@ -277,7 +304,7 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
         seen_ids.add(nid)
         id_map[str(orig_id)] = nid
 
-        # Stage zuweisen
+        # Stage zuweisen - maximal 2 Nodes pro Stage, damit keine Kanten Zwischenknoten kreuzen
         stage_idx = 0
         if "stage" in n:
             try:
@@ -287,18 +314,26 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
         else:
             stage_idx = idx % len(clean_stages)
 
+        if stage_row_counts.get(stage_idx, 0) >= 2:
+            stage_idx = (stage_idx + 1) % len(clean_stages)
+
         row_idx = stage_row_counts.get(stage_idx, 0)
         stage_row_counts[stage_idx] = row_idx + 1
+
+        raw_label = str(n.get("label") or nid).strip() or nid
+        short_lbl, extra_sub = split_long_label(raw_label, 14)
+        sublabel = n.get("sublabel") or extra_sub
 
         node_dict: Dict[str, Any] = {
             "id": nid,
             "type": normalize_type(n.get("type")),
-            "label": str(n.get("label") or nid).strip() or nid,
+            "label": short_lbl,
             "stage": stage_idx,
             "row": row_idx
         }
-        if n.get("sublabel") and isinstance(n["sublabel"], str):
-            node_dict["sublabel"] = n["sublabel"].strip()
+        if sublabel and isinstance(sublabel, str):
+            clean_sub = str(sublabel).strip()
+            node_dict["sublabel"] = clean_sub[:18].strip()
 
         sanitized_nodes.append(node_dict)
 
@@ -312,6 +347,8 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
     # Flows
     flows_raw = spec.get("flows", []) or spec.get("streams", []) or spec.get("connections", [])
     sanitized_flows = []
+    seen_flow_sources: Dict[str, int] = {}
+
     if isinstance(flows_raw, list):
         for idx, fl in enumerate(flows_raw):
             if not isinstance(fl, dict):
@@ -324,14 +361,48 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
             if from_id not in seen_ids or to_id not in seen_ids or from_id == to_id:
                 continue
 
+            raw_fl = str(fl.get("label") or "Stream").strip() or "Stream"
+            flow_label = raw_fl[:10].strip() if len(raw_fl) > 10 else raw_fl
+
+            from_node = next((n for n in sanitized_nodes if n["id"] == from_id), None)
+            to_node = next((n for n in sanitized_nodes if n["id"] == to_id), None)
+
+            src_count = seen_flow_sources.get(from_id, 0)
+            seen_flow_sources[from_id] = src_count + 1
+
             flow_dict: Dict[str, Any] = {
                 "id": clean_id(fl.get("id") or f"flow_{idx+1}"),
                 "from": from_id,
                 "to": to_id,
-                "label": str(fl.get("label") or "Event-Stream").strip() or "Event-Stream"
+                "label": flow_label or "Stream"
             }
             if fl.get("variant") in VALID_VARIANTS:
                 flow_dict["variant"] = fl["variant"]
+
+            # Prevent overlap on vertical flows (same stage)
+            if fl.get("labelDy") is not None:
+                try:
+                    flow_dict["labelDy"] = float(fl["labelDy"])
+                except (ValueError, TypeError):
+                    pass
+            elif from_node and to_node and from_node.get("stage") == to_node.get("stage"):
+                # Vertical flow in same stage: offset label downwards by 25px so it doesn't overlap source node
+                flow_dict["labelDy"] = 25.0
+            elif src_count > 0:
+                # Multiple flows from same node: stagger labelDy to avoid label collisions
+                flow_dict["labelDy"] = 22.0 if src_count % 2 == 1 else -22.0
+
+            if fl.get("labelDx") is not None:
+                try:
+                    flow_dict["labelDx"] = float(fl["labelDx"])
+                except (ValueError, TypeError):
+                    pass
+
+            if fl.get("labelAt") is not None and isinstance(fl["labelAt"], list) and len(fl["labelAt"]) == 2:
+                try:
+                    flow_dict["labelAt"] = [float(fl["labelAt"][0]), float(fl["labelAt"][1])]
+                except (ValueError, TypeError):
+                    pass
 
             sanitized_flows.append(flow_dict)
 
@@ -340,7 +411,8 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
             "id": "flow_1",
             "from": sanitized_nodes[0]["id"],
             "to": sanitized_nodes[1]["id"],
-            "label": "Event Stream"
+            "label": "Stream",
+            "labelDy": 25.0
         })
 
     return {
@@ -376,13 +448,17 @@ def _sanitize_sequence(spec: Dict[str, Any]) -> Dict[str, Any]:
         seen_ids.add(pid)
         id_map[str(orig_id)] = pid
 
+        raw_label = str(p.get("label") or pid).strip() or pid
+        short_lbl, extra_sub = split_long_label(raw_label, 16)
+        sublabel = p.get("sublabel") or extra_sub
+
         part_dict: Dict[str, Any] = {
             "id": pid,
             "type": normalize_type(p.get("type")),
-            "label": str(p.get("label") or pid).strip() or pid
+            "label": short_lbl
         }
-        if p.get("sublabel") and isinstance(p["sublabel"], str):
-            part_dict["sublabel"] = p["sublabel"].strip()
+        if sublabel and isinstance(sublabel, str):
+            part_dict["sublabel"] = str(sublabel).strip()
 
         sanitized_participants.append(part_dict)
 
@@ -449,3 +525,92 @@ def _sanitize_sequence(spec: Dict[str, Any]) -> Dict[str, Any]:
         "participants": sanitized_participants,
         "messages": sanitized_messages
     }
+
+
+def apply_archify_diagnostic_fixes(diagram_type: str, spec: Dict[str, Any], diagnostics: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Parst Archify Validierungs-Diagnostics und wendet die von Archify
+    bereits exakt vorberechneten geometrischen Korrekturen
+    (z. B. Suggested fix: set labelDy 25 oder set labelAt [100, 201])
+    direkt auf das JSON an. Verhindert unnötige LLM-Aufrufe und spart 100% Token.
+    """
+    if not isinstance(spec, dict) or not diagnostics:
+        return spec
+
+    import copy
+    import re
+    res = copy.deepcopy(spec)
+
+    for diag in diagnostics:
+        msg = str(diag.get("message") or "")
+        if not msg:
+            continue
+
+        # 1. Label overlap with node: "Label \"...\" overlaps node \"...\""
+        if "overlaps node" in msg:
+            lbl_match = re.search(r'Label\s+"([^"]+)"\s+overlaps\s+node\s+"([^"]+)"', msg)
+            lbl_name = lbl_match.group(1) if lbl_match else None
+
+            # Suche nach Suggested fix: set labelAt [x, y]
+            at_match = re.search(r'set labelAt\s*\[\s*(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)\s*\]', msg)
+            # Suche nach Suggested fix: set labelDy N
+            dy_match = re.search(r'set labelDy\s*(-?\d+(?:\.\d+)?)', msg)
+            dx_match = re.search(r'set labelDx\s*(-?\d+(?:\.\d+)?)', msg)
+
+            target_items = res.get("flows", []) if diagram_type == "dataflow" else res.get("connections", [])
+            for item in target_items:
+                i_lbl = str(item.get("label") or "")
+                if not lbl_name or lbl_name in i_lbl or i_lbl in lbl_name:
+                    if at_match:
+                        item["labelAt"] = [float(at_match.group(1)), float(at_match.group(2))]
+                        item.pop("labelDy", None)
+                        item.pop("labelDx", None)
+                    elif dy_match:
+                        item["labelDy"] = float(dy_match.group(1))
+                    elif dx_match:
+                        item["labelDx"] = float(dx_match.group(1))
+                    else:
+                        item["labelDy"] = 25.0
+
+        # 2. Labels overlap each other: "Labels \"A\" and \"B\" overlap"
+        elif "overlap" in msg and "Labels" in msg:
+            dy_match = re.search(r'set labelDy\s*(-?\d+(?:\.\d+)?)', msg)
+            lbl_match = re.search(r'Labels\s+"([^"]+)"\s+and\s+"([^"]+)"\s+overlap', msg)
+            second_lbl = lbl_match.group(2) if lbl_match else None
+
+            target_items = res.get("flows", []) if diagram_type == "dataflow" else res.get("connections", [])
+            for item in target_items:
+                i_lbl = str(item.get("label") or "")
+                if not second_lbl or second_lbl in i_lbl or i_lbl in second_lbl:
+                    if dy_match:
+                        item["labelDy"] = float(dy_match.group(1))
+                    else:
+                        curr_dy = float(item.get("labelDy") or 0)
+                        item["labelDy"] = curr_dy + 25.0
+
+        # 3. Label is wider than node
+        elif "is wider than node" in msg:
+            node_match = re.search(r'wider than node\s+"([^"]+)"\s+\((\d+)px\)', msg)
+            if node_match:
+                nid = node_match.group(1)
+                nodes_list = res.get("nodes", []) if diagram_type == "dataflow" else res.get("components", [])
+                for nd in nodes_list:
+                    if nd.get("id") == nid:
+                        raw_l = str(nd.get("label") or "")
+                        if len(raw_l) > 10:
+                            nd["label"] = raw_l[:10]
+                        else:
+                            nd["width"] = int(node_match.group(2)) + 30
+
+        # 4. Sublabel needs ~Xpx at legible minimum:
+        elif "needs ~" in msg and "shorten" in msg:
+            node_match = re.search(r'node\s+"([^"]+)"', msg)
+            if node_match:
+                nid = node_match.group(1)
+                nodes_list = res.get("nodes", []) if diagram_type == "dataflow" else res.get("components", [])
+                for nd in nodes_list:
+                    if nd.get("id") == nid and nd.get("sublabel"):
+                        nd["sublabel"] = str(nd["sublabel"])[:14]
+
+    return res
+

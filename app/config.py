@@ -19,9 +19,9 @@ class Settings(BaseSettings):
     # Gemini API keys (comma-separated)
     gemini_api_keys: str = os.getenv("GEMINI_API_KEYS", "")
     
-    # Models
-    default_model: str = os.getenv("DEFAULT_MODEL", "gemini-2.5-pro")
-    fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini-2.5-flash")
+    # Models (Optimiert auf Token-Ökonomie und breite Key-Kompatibilität)
+    default_model: str = os.getenv("DEFAULT_MODEL", "gemini-3.5-flash-lite")
+    fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini-3.5-flash-lite")
 
     # Archify Sidecar Add-on Settings
     archify_enabled: bool = os.getenv("ARCHIFY_ENABLED", "true").lower() in ("true", "1", "yes")
