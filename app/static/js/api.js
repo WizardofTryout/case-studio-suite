@@ -605,6 +605,43 @@ const API = {
       throw new Error(err.detail || "Fragen-Generierung fehlgeschlagen");
     }
     return await res.json();
+  },
+
+  // --- Archify Deep-Dive Add-on APIs ---
+  async getDeepDiveStatus() {
+    try {
+      const res = await fetch("/api/deep-dive/status");
+      if (!res.ok) return { enabled: false, available: false };
+      return await res.json();
+    } catch (_) {
+      return { enabled: false, available: false };
+    }
+  },
+
+  async listDeepDiveArtifacts(projectId, phase = null, nodeId = null) {
+    let url = `/api/deep-dive/list?project_id=${encodeURIComponent(projectId)}`;
+    if (phase !== null && phase !== undefined) url += `&phase=${encodeURIComponent(phase)}`;
+    if (nodeId) url += `&node_id=${encodeURIComponent(nodeId)}`;
+    const res = await fetch(url);
+    if (!res.ok) return { count: 0, artifacts: [] };
+    return await res.json();
+  },
+
+  async generateDeepDive(payload) {
+    if (typeof payload === "object" && payload !== null && !payload.language) {
+      payload.language = (window.I18n ? window.I18n.currentLang : "de");
+    }
+    const res = await fetch("/api/deep-dive/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Deep-Dive Generierung fehlgeschlagen");
+    }
+    return await res.json();
   }
 };
+
 

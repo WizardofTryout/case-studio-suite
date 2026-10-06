@@ -181,9 +181,15 @@ const App = {
     await this.initModelSelector();
     await this.loadDeliberationTeam();
     
+    // Archify Deep-Dive UI initialisieren
+    if (window.ArchifyUI && typeof window.ArchifyUI.init === "function") {
+      await window.ArchifyUI.init();
+    }
+
     // Auto-refresh telemetry every 20 seconds
     setInterval(() => this.refreshTelemetry(), 20000);
   },
+
 
   bindEvents() {
     // Nav tabs
@@ -784,7 +790,13 @@ const App = {
     if (window.GraphViewer && typeof window.GraphViewer.renderGraph === "function") {
       window.GraphViewer.renderGraph("");
     }
+
+    // 9. Archify Deep-Dive UI und Viewport sauber zurücksetzen
+    if (window.ArchifyUI && typeof window.ArchifyUI.reset === "function") {
+      window.ArchifyUI.reset();
+    }
   },
+
 
   async selectProject(projectId) {
     this.state.currentProjectId = projectId;
@@ -862,6 +874,12 @@ const App = {
       await this.switchPhase(1, false);
       GraphViewer.renderGraph("");
     }
+
+    // 10. Archify Showcases & Chronik für das ausgewählte Projekt laden
+    if (window.ArchifyUI && typeof window.ArchifyUI.loadProjectArtifacts === "function") {
+      window.ArchifyUI.loadProjectArtifacts(projectId, this.state.currentPhase);
+    }
+
 
     await this.loadProjectDocuments();
     await this.loadProjectSkills();

@@ -106,6 +106,20 @@
       "inspector_send_btn": "🚀 Senden",
       "inspector_citations_title": "FUNDSTELLEN & WÖRTLICHE BELEGE (PROJEKT-DMS)",
 
+      // Archify Showcase & Dual-Engine
+      "tab_mermaid_flow": "📊 Mermaid Flow",
+      "tab_archify_showcase": "🔍 Archify Showcase",
+      "inspector_deepdive_btn": "🔍 Archify Deep-Dive",
+      "archify_modal_title": "Archify Deep-Dive Visualisierung",
+      "archify_modal_subtitle": "Erzeuge ein interaktives Sub-Diagramm (Architecture, Dataflow oder Sequence) für diesen Knoten",
+      "archify_question_label": "Was soll dieses Sub-Diagramm im Detail erklären?",
+      "archify_type_label": "Diagramm-Typ:",
+      "archify_btn_generate": "🚀 Deep-Dive erzeugen",
+      "archify_loading": "Archify berechnet Traces & Komponenten...",
+      "archify_history_title": "Bisherige Deep-Dives zu diesem Baustein:",
+      "archify_empty_history": "Noch keine Deep-Dives für diesen Knoten vorhanden.",
+
+
       // Decision Gates
       "decision_gates_title": "Master-Consultant Decision Gates",
       "decision_gates_pending": "Kunden-Rückfragen",
@@ -235,6 +249,20 @@
       "inspector_evidence_tab": "Evidence & Citations",
       "inspector_send_btn": "🚀 Send",
       "inspector_citations_title": "EVIDENCE & LITERAL CITATIONS (PROJECT DMS)",
+
+      // Archify Showcase & Dual-Engine
+      "tab_mermaid_flow": "📊 Mermaid Flow",
+      "tab_archify_showcase": "🔍 Archify Showcase",
+      "inspector_deepdive_btn": "🔍 Archify Deep-Dive",
+      "archify_modal_title": "Archify Deep-Dive Visualization",
+      "archify_modal_subtitle": "Generate an interactive sub-diagram (Architecture, Dataflow, or Sequence) for this node",
+      "archify_question_label": "What should this sub-diagram explain in detail?",
+      "archify_type_label": "Diagram Type:",
+      "archify_btn_generate": "🚀 Generate Deep-Dive",
+      "archify_loading": "Archify is computing traces & components...",
+      "archify_history_title": "Previous Deep-Dives for this component:",
+      "archify_empty_history": "No deep-dives generated for this node yet.",
+
 
       // Decision Gates
       "decision_gates_title": "Master-Consultant Decision Gates",
