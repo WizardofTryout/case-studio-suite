@@ -7,6 +7,7 @@ from app.api.decision_gates import router as decision_gates_router
 from app.api.copilot import router as copilot_router
 from app.api.deliberation import router as deliberation_router
 from app.api.keys import router as keys_router
+from app.api.deep_dive import router as deep_dive_router
 
 __all__ = [
     "health_router",
@@ -17,5 +18,6 @@ __all__ = [
     "decision_gates_router",
     "copilot_router",
     "deliberation_router",
-    "keys_router"
+    "keys_router",
+    "deep_dive_router"
 ]

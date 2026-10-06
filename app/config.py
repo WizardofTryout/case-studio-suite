@@ -22,6 +22,12 @@ class Settings(BaseSettings):
     # Models
     default_model: str = os.getenv("DEFAULT_MODEL", "gemini-2.5-pro")
     fallback_model: str = os.getenv("FALLBACK_MODEL", "gemini-2.5-flash")
+
+    # Archify Sidecar Add-on Settings
+    archify_enabled: bool = os.getenv("ARCHIFY_ENABLED", "true").lower() in ("true", "1", "yes")
+    archify_service_url: str = os.getenv("ARCHIFY_SERVICE_URL", "http://archify-service:3001")
+    archify_render_timeout: float = float(os.getenv("ARCHIFY_RENDER_TIMEOUT", "20.0"))
+    archify_data_subdir: str = os.getenv("ARCHIFY_DATA_SUBDIR", "archify")
     
     model_config = SettingsConfigDict(
         env_file=".env",

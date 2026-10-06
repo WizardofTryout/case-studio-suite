@@ -988,6 +988,119 @@ async def delete_problem_statement(statement_id: str) -> bool:
         return cursor.rowcount > 0
 
 
+# --- Archify Artifacts (Projekt-Chronik & Showcases) ---
+
+async def create_archify_artifact(
+    artifact_id: str,
+    project_id: str,
+    node_id: str,
+    node_name: str,
+    question: str,
+    diagram_type: str,
+    file_path: str,
+    session_id: Optional[str] = None,
+    phase: int = 1,
+    language: str = "de",
+    source_hash: Optional[str] = None
+) -> Dict[str, Any]:
+    """Persistiert die Metadaten eines erzeugten Archify-Showcase-Diagramms."""
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO archify_artifacts (
+                id, project_id, session_id, phase, node_id, node_name,
+                question, diagram_type, language, file_path, source_hash
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                artifact_id, project_id, session_id, phase, node_id, node_name,
+                question, diagram_type, language, file_path, source_hash
+            )
+        )
+        await db.commit()
+
+    return await get_archify_artifact(artifact_id)  # type: ignore
+
+
+async def get_archify_artifact(artifact_id: str) -> Optional[Dict[str, Any]]:
+    """Gibt Metadaten eines einzelnen Archify-Artefakts zurück."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, project_id, session_id, phase, node_id, node_name,
+                   question, diagram_type, language, file_path, source_hash, created_at
+            FROM archify_artifacts
+            WHERE id = ?
+            """,
+            (artifact_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def list_archify_artifacts_by_project(
+    project_id: str,
+    phase: Optional[int] = None,
+    node_id: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Listet alle Archify-Artefakte eines Projekts für die Projekt-Chronik auf."""
+    query = """
+        SELECT id, project_id, session_id, phase, node_id, node_name,
+               question, diagram_type, language, file_path, source_hash, created_at
+        FROM archify_artifacts
+        WHERE project_id = ?
+    """
+    params = [project_id]
+
+    if phase is not None:
+        query += " AND phase = ?"
+        params.append(str(phase))
+
+    if node_id is not None:
+        query += " AND node_id = ?"
+        params.append(node_id)
+
+    query += " ORDER BY created_at DESC"
+
+    async with get_db() as db:
+        async with db.execute(query, tuple(params)) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def find_cached_archify_artifact(
+    project_id: str,
+    node_id: str,
+    source_hash: str
+) -> Optional[Dict[str, Any]]:
+    """Sucht nach einem existierenden Artefakt mit identischem Inhalts-Hash."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, project_id, session_id, phase, node_id, node_name,
+                   question, diagram_type, language, file_path, source_hash, created_at
+            FROM archify_artifacts
+            WHERE project_id = ? AND node_id = ? AND source_hash = ?
+            ORDER BY created_at DESC LIMIT 1
+            """,
+            (project_id, node_id, source_hash)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def delete_archify_artifact(artifact_id: str) -> Optional[Dict[str, Any]]:
+    """Löscht einen Eintrag aus der Datenbank und gibt das gelöschte Objekt zurück."""
+    art = await get_archify_artifact(artifact_id)
+    if not art:
+        return None
+    async with get_db() as db:
+        await db.execute("DELETE FROM archify_artifacts WHERE id = ?", (artifact_id,))
+        await db.commit()
+    return art
+
+
+
 
 
 

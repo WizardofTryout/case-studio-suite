@@ -185,6 +185,26 @@ CREATE INDEX IF NOT EXISTS idx_prompt_refinements_session ON prompt_refinements(
 CREATE INDEX IF NOT EXISTS idx_triggers_project ON project_adaptive_triggers(project_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
 CREATE INDEX IF NOT EXISTS idx_statements_project ON case_problem_statements(project_id);
+
+-- 15. PERSISTENTE ARCHIFY SHOWCASES & PROJEKT-CHRONIK
+CREATE TABLE IF NOT EXISTS archify_artifacts (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+    session_id TEXT REFERENCES case_sessions(id) ON DELETE CASCADE,
+    phase INTEGER DEFAULT 1,
+    node_id TEXT NOT NULL,
+    node_name TEXT NOT NULL,
+    question TEXT NOT NULL,
+    diagram_type TEXT NOT NULL,          -- 'architecture', 'dataflow', 'sequence'
+    language TEXT DEFAULT 'de',
+    file_path TEXT NOT NULL,            -- Relativer Dateipfad unter data/projects/<id>/archify/<id>.html
+    source_hash TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_archify_project ON archify_artifacts(project_id);
+CREATE INDEX IF NOT EXISTS idx_archify_session ON archify_artifacts(session_id);
+CREATE INDEX IF NOT EXISTS idx_archify_node ON archify_artifacts(project_id, node_id);
 """
 
 
