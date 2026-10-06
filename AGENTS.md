@@ -12,8 +12,9 @@ Welcome to the **Case Studio Suite** codebase. All automated agents and develope
 * **Persistent Storage:** All mutable application data lives in `/app/data` inside the container, mounted to `./data` on the host.
 
 ### 1.2 Strict System & Container Isolation (CRITICAL)
-* **Pre-existing Systems Protection:** Never touch, alter, inspect, restart, or terminate any existing containers or services running on the machine (specifically including, but not limited to, `Legal Studio` / `legaloszillation-*`, `linkwarden`, `gitnexus`, `serena`, etc.).
-* **Target Container:** Only containers named `case-studio-suite` (or defined in this project's `docker-compose.yml`) may be created, managed, or modified.
+* **Pre-existing Systems Protection:** Never terminate, alter, or restart any external services on the host (e.g., `Legal Studio` / `legaloszillation-*`, `linkwarden`, `serena`, etc.).
+* **Target Container:** Only containers named `case-studio-suite` or `archify-sidecar` (defined in this project's `docker-compose.yml`) may be created, managed, or rebuilt.
+* **GitNexus Analyzer Execution:** The `gitnexus-server` container is authorized for codebase analysis via `docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio`. Never stop or reconfigure the GitNexus service itself.
 
 ### 1.3 Local-First Data Sovereignty (SQLite WAL)
 * **Embedded Database:** The system uses SQLite located at `/app/data/case_studio.db` configured in **WAL mode** (`PRAGMA journal_mode=WAL;`).
@@ -44,6 +45,13 @@ Welcome to the **Case Studio Suite** codebase. All automated agents and develope
   * `fix:` bug fixes and error handling improvements
   * `docs:` documentation updates
   * `chore:` configuration or build system changes
+
+### 2.4 GitNexus Knowledge Graph Synchronization (MANDATORY)
+* **Immediate Knowledge-Graph Re-Index:** Following every commit and push, the agent MUST run:
+  ```bash
+  docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio
+  ```
+* **Synchronization Guarantee:** This guarantees that the visual graph UI at `http://localhost:4173`, symbol definitions, blast-radius queries (`impact`), and call traces remain 100% synchronized with the live codebase.
 
 ---
 
