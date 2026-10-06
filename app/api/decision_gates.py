@@ -64,6 +64,23 @@ async def resolve_gate(gate_id: str, payload: DecisionGateResolveRequest):
     return updated
 
 
+@router.post("/decision_gates/{gate_id}/reopen")
+async def reopen_gate(gate_id: str):
+    """
+    Reopens a previously resolved decision gate, allowing the consultant to edit or re-enter the client answer.
+    """
+    gate = await repositories.get_decision_gate(gate_id)
+    if not gate:
+        raise HTTPException(status_code=404, detail="Decision gate not found")
+    
+    updated = await repositories.update_decision_gate_answer(
+        gate_id=gate_id,
+        customer_answer="",
+        status="pending"
+    )
+    return updated
+
+
 @router.delete("/decision_gates/{gate_id}")
 async def delete_gate(gate_id: str):
     """

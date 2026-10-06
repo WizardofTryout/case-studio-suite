@@ -353,12 +353,33 @@ const API = {
     return await res.json();
   },
 
+  async createDecisionGate(sessionId, data) {
+    const res = await fetch(`/api/sessions/${sessionId}/decision_gates`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Fehler beim Anlegen der Kunden-Rückfrage");
+    }
+    return await res.json();
+  },
+
   async resolveDecisionGate(gateId, customerAnswer) {
     const res = await fetch(`/api/decision_gates/${gateId}/resolve`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ customer_answer: customerAnswer })
     });
+    return await res.json();
+  },
+
+  async reopenDecisionGate(gateId) {
+    const res = await fetch(`/api/decision_gates/${gateId}/reopen`, {
+      method: "POST"
+    });
+    if (!res.ok) throw new Error("Fehler beim Wiedereröffnen des Decision Gates");
     return await res.json();
   },
 

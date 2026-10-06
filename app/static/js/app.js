@@ -1523,8 +1523,13 @@ const App = {
 
     if (!gates || gates.length === 0) {
       listContainer.innerHTML = `
-        <div style="color:var(--text-dim); font-size:0.8rem; padding:8px 0;">
-          Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.
+        <div style="color:var(--text-dim); font-size:0.8rem; padding:8px 0; display:flex; flex-direction:column; gap:8px;">
+          <span>Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.</span>
+          <div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.toggleAddGateForm(true)" style="border-color:rgba(245, 158, 11, 0.45); color:var(--amber); font-size:0.75rem;">
+              ➕ Eigene Kunden-Rückfrage anlegen
+            </button>
+          </div>
         </div>
       `;
       return;
@@ -1559,12 +1564,15 @@ const App = {
           </button>
         </div>
         ${isResolved ? `
-          <div style="font-size:0.82rem; color:var(--emerald); background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); padding:8px 10px; border-radius:6px;">
-            <strong>Antwort des Kunden:</strong> ${this.escapeHtml(g.customer_answer)}
+          <div style="font-size:0.82rem; color:var(--emerald); background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25); padding:8px 10px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <div style="flex:1;"><strong>Antwort des Kunden:</strong> ${this.escapeHtml(g.customer_answer)}</div>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="App.reopenDecisionGate('${g.id}')" title="Antwort bearbeiten / wiedereröffnen" style="padding:2px 8px; font-size:0.75rem;">
+              ✏️ Bearbeiten
+            </button>
           </div>
         ` : `
           <div class="gate-answer-row" style="display:flex; gap:8px; margin-top:4px;">
-            <input type="text" id="gate-input-${g.id}" class="gate-answer-input" placeholder="Antwort des Kunden hier eintragen..." style="flex:1;" />
+            <input type="text" id="gate-input-${g.id}" class="gate-answer-input" placeholder="Antwort des Kunden hier eintragen..." onkeydown="if(event.key==='Enter') App.resolveGateAndBranch('${g.id}')" style="flex:1;" />
             <button class="btn btn-primary btn-sm" onclick="App.resolveGateAndBranch('${g.id}')">
               Als Fakt übernehmen & Graph aktualisieren
             </button>
@@ -1576,6 +1584,111 @@ const App = {
       `;
       listContainer.appendChild(card);
     });
+  },
+
+  toggleAddGateForm(forceState = null) {
+    const formCard = document.getElementById("add-gate-form-card");
+    const toggleBtn = document.getElementById("btn-toggle-add-gate");
+    if (!formCard) return;
+
+    const shouldShow = forceState !== null ? forceState : (formCard.style.display === "none");
+    formCard.style.display = shouldShow ? "block" : "none";
+
+    if (toggleBtn) {
+      toggleBtn.classList.toggle("active", shouldShow);
+    }
+
+    if (shouldShow) {
+      setTimeout(() => {
+        const topicInput = document.getElementById("custom-gate-topic");
+        if (topicInput) topicInput.focus();
+      }, 50);
+    }
+  },
+
+  async submitCustomDecisionGate() {
+    if (!this.state.currentSessionId) {
+      window.showToast("Bitte starte oder wähle zuerst eine Session aus!", "warning");
+      return;
+    }
+
+    const topicInput = document.getElementById("custom-gate-topic");
+    const factInput = document.getElementById("custom-gate-fact");
+    const questionInput = document.getElementById("custom-gate-question");
+    const answerInput = document.getElementById("custom-gate-answer");
+
+    const topic = topicInput ? topicInput.value.trim() : "";
+    const fact = factInput ? factInput.value.trim() : "";
+    const question = questionInput ? questionInput.value.trim() : "";
+    const answer = answerInput ? answerInput.value.trim() : "";
+
+    if (!topic) {
+      window.showToast("Bitte gib ein Thema für das Decision Gate an!", "warning");
+      if (topicInput) topicInput.focus();
+      return;
+    }
+    if (!fact) {
+      window.showToast("Bitte gib den fehlenden Fakt / Kontext an!", "warning");
+      if (factInput) factInput.focus();
+      return;
+    }
+    if (!question) {
+      window.showToast("Bitte formuliere die Rückfrage an den Kunden!", "warning");
+      if (questionInput) questionInput.focus();
+      return;
+    }
+
+    const isDirectlyResolved = Boolean(answer);
+    const status = isDirectlyResolved ? "resolved" : "pending";
+
+    try {
+      const payload = {
+        topic: topic,
+        detected_missing_fact: fact,
+        recommended_question: question,
+        customer_answer: isDirectlyResolved ? answer : null,
+        status: status
+      };
+
+      await API.createDecisionGate(this.state.currentSessionId, payload);
+
+      // Reset form fields
+      if (topicInput) topicInput.value = "";
+      if (factInput) factInput.value = "";
+      if (questionInput) questionInput.value = "";
+      if (answerInput) answerInput.value = "";
+      this.toggleAddGateForm(false);
+
+      // Reload gates
+      await this.loadDecisionGates();
+
+      if (isDirectlyResolved) {
+        window.showToast("Kunden-Fakt gesichert! Verzweige Architektur...", "success");
+        // Automatically trigger Copilot update with the resolved fact to branch architecture
+        const prompt = `Kundenfakt geklärt zu Thema '${topic}': Der Kunde hat bestätigt: '${answer}'. Bitte schärfe die Architektur basierend auf diesem harten Fakt nach und aktualisiere den Mermaid-Graphen!`;
+        await this.runCopilotWithPrompt(prompt, false);
+      } else {
+        window.showToast("Kunden-Rückfrage erfolgreich eingestellt! Wartet auf Beantwortung.", "success");
+      }
+    } catch (err) {
+      console.error("Fehler beim Erstellen des Decision Gates:", err);
+      window.showToast(err.message || "Fehler beim Anlegen der Rückfrage.", "error");
+    }
+  },
+
+  async reopenDecisionGate(gateId) {
+    try {
+      await API.reopenDecisionGate(gateId);
+      await this.loadDecisionGates();
+      window.showToast("Frage wiedereröffnet. Du kannst die Antwort nun bearbeiten.", "info");
+      setTimeout(() => {
+        const input = document.getElementById(`gate-input-${gateId}`);
+        if (input) input.focus();
+      }, 80);
+    } catch (err) {
+      console.error("Fehler beim Wiedereröffnen:", err);
+      window.showToast("Fehler beim Bearbeiten der Frage.", "error");
+    }
   },
 
   async dismissDecisionGate(gateId, event) {

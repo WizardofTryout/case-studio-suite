@@ -436,12 +436,62 @@
                 <span>🚨</span> <span data-i18n="decision_gates_title">Master-Consultant Decision Gates</span>
               </div>
               <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btn-toggle-add-gate" class="btn btn-secondary btn-sm" type="button" onclick="App.toggleAddGateForm()" title="Eigene Kunden-Rückfrage manuell erfassen" style="display:inline-flex; align-items:center; gap:5px; border-color:rgba(245, 158, 11, 0.45); color:var(--amber); font-size:0.75rem; padding:3px 10px;">
+                  <span data-i18n="decision_gates_add_btn">➕ Eigene Rückfrage anlegen</span>
+                </button>
                 <span id="decision-gates-count-badge" class="gate-badge pending" data-i18n="decision_gates_pending">Kunden-Rückfragen</span>
                 <button id="btn-clear-decision-gates" class="btn-gate-clear-all" type="button" onclick="App.clearAllDecisionGates()" title="Alle offenen Rückfragen verwerfen" style="display:none;" data-i18n="decision_gates_clear_all">
                   🗑️ Alle verwerfen
                 </button>
               </div>
             </div>
+
+            <!-- Custom Decision Gate Input Form (Collapsible) -->
+            <div id="add-gate-form-card" class="add-gate-form-card" style="display:none;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; border-bottom:1px solid rgba(245, 158, 11, 0.2); padding-bottom:6px;">
+                <div style="font-weight:700; font-size:0.88rem; color:var(--amber); display:flex; align-items:center; gap:6px;">
+                  <span data-i18n="decision_gates_form_title">✍️ Eigene Kunden-Rückfrage / Decision Gate anlegen</span>
+                </div>
+                <button type="button" class="btn-close-sm" onclick="App.toggleAddGateForm(false)" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.1rem; padding:0 4px;" title="Schließen">✕</button>
+              </div>
+              
+              <div style="display:flex; flex-direction:column; gap:10px;">
+                <!-- Thema / Entscheidungsknoten -->
+                <div>
+                  <label for="custom-gate-topic" data-i18n="decision_gates_topic_label">Thema / Architektur-Entscheidungsknoten <span style="color:var(--amber);">*</span></label>
+                  <input type="text" id="custom-gate-topic" class="form-input-sm" data-i18n-placeholder="decision_gates_topic_placeholder" placeholder="z. B. ERP-Integration (SAP vs. Salesforce), Latenz vs. Cloud-Kosten, Zulassung..." />
+                </div>
+
+                <!-- Fehlender Fakt / Hintergrund -->
+                <div>
+                  <label for="custom-gate-fact" data-i18n="decision_gates_fact_label">Fehlender Fakt / Kontext im Case <span style="color:var(--amber);">*</span></label>
+                  <textarea id="custom-gate-fact" class="form-input-sm" rows="2" data-i18n-placeholder="decision_gates_fact_placeholder" placeholder="Welcher konkrete Sachverhalt oder technische Rahmenbedingung fehlt dem Team noch für die Architektur?" style="resize:vertical;"></textarea>
+                </div>
+
+                <!-- Ausformulierte Kundenfrage -->
+                <div>
+                  <label for="custom-gate-question" data-i18n="decision_gates_question_label">Ausformulierte Rückfrage an den Kunden <span style="color:var(--amber);">*</span></label>
+                  <textarea id="custom-gate-question" class="form-input-sm" rows="2" data-i18n-placeholder="decision_gates_question_placeholder" placeholder="»Welches bestehende System nutzen Sie für ... und wie sieht die Roadmap aus?«" style="resize:vertical;"></textarea>
+                </div>
+
+                <!-- Optionale vorliegende Antwort -->
+                <div>
+                  <label for="custom-gate-answer" style="color:var(--text-muted);" data-i18n="decision_gates_answer_label">Antwort des Kunden (Optional – falls der Kunde bereits geantwortet hat)</label>
+                  <input type="text" id="custom-gate-answer" class="form-input-sm" data-i18n-placeholder="decision_gates_answer_placeholder" placeholder="Leer lassen, falls noch auf Antwort gewartet wird – oder direkt eintragen..." />
+                </div>
+
+                <!-- Form Actions -->
+                <div style="display:flex; justify-content:flex-end; align-items:center; gap:8px; margin-top:4px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="App.toggleAddGateForm(false)" data-i18n="decision_gates_cancel_btn">
+                    Abbrechen
+                  </button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="App.submitCustomDecisionGate()" style="background:linear-gradient(135deg, #f59e0b, #d97706); border-color:#f59e0b; color:#fff;" data-i18n="decision_gates_save_btn">
+                    💾 Rückfrage anlegen
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div id="decision-gates-list" class="decision-gates-panel">
               <div style="color:#64748b; font-size:0.8rem; padding:8px 0;" data-i18n="decision_gates_empty">
                 Keine offenen Decision Gates. Der Master-Consultant scannt fortlaufend nach fehlenden Fakten.

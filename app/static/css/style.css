@@ -1144,6 +1144,64 @@ body {
   100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
 }
 
+/* Custom Decision Gate Add Form */
+.add-gate-form-card {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  margin-bottom: 14px;
+}
+
+[data-theme="light"] .add-gate-form-card {
+  background: #ffffff !important;
+  border: 1px solid #f59e0b !important;
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.15), 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+.add-gate-form-card label {
+  display: block;
+  font-size: 0.77rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+[data-theme="light"] .add-gate-form-card label {
+  color: #1e293b !important;
+}
+
+.add-gate-form-card .form-input-sm {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-input);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-main);
+  padding: 8px 10px;
+  font-size: 0.83rem;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.add-gate-form-card .form-input-sm:focus {
+  border-color: var(--amber);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+[data-theme="light"] .add-gate-form-card .form-input-sm {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .add-gate-form-card .form-input-sm:focus {
+  border-color: #d97706 !important;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25) !important;
+}
+
 .gate-header {
   display: flex;
   align-items: center;
