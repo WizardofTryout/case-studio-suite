@@ -30,6 +30,14 @@ window.showToast = function(message, type = "info", duration = 4000) {
   }, duration);
 };
 
+window.Toast = {
+  success: (msg) => window.showToast(msg, "success"),
+  error: (msg) => window.showToast(msg, "error"),
+  warning: (msg) => window.showToast(msg, "warning"),
+  info: (msg) => window.showToast(msg, "info")
+};
+
+
 window.showConfirmModal = function(title, message, onConfirm, confirmText = "Bestätigen", cancelText = "Abbrechen") {
   const overlay = document.getElementById("generic-modal-overlay");
   if (!overlay) return;

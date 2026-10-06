@@ -255,9 +255,9 @@ const ArchifyUI = {
   },
 
   async handleGenerate() {
-    const projectId = window.App?.state?.currentProject?.id;
+    const projectId = window.App?.state?.currentProjectId || window.App?.state?.currentProject?.id;
     if (!projectId) {
-      Toast.error("Kein aktives Projekt ausgewählt.");
+      if (window.showToast) window.showToast("Kein aktives Projekt ausgewählt.", "error");
       return;
     }
 
@@ -268,7 +268,7 @@ const ArchifyUI = {
     const sessionId = window.App?.state?.currentSessionId || null;
 
     if (!question) {
-      Toast.warning("Bitte gib eine Fragestellung für den Deep-Dive ein.");
+      if (window.showToast) window.showToast("Bitte gib eine Fragestellung für den Deep-Dive ein.", "warning");
       return;
     }
 
@@ -295,21 +295,22 @@ const ArchifyUI = {
 
       const res = await API.generateDeepDive(payload);
       if (res.success && res.artifact_id) {
-        Toast.success("Archify Deep-Dive erfolgreich visualisiert!");
+        if (window.showToast) window.showToast("Archify Deep-Dive erfolgreich visualisiert!", "success");
         this.closeQuestionModal();
         await this.loadProjectArtifacts(projectId, currentPhase);
         this.loadArtifact(res.artifact_id);
         this.switchTab("archify");
       } else {
-        Toast.error("Generierung fehlgeschlagen.");
+        if (window.showToast) window.showToast("Generierung fehlgeschlagen.", "error");
       }
     } catch (err) {
-      Toast.error("Fehler: " + err.message);
+      if (window.showToast) window.showToast("Fehler: " + err.message, "error");
     } finally {
       if (btn) btn.disabled = false;
       if (statusText) statusText.style.display = "none";
     }
   },
+
 
   reset() {
     this.state.currentArtifactId = null;
