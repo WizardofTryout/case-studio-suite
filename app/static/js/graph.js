@@ -69,23 +69,38 @@ const GraphViewer = {
     code = code.replace(/%%\{init:[\s\S]*?\}%%\n?/g, "").trim();
 
     // 1. Sanitize subgraphs with quotes only: e.g. subgraph "Title" to subgraph sub_xxx ["Title"]
-    code = code.replace(/subgraph\s+"([^"\r\n]+)"/g, (match, title) => {
-      const safeId = 'sub_' + title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 24);
+    code = code.replace(/^[ \t]*subgraph\s+"([^"\r\n]+)"/gm, (match, title) => {
+      const safeId = 'sub_' + title.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 24);
       return `subgraph ${safeId} ["${title.replace(/"/g, "'")}"]`;
     });
 
-    // 2. Sanitize subgraphs with unquoted bracket titles: subgraph id [Title] to subgraph id ["Title"]
-    code = code.replace(/subgraph\s+([A-Za-z0-9_]+)\s*\[([^"\[\]\r\n]+)\]/g, (match, id, title) => {
-      return `subgraph ${id} ["${title.trim().replace(/"/g, "'")}"]`;
+    // 2. Sanitize subgraphs with unquoted bracket titles: subgraph id [Title] or subgraph [Title] to subgraph id ["Title"]
+    code = code.replace(/^[ \t]*subgraph\s*(?:([A-Za-z0-9_]+)\s*)?\[([^\]\r\n]+)\]/gm, (match, id, title) => {
+      const cleanTitle = title.trim().replace(/^["']/, '').replace(/["']$/, '').replace(/"/g, "'");
+      const safeId = id || ('sub_' + cleanTitle.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').slice(0, 24));
+      return `subgraph ${safeId} ["${cleanTitle}"]`;
     });
 
-    // 3. Process line-by-line for node definitions and edge labels
+    // 3. Sanitize subgraphs without brackets: e.g. subgraph Schicht 1: Edge & OT (Patientenhaushalt)
+    code = code.replace(/^[ \t]*subgraph\s+([^\[\]"\r\n]+)$/gm, (match, rawTitle) => {
+      const trimmed = rawTitle.trim();
+      // If it's a single clean word like `subgraph tier1`, it's valid Mermaid syntax
+      if (/^[a-zA-Z0-9_]+$/.test(trimmed)) {
+        return `subgraph ${trimmed}`;
+      }
+      // If it contains spaces or punctuation like :, &, (, ), -, etc., convert to subgraph safeId ["Clean Title"]
+      const safeId = 'sub_' + trimmed.replace(/[^a-zA-Z0-9]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').slice(0, 24);
+      const cleanTitle = trimmed.replace(/"/g, "'");
+      return `subgraph ${safeId} ["${cleanTitle}"]`;
+    });
+
+    // 4. Process line-by-line for node definitions and edge labels
     const lines = code.split("\n");
     const cleanedLines = lines.map(line => {
       let l = line;
       const trimmed = l.trim();
       // Skip directives, subgraphs, styles, classDefs
-      if (trimmed.startsWith("subgraph") || trimmed.startsWith("style") || trimmed.startsWith("classDef") || trimmed.startsWith("class ") || trimmed.startsWith("%%")) {
+      if (trimmed.startsWith("subgraph") || trimmed.startsWith("style") || trimmed.startsWith("classDef") || trimmed.startsWith("class ") || trimmed.startsWith("%%") || trimmed === "end") {
         return l;
       }
 
@@ -121,8 +136,8 @@ const GraphViewer = {
 
   sanitizeFallbackMermaid(code) {
     if (!code) return "graph TD\n  Start[\"System-Start\"]";
-    // Strip styles only
-    return code.replace(/style\s+[^\n]+/g, "").trim() || "graph TD\n  Start[\"System-Start\"]";
+    let cleaned = this.cleanMermaidSyntax(code);
+    return cleaned.replace(/style\s+[^\n]+/g, "").replace(/classDef\s+[^\n]+/g, "").trim() || "graph TD\n  Start[\"System-Start\"]";
   },
 
   setTheme(theme) {
@@ -501,6 +516,35 @@ const GraphViewer = {
         }
       } catch (fallbackErr) {
         console.warn("Mermaid fallback render also failed:", fallbackErr);
+        document.querySelectorAll('[id^="dmermaid-svg-"], [id^="dmermaid-"]').forEach(el => el.remove());
+      }
+
+      // Try Level 2 fallback: strip subgraphs completely so core nodes & edges render
+      try {
+        let noSubgraphsCode = this.cleanMermaidSyntax(this.currentMermaidCode)
+          .replace(/^[ \t]*subgraph\b[^\n]*/gm, "")
+          .replace(/^[ \t]*end\b[^\n]*/gm, "")
+          .replace(/style\s+[^\n]+/g, "")
+          .replace(/classDef\s+[^\n]+/g, "")
+          .replace(/\n\s*\n/g, "\n")
+          .trim();
+        if (noSubgraphsCode && !noSubgraphsCode.startsWith("graph") && !noSubgraphsCode.startsWith("flowchart")) {
+          noSubgraphsCode = "graph TD\n" + noSubgraphsCode;
+        }
+        const fallback2Id = "mermaid-fallback2-" + Date.now();
+        const { svg: fallbackSvg2 } = await mermaid.render(fallback2Id, noSubgraphsCode);
+        layer.innerHTML = fallbackSvg2;
+        const svgEl = layer.querySelector("svg");
+        if (svgEl) {
+          svgEl.style.maxWidth = "none";
+          svgEl.style.maxHeight = "none";
+          svgEl.style.display = "block";
+          this.attachNodeDirectListeners(layer);
+          this.fit();
+          return;
+        }
+      } catch (fallback2Err) {
+        console.warn("Mermaid Level 2 fallback also failed:", fallback2Err);
         document.querySelectorAll('[id^="dmermaid-svg-"], [id^="dmermaid-"]').forEach(el => el.remove());
       }
 
