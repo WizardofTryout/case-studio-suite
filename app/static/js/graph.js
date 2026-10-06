@@ -101,7 +101,9 @@ const GraphViewer = {
         return `-- "${clean}" -->`;
       });
 
-      // Sanitize standard node definitions: id[Some text (with parens) & symbols] -> id["Some text (with parens) & symbols"]
+      // Sanitize unquoted square bracket nodes: id[Some text] -> id["Some text"]
+      // Matches standard alphanumeric/underscore identifier followed by [ ... ]
+      // Only when inside does NOT already start with quote
       l = l.replace(/(\b[A-Za-z0-9_]+)\s*\[([^"\[\]\r\n]+)\]/g, (match, id, label) => {
         const trimmedLabel = label.trim();
         if (trimmedLabel.startsWith('"') && trimmedLabel.endsWith('"')) {
@@ -109,16 +111,6 @@ const GraphViewer = {
         }
         const clean = trimmedLabel.replace(/"/g, "'");
         return `${id}["${clean}"]`;
-      });
-
-      // Sanitize rounded nodes: id(Some text & symbols) -> id("Some text & symbols")
-      l = l.replace(/(\b[A-Za-z0-9_]+)\s*\(([^"()\r\n]+)\)/g, (match, id, label) => {
-        const trimmedLabel = label.trim();
-        if (trimmedLabel.startsWith('"') && trimmedLabel.endsWith('"')) {
-          return match;
-        }
-        const clean = trimmedLabel.replace(/"/g, "'");
-        return `${id}("${clean}")`;
       });
 
       return l;
@@ -129,13 +121,8 @@ const GraphViewer = {
 
   sanitizeFallbackMermaid(code) {
     if (!code) return "graph TD\n  Start[\"System-Start\"]";
-    // Strip styles and subgraphs to provide clean basic flowchart
-    let simple = code.replace(/style\s+[^\n]+/g, "");
-    simple = simple.replace(/subgraph[\s\S]*?end/g, (sub) => {
-      const inner = sub.replace(/^subgraph[^\n]+\n/i, "").replace(/\nend$/i, "");
-      return inner;
-    });
-    return simple.trim() || "graph TD\n  Start[\"System-Start\"]";
+    // Strip styles only
+    return code.replace(/style\s+[^\n]+/g, "").trim() || "graph TD\n  Start[\"System-Start\"]";
   },
 
   setTheme(theme) {
