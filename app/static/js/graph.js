@@ -226,11 +226,40 @@ const GraphViewer = {
     const btnFullscreen = document.getElementById("btn-graph-fullscreen");
     const btnToggle = document.getElementById("btn-toggle-inspector");
 
-    if (btnIn) btnIn.addEventListener("click", () => this.zoom(1.2));
-    if (btnOut) btnOut.addEventListener("click", () => this.zoom(0.83));
-    if (btnFit) btnFit.addEventListener("click", () => this.fit());
-    if (btnReset) btnReset.addEventListener("click", () => this.resetZoom());
-    if (btnFullscreen) btnFullscreen.addEventListener("click", () => this.toggleFullscreen());
+    if (btnIn) btnIn.addEventListener("click", () => {
+      if (window.ArchifyUI?.state?.activeTab === "archify") {
+        window.ArchifyUI.zoomIn();
+      } else {
+        this.zoom(1.2);
+      }
+    });
+    if (btnOut) btnOut.addEventListener("click", () => {
+      if (window.ArchifyUI?.state?.activeTab === "archify") {
+        window.ArchifyUI.zoomOut();
+      } else {
+        this.zoom(0.83);
+      }
+    });
+    if (btnFit) btnFit.addEventListener("click", () => {
+      if (window.ArchifyUI?.state?.activeTab === "archify") {
+        window.ArchifyUI.zoomFit();
+      } else {
+        this.fit();
+      }
+    });
+    if (btnReset) btnReset.addEventListener("click", () => {
+      if (window.ArchifyUI?.state?.activeTab === "archify") {
+        window.ArchifyUI.zoomReset();
+      } else {
+        this.resetZoom();
+      }
+    });
+    if (btnFullscreen) btnFullscreen.addEventListener("click", () => {
+      this.toggleFullscreen();
+      if (window.ArchifyUI?.state?.activeTab === "archify") {
+        setTimeout(() => window.ArchifyUI.zoomFit(), 150);
+      }
+    });
     if (btnToggle) btnToggle.addEventListener("click", () => {
       const app = window.App || (typeof App !== "undefined" ? App : null);
       if (app && typeof app.toggleNodeInspector === "function") {

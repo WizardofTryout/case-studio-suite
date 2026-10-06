@@ -271,6 +271,13 @@
                   </button>
                 </div>
 
+                <!-- Deep-Dive History Dropdown Container (Dezent in oberer Leiste) -->
+                <div id="archify-history-dropdown-container" style="display:none; align-items:center; gap:6px;">
+                  <select id="archify-artifact-select" class="form-select" style="padding:3px 8px; font-size:0.78rem; background:rgba(0,0,0,0.35); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:4px; max-width:280px;" title="Gespeicherte Deep-Dives auswählen">
+                    <option value="">Lade Deep-Dives...</option>
+                  </select>
+                </div>
+
                 <!-- Export Menu Button in Diagram-Header (Visible when Archify Showcase is active) -->
                 <div id="archify-header-export-container" style="display:none; position:relative;">
                   <button id="btn-archify-export-header" class="btn btn-secondary btn-sm" type="button" style="padding:4px 10px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;" title="Diagramm exportieren">
@@ -317,29 +324,8 @@
 
               <!-- Archify Showcase Viewport (Dual Engine) -->
               <div id="archify-viewport" class="archify-viewport" style="display:none; flex:1; flex-direction:column; height:100%; min-height:480px; position:relative; background:var(--bg-card);">
-                <!-- Showcase Sub-Toolbar -->
-                <div class="archify-toolbar" style="display:flex; justify-content:space-between; align-items:center; padding:6px 12px; background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border-subtle); font-size:0.8rem;">
-                  <div style="display:flex; align-items:center; gap:8px;">
-                    <span style="color:var(--text-muted);">Aktiver Deep-Dive:</span>
-                    <select id="archify-artifact-select" class="form-select" style="padding:2px 8px; font-size:0.8rem; background:var(--bg-main); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:4px; max-width:320px;">
-                      <option value="">Lade Deep-Dives...</option>
-                    </select>
-                  </div>
-                  <div style="display:flex; align-items:center; gap:10px;">
-                    <div style="display:flex; gap:6px;">
-                      <button id="btn-toolbar-export-html" class="btn btn-secondary btn-sm" type="button" style="padding:2px 8px; font-size:0.75rem;" title="Als eigenständige HTML-Datei herunterladen">
-                        <span>🌐 HTML</span>
-                      </button>
-                      <button id="btn-toolbar-export-svg" class="btn btn-secondary btn-sm" type="button" style="padding:2px 8px; font-size:0.75rem;" title="Als SVG Vektorgrafik für Dokumente/Confluence exportieren">
-                        <span>📐 SVG</span>
-                      </button>
-                    </div>
-                    <span style="font-size:0.75rem; color:var(--cyan); font-weight:600;">⚡ Archify Interactive Engine</span>
-                  </div>
-                </div>
-
                 <!-- Sandboxed Iframe with allow-downloads -->
-                <div style="flex:1; width:100%; height:calc(100% - 35px); position:relative;">
+                <div style="flex:1; width:100%; height:100%; position:relative;">
                   <div id="archify-empty-state" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.85rem; padding:20px; text-align:center;">
                     <span>🔍 Noch kein Archify Deep-Dive ausgewählt.</span>
                     <span style="font-size:0.78rem; margin-top:4px;">Wähle rechts im Inspektor einen Baustein und klicke auf "🔍 Archify Deep-Dive".</span>

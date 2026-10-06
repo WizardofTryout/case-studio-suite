@@ -178,6 +178,20 @@ const ArchifyUI = {
     if (btnToolbarSvg) {
       btnToolbarSvg.addEventListener("click", () => this.exportSVG());
     }
+
+    // Sub-Sprint 5.3: Listen for node selection messages from Archify iframe
+    window.addEventListener("message", (event) => {
+      if (!event.data) return;
+      if (event.data.type === "archify-node-selected" || event.data.type === "node-selected") {
+        const label = event.data.label;
+        if (label) {
+          this.state.selectedNode = label;
+          if (window.App && typeof window.App.openNodeInspector === "function") {
+            window.App.openNodeInspector(label);
+          }
+        }
+      }
+    });
   },
 
   /**
@@ -217,6 +231,7 @@ const ArchifyUI = {
     const archifyPane = document.getElementById("archify-viewport");
     const graphToolbar = document.querySelector(".live-graph-box .graph-toolbar");
     const exportHeaderContainer = document.getElementById("archify-header-export-container");
+    const historyContainer = document.getElementById("archify-history-dropdown-container");
 
     if (tab === "mermaid") {
       if (btnMermaid) btnMermaid.classList.add("active");
@@ -225,13 +240,19 @@ const ArchifyUI = {
       if (archifyPane) archifyPane.style.display = "none";
       if (graphToolbar) graphToolbar.style.visibility = "visible";
       if (exportHeaderContainer) exportHeaderContainer.style.display = "none";
+      if (historyContainer) historyContainer.style.display = "none";
     } else {
       if (btnMermaid) btnMermaid.classList.remove("active");
       if (btnArchify) btnArchify.classList.add("active");
       if (mermaidPane) mermaidPane.style.display = "none";
       if (archifyPane) archifyPane.style.display = "flex";
-      // Zoom controls are for Mermaid SVG; hide them in Archify showcase
-      if (graphToolbar) graphToolbar.style.visibility = "hidden";
+      // Sub-Sprint 5.1: Graph toolbar (+ In, - Out, Fit, 100%, Vollbild) stays active in Archify Showcase
+      if (graphToolbar) graphToolbar.style.visibility = "visible";
+
+      // Show history dropdown in upper header next to tab switcher
+      if (historyContainer) {
+        historyContainer.style.display = this.state.projectArtifacts.length > 0 ? "inline-flex" : "none";
+      }
 
       // Show Export menu in header if an artifact is loaded
       if (exportHeaderContainer) {
@@ -261,6 +282,11 @@ const ArchifyUI = {
 
       // Update Showcase Dropdown
       this.renderArtifactDropdown();
+
+      const historyContainer = document.getElementById("archify-history-dropdown-container");
+      if (historyContainer && this.state.activeTab === "archify") {
+        historyContainer.style.display = this.state.projectArtifacts.length > 0 ? "inline-flex" : "none";
+      }
 
       // If currently on archify tab and no artifact displayed, load latest
       if (this.state.activeTab === "archify" && !this.state.currentArtifactId && this.state.projectArtifacts.length > 0) {
@@ -300,6 +326,7 @@ const ArchifyUI = {
     const iframe = document.getElementById("archify-iframe");
     const emptyState = document.getElementById("archify-empty-state");
     const exportHeaderContainer = document.getElementById("archify-header-export-container");
+    const historyContainer = document.getElementById("archify-history-dropdown-container");
 
     const currentTheme = (document.documentElement.getAttribute("data-theme") === "light") ? "light" : "dark";
 
@@ -311,6 +338,72 @@ const ArchifyUI = {
       
       iframe.onload = () => {
         this.setTheme(currentTheme);
+
+        // Sub-Sprint 5.3: Ensure Semantic Passport (.focus-chip) is visible and style injected
+        try {
+          const doc = iframe.contentDocument;
+          if (doc) {
+            let style = doc.getElementById("archify-case-studio-injected-style");
+            if (!style) {
+              style = doc.createElement("style");
+              style.id = "archify-case-studio-injected-style";
+              style.textContent = `
+                /* Sub-Sprint 5.3: Enable Semantic Passport Card when node selected */
+                html[data-embed="true"] .focus-chip:not([hidden]),
+                html[data-embed="true"] .relationship-lens:not([hidden]),
+                html[data-embed="true"] .semantic-lens:not([hidden]),
+                html[data-embed="true"] .route-probe:not([hidden]) {
+                  display: block !important;
+                }
+                html[data-embed="true"] .toolbar,
+                html[data-embed="true"] .header,
+                html[data-embed="true"] .diagram-nav {
+                  display: none !important;
+                }
+                .focus-chip {
+                  z-index: 9999 !important;
+                  box-shadow: 0 12px 36px rgba(0,0,0,0.55) !important;
+                  border: 1px solid rgba(0, 212, 255, 0.3) !important;
+                  background: rgba(15, 23, 42, 0.92) !important;
+                  backdrop-filter: blur(20px) !important;
+                }
+              `;
+              doc.head.appendChild(style);
+            }
+
+            // Cross-window message responder for viewport controls inside iframe
+            iframe.contentWindow.addEventListener("message", (msgEvt) => {
+              if (!msgEvt.data || msgEvt.data.type !== "archify-viewport") return;
+              const arch = iframe.contentWindow.Archify;
+              if (!arch || !arch.view) return;
+              if (msgEvt.data.action === "zoomIn" && arch.view.zoomIn) arch.view.zoomIn();
+              if (msgEvt.data.action === "zoomOut" && arch.view.zoomOut) arch.view.zoomOut();
+              if (msgEvt.data.action === "reset" && arch.view.reset) arch.view.reset();
+            });
+
+            // Delegate node click listener inside iframe: sync to parent inspector
+            doc.addEventListener("click", (evt) => {
+              const nodeEl = evt.target.closest("[data-node-id]");
+              if (!nodeEl) return;
+              const nodeId = nodeEl.getAttribute("data-node-id");
+              const nodeLabel = nodeEl.getAttribute("data-node-label") ||
+                                nodeEl.querySelector(".node-label, text")?.textContent?.trim() ||
+                                nodeId;
+
+              try {
+                window.parent.postMessage({
+                  type: "archify-node-selected",
+                  nodeId: nodeId,
+                  label: nodeLabel
+                }, "*");
+              } catch (err) {
+                console.warn("[ArchifyUI] postMessage error:", err);
+              }
+            }, true);
+          }
+        } catch (injectErr) {
+          console.warn("[ArchifyUI] Failed to inject styles/listeners into iframe:", injectErr);
+        }
       };
     }
 
@@ -318,7 +411,70 @@ const ArchifyUI = {
       exportHeaderContainer.style.display = artifactId ? "inline-block" : "none";
     }
 
+    if (historyContainer && this.state.activeTab === "archify") {
+      historyContainer.style.display = this.state.projectArtifacts.length > 0 ? "inline-flex" : "none";
+    }
+
     this.renderArtifactDropdown();
+  },
+
+  /**
+   * Sub-Sprint 5.1: Viewport Controls via Direct API or postMessage
+   */
+  zoomIn() {
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe) return;
+    try {
+      if (iframe.contentWindow?.Archify?.view?.zoomIn) {
+        iframe.contentWindow.Archify.view.zoomIn();
+      } else {
+        iframe.contentWindow?.postMessage({ type: "archify-viewport", action: "zoomIn" }, "*");
+      }
+    } catch (e) {
+      console.warn("[ArchifyUI] zoomIn error:", e);
+    }
+  },
+
+  zoomOut() {
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe) return;
+    try {
+      if (iframe.contentWindow?.Archify?.view?.zoomOut) {
+        iframe.contentWindow.Archify.view.zoomOut();
+      } else {
+        iframe.contentWindow?.postMessage({ type: "archify-viewport", action: "zoomOut" }, "*");
+      }
+    } catch (e) {
+      console.warn("[ArchifyUI] zoomOut error:", e);
+    }
+  },
+
+  zoomFit() {
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe) return;
+    try {
+      if (iframe.contentWindow?.Archify?.view?.reset) {
+        iframe.contentWindow.Archify.view.reset();
+      } else {
+        iframe.contentWindow?.postMessage({ type: "archify-viewport", action: "reset" }, "*");
+      }
+    } catch (e) {
+      console.warn("[ArchifyUI] zoomFit error:", e);
+    }
+  },
+
+  zoomReset() {
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe) return;
+    try {
+      if (iframe.contentWindow?.Archify?.view?.reset) {
+        iframe.contentWindow.Archify.view.reset();
+      } else {
+        iframe.contentWindow?.postMessage({ type: "archify-viewport", action: "reset" }, "*");
+      }
+    } catch (e) {
+      console.warn("[ArchifyUI] zoomReset error:", e);
+    }
   },
 
   getActiveArtifact() {

@@ -166,9 +166,13 @@ Topologie-Kontext:
 - Ausgehend: {json.dumps(subgraph_ctx.get('outgoing', []))}
 {chr(10).join(raw_lines)}
 
-AUFGABE:
-Erstelle eine kompakte, valide Archify '{diagram_type}' JSON-Spezifikation zur Visualisierung dieser Fragestellung.
-Alle Bezeichner auf {lang_name}. Nur JSON ausgeben!
+AUFGABE (Sub-Sprint 5.2 - Semantic Passports):
+Erstelle eine detailreiche Archify '{diagram_type}' JSON-Spezifikation zur Visualisierung dieser Fragestellung.
+PFLICHT-ANFORDERUNGEN:
+1. Jeder Knoten MUSS Pflicht-Metadaten enthalten: 'tag' (z. B. 'EDGE', 'REAL-TIME', 'BUFFER'), 'sublabel' (konkrete quantitative Metriken wie '<5ms Latenz · 100k msg/s', 'Port 8443 · mTLS 1.3'), 'icon'.
+2. Mindestens 2 logische Zonen ('boundaries') mit 'wraps' für alle Komponenten definieren (z. B. 'Zone 1: OT & Edge Tier', 'Zone 2: Cloud Core Tier').
+3. Alle Kanten/Flows MÜSSEN konkrete Protokoll-Labels (z.B. 'mTLS 1.3 / gRPC', 'MQTT QoS 1', 'OPC UA Binary') und 'variant' ('security', 'emphasis', 'dashed') aufweisen.
+4. Alle Bezeichner auf {lang_name}. Nur valides JSON ausgeben!
 """
 
     logger.info(f"[DeepDive] Starte LLM-Generierung für Node '{req.node_name}' ({diagram_type})...")

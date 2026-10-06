@@ -29,6 +29,11 @@ TYPE_MAPPINGS = {
 
 VALID_VARIANTS = {"default", "emphasis", "security", "dashed"}
 VALID_SEQ_VARIANTS = {"default", "emphasis", "security", "dashed", "return"}
+VALID_ICONS = {
+    "calendar", "clock", "person", "briefcase", "flag", "moon",
+    "frontend", "backend", "database", "cloud", "security", "messagebus",
+    "external", "start", "active", "waiting", "success", "failure", "neutral", "none"
+}
 
 
 def clean_id(raw_id: Any) -> str:
@@ -109,10 +114,17 @@ def _sanitize_meta(raw_meta: Any, default_title: str) -> Dict[str, Any]:
     }
     if meta.get("subtitle") and isinstance(meta["subtitle"], str):
         clean_meta["subtitle"] = meta["subtitle"].strip()
+
+    # Sub-Sprint 5.2: Trace animation default to ensure animated signal paths
     if meta.get("animation") in ("trace", "none"):
         clean_meta["animation"] = meta["animation"]
+    else:
+        clean_meta["animation"] = "trace"
+
     if meta.get("visual_preset") in ("classic", "signal-flow", "blueprint", "editorial"):
         clean_meta["visual_preset"] = meta["visual_preset"]
+    else:
+        clean_meta["visual_preset"] = "signal-flow"
 
     return clean_meta
 
@@ -162,20 +174,43 @@ def _sanitize_architecture(spec: Dict[str, Any]) -> Dict[str, Any]:
 
         raw_label = str(c.get("label") or cid).strip() or cid
         short_lbl, extra_sub = split_long_label(raw_label, 18)
-        sublabel = c.get("sublabel") or extra_sub
+        
+        # Sublabel / Metrics (Sub-Sprint 5.2)
+        sub_raw = c.get("sublabel") or c.get("metrics") or extra_sub
+        sublabel = str(sub_raw).strip() if sub_raw else None
+
+        # Tag & Tags
+        tag_raw = c.get("tag")
+        if not tag_raw and c.get("tags"):
+            if isinstance(c["tags"], list):
+                tag_raw = " · ".join([str(t).strip() for t in c["tags"] if t])
+            else:
+                tag_raw = str(c["tags"]).strip()
+        if not tag_raw:
+            tag_raw = normalize_type(c.get("type")).upper()
+        tag = str(tag_raw).strip()[:30]
+
+        # Icon
+        icon_raw = c.get("icon")
+        if icon_raw in VALID_ICONS:
+            icon = icon_raw
+        elif normalize_type(c.get("type")) in VALID_ICONS:
+            icon = normalize_type(c.get("type"))
+        else:
+            icon = "backend"
 
         comp_dict: Dict[str, Any] = {
             "id": cid,
             "type": normalize_type(c.get("type")),
             "label": short_lbl,
             "pos": pos,
-            "size": size
+            "size": size,
+            "tag": tag,
+            "icon": icon
         }
 
-        if sublabel and isinstance(sublabel, str):
-            comp_dict["sublabel"] = str(sublabel).strip()
-        if c.get("tag") and isinstance(c["tag"], str):
-            comp_dict["tag"] = c["tag"].strip()
+        if sublabel:
+            comp_dict["sublabel"] = sublabel[:40]
 
         sanitized_components.append(comp_dict)
 
@@ -185,7 +220,9 @@ def _sanitize_architecture(spec: Dict[str, Any]) -> Dict[str, Any]:
             "type": "backend",
             "label": "System-Knoten",
             "pos": [100, 100],
-            "size": [140, 60]
+            "size": [140, 60],
+            "tag": "CORE",
+            "icon": "backend"
         })
         seen_ids.add("app_node")
 
@@ -218,6 +255,32 @@ def _sanitize_architecture(spec: Dict[str, Any]) -> Dict[str, Any]:
                 "wraps": mapped_wraps
             })
 
+    # Sub-Sprint 5.2: Auto-partition into zones if boundaries omitted
+    if not sanitized_boundaries and len(sanitized_components) >= 2:
+        zone1 = []
+        zone2 = []
+        for comp in sanitized_components:
+            if comp["type"] in ("frontend", "messagebus", "external"):
+                zone1.append(comp["id"])
+            else:
+                zone2.append(comp["id"])
+        if not zone1 and zone2:
+            zone1 = [zone2.pop(0)]
+        elif not zone2 and zone1:
+            zone2 = [zone1.pop(-1)]
+        if zone1:
+            sanitized_boundaries.append({
+                "kind": "security-group",
+                "label": "Zone 1: OT & Edge Tier",
+                "wraps": zone1
+            })
+        if zone2:
+            sanitized_boundaries.append({
+                "kind": "region",
+                "label": "Zone 2: Cloud & Core Platform",
+                "wraps": zone2
+            })
+
     # Connections
     sanitized_connections = []
     connections_raw = spec.get("connections", [])
@@ -237,10 +300,13 @@ def _sanitize_architecture(spec: Dict[str, Any]) -> Dict[str, Any]:
                 "id": clean_id(conn.get("id") or f"conn_{idx+1}"),
                 "from": from_id,
                 "to": to_id,
-                "label": str(conn.get("label") or "Trace / Link").strip()
+                "label": str(conn.get("label") or "mTLS 1.3").strip()
             }
             if conn.get("variant") in VALID_VARIANTS:
                 conn_dict["variant"] = conn["variant"]
+            else:
+                conn_dict["variant"] = "security" if idx % 2 == 0 else "emphasis"
+
             if conn.get("route") in ("auto", "straight", "orthogonal-h", "orthogonal-v"):
                 conn_dict["route"] = conn["route"]
 
@@ -322,25 +388,46 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
 
         raw_label = str(n.get("label") or nid).strip() or nid
         short_lbl, extra_sub = split_long_label(raw_label, 14)
-        sublabel = n.get("sublabel") or extra_sub
+        sub_raw = n.get("sublabel") or n.get("metrics") or extra_sub
+        
+        # Tag & Tags
+        tag_raw = n.get("tag")
+        if not tag_raw and n.get("tags"):
+            if isinstance(n["tags"], list):
+                tag_raw = " · ".join([str(t).strip() for t in n["tags"] if t])
+            else:
+                tag_raw = str(n["tags"]).strip()
+        if not tag_raw:
+            tag_raw = normalize_type(n.get("type")).upper()
+        tag = str(tag_raw).strip()[:24]
+
+        # Icon
+        icon_raw = n.get("icon")
+        if icon_raw in VALID_ICONS:
+            icon = icon_raw
+        elif normalize_type(n.get("type")) in VALID_ICONS:
+            icon = normalize_type(n.get("type"))
+        else:
+            icon = "messagebus"
 
         node_dict: Dict[str, Any] = {
             "id": nid,
             "type": normalize_type(n.get("type")),
             "label": short_lbl,
+            "tag": tag,
+            "icon": icon,
             "stage": stage_idx,
             "row": row_idx
         }
-        if sublabel and isinstance(sublabel, str):
-            clean_sub = str(sublabel).strip()
-            node_dict["sublabel"] = clean_sub[:18].strip()
+        if sub_raw:
+            node_dict["sublabel"] = str(sub_raw).strip()[:35]
 
         sanitized_nodes.append(node_dict)
 
     if len(sanitized_nodes) < 2:
         # Erzeuge 2 Dummy-Nodes damit Dataflow valide ist
-        n1 = {"id": "source_node", "type": "backend", "label": "Sensor Ingest", "stage": 0, "row": 0}
-        n2 = {"id": "process_node", "type": "backend", "label": "Model Engine", "stage": 1, "row": 0}
+        n1 = {"id": "source_node", "type": "backend", "label": "Sensor Ingest", "tag": "INGEST", "icon": "backend", "stage": 0, "row": 0}
+        n2 = {"id": "process_node", "type": "backend", "label": "Model Engine", "tag": "AI", "icon": "backend", "stage": 1, "row": 0}
         sanitized_nodes = [n1, n2]
         seen_ids = {"source_node", "process_node"}
 
@@ -378,6 +465,8 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
             }
             if fl.get("variant") in VALID_VARIANTS:
                 flow_dict["variant"] = fl["variant"]
+            else:
+                flow_dict["variant"] = "emphasis" if idx % 2 == 0 else "default"
 
             # Prevent overlap on vertical flows (same stage)
             if fl.get("labelDy") is not None:
@@ -412,6 +501,7 @@ def _sanitize_dataflow(spec: Dict[str, Any]) -> Dict[str, Any]:
             "from": sanitized_nodes[0]["id"],
             "to": sanitized_nodes[1]["id"],
             "label": "Stream",
+            "variant": "emphasis",
             "labelDy": 25.0
         })
 
@@ -450,15 +540,24 @@ def _sanitize_sequence(spec: Dict[str, Any]) -> Dict[str, Any]:
 
         raw_label = str(p.get("label") or pid).strip() or pid
         short_lbl, extra_sub = split_long_label(raw_label, 16)
-        sublabel = p.get("sublabel") or extra_sub
+        sub_raw = p.get("sublabel") or extra_sub
+
+        icon_raw = p.get("icon")
+        if icon_raw in VALID_ICONS:
+            icon = icon_raw
+        elif normalize_type(p.get("type")) in VALID_ICONS:
+            icon = normalize_type(p.get("type"))
+        else:
+            icon = "backend"
 
         part_dict: Dict[str, Any] = {
             "id": pid,
             "type": normalize_type(p.get("type")),
-            "label": short_lbl
+            "label": short_lbl,
+            "icon": icon
         }
-        if sublabel and isinstance(sublabel, str):
-            part_dict["sublabel"] = str(sublabel).strip()
+        if sub_raw:
+            part_dict["sublabel"] = str(sub_raw).strip()[:35]
 
         sanitized_participants.append(part_dict)
 
