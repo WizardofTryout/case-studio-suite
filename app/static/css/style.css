@@ -1388,6 +1388,22 @@ body {
   min-height: 280px;
 }
 
+.archify-viewport {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  position: relative;
+  background: #090c12;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  min-height: 280px;
+}
+
+[data-theme="light"] .archify-viewport {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
 
 .mermaid-viewport.grabbing {
   cursor: grabbing !important;

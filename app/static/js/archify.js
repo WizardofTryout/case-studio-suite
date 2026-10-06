@@ -284,6 +284,54 @@ const ArchifyUI = {
         color: #0f172a !important;
       }
 
+      /* Diagram container sizing & bottom cutoff prevention */
+      html[data-embed="true"],
+      html[data-embed="true"] body {
+        height: 100% !important;
+        min-height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+      }
+
+      html[data-embed="true"] .container {
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      html[data-embed="true"] .diagram-container {
+        width: 100% !important;
+        height: 100% !important;
+        max-height: 100% !important;
+        margin: 0 !important;
+        /* Extra bottom clearance (56px) so bottom boundary frames, edge labels and shadows are never cut off */
+        padding: 16px 24px 56px 24px !important;
+        box-sizing: border-box !important;
+        overflow: visible !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Crucial: Disable clip-path inside iframe to prevent cutting off boundaries, labels & shadows */
+      html[data-embed="true"] svg,
+      html[data-embed="true"] .diagram-container svg {
+        clip-path: none !important;
+        -webkit-clip-path: none !important;
+        overflow: visible !important;
+        max-height: calc(100% - 60px) !important;
+        max-width: calc(100% - 48px) !important;
+      }
+
       /* Light Mode Canvas node & text readability boost */
       html[data-theme="light"] svg[data-focus-active] [data-node-id]:not([aria-pressed="true"]) {
         opacity: 0.55 !important;
@@ -369,6 +417,9 @@ const ArchifyUI = {
       // If no artifact loaded yet, try to load latest
       if (!this.state.currentArtifactId && this.state.projectArtifacts.length > 0) {
         this.loadArtifact(this.state.projectArtifacts[0].id);
+      } else {
+        // Auto-fit on tab switch to ensure full visibility
+        setTimeout(() => this.zoomFit(), 120);
       }
     }
   },
@@ -452,6 +503,25 @@ const ArchifyUI = {
           if (doc) {
             this.injectIframeStyles(doc, currentTheme);
 
+            // Patch Archify.view.reveal to guarantee safe camera framing with generous margins
+            try {
+              const win = iframe.contentWindow;
+              if (win && win.Archify && win.Archify.view) {
+                const origReveal = win.Archify.view.reveal;
+                if (origReveal && !win.Archify.view._patchedReveal) {
+                  win.Archify.view._patchedReveal = true;
+                  win.Archify.view.reveal = function(ids, options) {
+                    options = options || {};
+                    // Ensure padding is at least 84px so bottom regions/borders are safely framed
+                    options.padding = Math.max(options.padding || 0, 84);
+                    return origReveal.call(this, ids, options);
+                  };
+                }
+              }
+            } catch (patchErr) {
+              console.warn("[ArchifyUI] Could not patch Archify.view.reveal:", patchErr);
+            }
+
             // Cross-window message responder for viewport controls inside iframe
             iframe.contentWindow.addEventListener("message", (msgEvt) => {
               if (!msgEvt.data || msgEvt.data.type !== "archify-viewport") return;
@@ -481,6 +551,9 @@ const ArchifyUI = {
                 console.warn("[ArchifyUI] postMessage error:", err);
               }
             }, true);
+
+            // Auto-fit on load after layout settles
+            setTimeout(() => this.zoomFit(), 200);
           }
         } catch (injectErr) {
           console.warn("[ArchifyUI] Failed to inject styles/listeners into iframe:", injectErr);

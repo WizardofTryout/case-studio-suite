@@ -338,7 +338,8 @@ const GraphViewer = {
     const vpHeight = viewport.clientHeight;
     if (vpWidth <= 0 || vpHeight <= 0) return;
 
-    const padding = 32;
+    // Generous 44px padding prevents cutoff on bottom nodes, subgraphs and edge labels
+    const padding = 44;
     const scaleX = (vpWidth - padding * 2) / this.svgOriginalWidth;
     const scaleY = (vpHeight - padding * 2) / this.svgOriginalHeight;
     let fitScale = Math.min(scaleX, scaleY, 1.0);
@@ -346,7 +347,7 @@ const GraphViewer = {
 
     this.scale = fitScale;
     this.panX = Math.round((vpWidth - this.svgOriginalWidth * this.scale) / 2);
-    this.panY = Math.round(Math.max(16, (vpHeight - this.svgOriginalHeight * this.scale) / 2));
+    this.panY = Math.round(Math.max(20, (vpHeight - this.svgOriginalHeight * this.scale) / 2));
 
     this.applyTransform();
   },
@@ -526,6 +527,21 @@ const GraphViewer = {
           vbWidth = rect.width || 600;
           vbHeight = rect.height || 750;
         }
+
+        // BBox sanity check: ensure elements extending beyond viewBox bottom/right are accommodated
+        try {
+          const bbox = svgEl.getBBox();
+          if (bbox && bbox.height > 0) {
+            const actualBottom = bbox.y + bbox.height;
+            if (actualBottom > vbHeight) {
+              vbHeight = Math.ceil(actualBottom + 24);
+            }
+            const actualRight = bbox.x + bbox.width;
+            if (actualRight > vbWidth) {
+              vbWidth = Math.ceil(actualRight + 24);
+            }
+          }
+        } catch (e) {}
 
         this.svgOriginalWidth = vbWidth;
         this.svgOriginalHeight = vbHeight;
