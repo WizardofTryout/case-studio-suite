@@ -6,7 +6,7 @@
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/css/style.css?v=3.4.0">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.5.0">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -375,7 +375,12 @@
               <div class="box-title" style="color:var(--amber);">
                 <span>🚨</span> Master-Consultant Decision Gates
               </div>
-              <span class="gate-badge pending">Kunden-Rückfragen</span>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span id="decision-gates-count-badge" class="gate-badge pending">Kunden-Rückfragen</span>
+                <button id="btn-clear-decision-gates" class="btn-gate-clear-all" type="button" onclick="App.clearAllDecisionGates()" title="Alle offenen Rückfragen verwerfen" style="display:none;">
+                  🗑️ Alle verwerfen
+                </button>
+              </div>
             </div>
             <div id="decision-gates-list" class="decision-gates-panel">
               <div style="color:#64748b; font-size:0.8rem; padding:8px 0;">
@@ -1403,10 +1408,10 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.4.0"></script>
-  <script src="/static/js/api.js?v=3.4.0"></script>
-  <script src="/static/js/graph.js?v=3.4.0"></script>
-  <script src="/static/js/app.js?v=3.4.0"></script>
+  <script src="/static/js/toast.js?v=3.5.0"></script>
+  <script src="/static/js/api.js?v=3.5.0"></script>
+  <script src="/static/js/graph.js?v=3.5.0"></script>
+  <script src="/static/js/app.js?v=3.5.0"></script>
 </body>
 </html>
 

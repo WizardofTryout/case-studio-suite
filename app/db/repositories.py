@@ -359,6 +359,20 @@ async def update_decision_gate_answer(
     return await get_decision_gate(gate_id)
 
 
+async def delete_decision_gate(gate_id: str) -> bool:
+    async with get_db() as db:
+        res = await db.execute("DELETE FROM decision_gates WHERE id = ?", (gate_id,))
+        await db.commit()
+        return res.rowcount > 0
+
+
+async def clear_session_decision_gates(session_id: str) -> int:
+    async with get_db() as db:
+        res = await db.execute("DELETE FROM decision_gates WHERE session_id = ?", (session_id,))
+        await db.commit()
+        return res.rowcount
+
+
 # --- Deliberation Messages ---
 
 async def list_deliberation_messages(session_id: str) -> List[Dict[str, Any]]:

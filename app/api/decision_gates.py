@@ -62,3 +62,31 @@ async def resolve_gate(gate_id: str, payload: DecisionGateResolveRequest):
         status=payload.status or "resolved"
     )
     return updated
+
+
+@router.delete("/decision_gates/{gate_id}")
+async def delete_gate(gate_id: str):
+    """
+    Deletes or dismisses an individual decision gate (e.g. when unneeded or redundant).
+    """
+    gate = await repositories.get_decision_gate(gate_id)
+    if not gate:
+        raise HTTPException(status_code=404, detail="Decision gate not found")
+    
+    success = await repositories.delete_decision_gate(gate_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete decision gate")
+    return {"status": "deleted", "id": gate_id, "topic": gate.get("topic")}
+
+
+@router.delete("/sessions/{session_id}/decision_gates")
+async def clear_session_gates(session_id: str):
+    """
+    Clears all decision gates for the given session.
+    """
+    sess = await repositories.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    
+    deleted_count = await repositories.clear_session_decision_gates(session_id)
+    return {"status": "cleared", "session_id": session_id, "deleted_count": deleted_count}

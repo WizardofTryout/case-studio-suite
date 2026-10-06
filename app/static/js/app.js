@@ -1245,6 +1245,16 @@ const App = {
     const listContainer = document.getElementById("decision-gates-list");
     if (!listContainer) return;
 
+    const countBadge = document.getElementById("decision-gates-count-badge");
+    const clearBtn = document.getElementById("btn-clear-decision-gates");
+    if (countBadge) {
+      const pendingCount = (gates || []).filter(g => g.status !== "resolved").length;
+      countBadge.textContent = pendingCount > 0 ? `${pendingCount} Rückfragen` : "Kunden-Rückfragen";
+    }
+    if (clearBtn) {
+      clearBtn.style.display = (gates && gates.length > 0) ? "inline-flex" : "none";
+    }
+
     if (!gates || gates.length === 0) {
       listContainer.innerHTML = `
         <div style="color:var(--text-dim); font-size:0.8rem; padding:8px 0;">
@@ -1258,6 +1268,7 @@ const App = {
     gates.forEach(g => {
       const isResolved = g.status === "resolved";
       const card = document.createElement("div");
+      card.id = `decision-gate-card-${g.id}`;
       card.className = `decision-gate-card ${isResolved ? 'resolved' : ''}`;
       
       card.innerHTML = `
@@ -1265,7 +1276,12 @@ const App = {
           <div class="gate-title">
             <span>${isResolved ? '✅' : '🚨'}</span> <strong>${this.escapeHtml(g.topic)}</strong>
           </div>
-          <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
+          <div class="gate-header-actions" style="display:flex; align-items:center; gap:8px;">
+            <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
+            <button type="button" class="btn-gate-dismiss" onclick="App.dismissDecisionGate('${g.id}', event)" title="Diese Frage verwerfen / entfernen (nicht benötigt)" aria-label="Frage löschen">
+              ✕
+            </button>
+          </div>
         </div>
         <div class="gate-missing-fact" style="font-size:0.8rem; color:var(--text-main); line-height:1.4;">
           <strong style="color:var(--amber);">Fehlender Fakt:</strong> <span class="missing-fact-text" style="color:var(--text-muted);">${this.escapeHtml(g.detected_missing_fact)}</span>
@@ -1286,11 +1302,67 @@ const App = {
             <button class="btn btn-primary btn-sm" onclick="App.resolveGateAndBranch('${g.id}')">
               Als Fakt übernehmen & Graph aktualisieren
             </button>
+            <button type="button" class="btn btn-secondary btn-sm btn-gate-dismiss-alt" onclick="App.dismissDecisionGate('${g.id}', event)" title="Frage verwerfen / nicht benötigt">
+              🗑️ Verwerfen
+            </button>
           </div>
         `}
       `;
       listContainer.appendChild(card);
     });
+  },
+
+  async dismissDecisionGate(gateId, event) {
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    const gate = (this.state.decisionGates || []).find(g => g.id === gateId);
+    const topic = gate ? gate.topic : "Frage";
+
+    const cardEl = document.getElementById(`decision-gate-card-${gateId}`);
+    if (cardEl) {
+      cardEl.classList.add("dismissing");
+    }
+
+    try {
+      await API.deleteDecisionGate(gateId);
+      this.state.decisionGates = (this.state.decisionGates || []).filter(g => g.id !== gateId);
+
+      setTimeout(() => {
+        if (cardEl) cardEl.remove();
+        this.renderDecisionGatesList(this.state.decisionGates);
+        window.showToast(`Frage zu "${topic}" verworfen.`, "info");
+      }, 220);
+    } catch (err) {
+      console.error("Fehler beim Löschen des Decision Gates:", err);
+      if (cardEl) cardEl.classList.remove("dismissing");
+      window.showToast("Fehler beim Verwerfen der Frage.", "error");
+    }
+  },
+
+  async clearAllDecisionGates() {
+    if (!this.state.currentSessionId) return;
+    const count = (this.state.decisionGates || []).length;
+    if (count === 0) return;
+
+    window.showConfirmModal(
+      "Alle Fragen verwerfen",
+      `Möchtest du wirklich alle ${count} offenen Rückfragen aus dieser Session verwerfen?`,
+      "Ja, alle verwerfen",
+      true,
+      async () => {
+        try {
+          await API.clearSessionDecisionGates(this.state.currentSessionId);
+          this.state.decisionGates = [];
+          this.renderDecisionGatesList([]);
+          window.showToast("Alle offenen Fragen wurden verworfen.", "info");
+        } catch (err) {
+          console.error("Fehler beim Leeren der Decision Gates:", err);
+          window.showToast("Fehler beim Leeren der Fragen.", "error");
+        }
+      }
+    );
   },
 
   async resolveGateAndBranch(gateId) {
@@ -2495,6 +2567,9 @@ const App = {
             <button class="btn btn-secondary btn-xs btn-discuss-chat" type="button" title="Diese Frage im Chat diskutieren oder Verständnisfrage stellen">
               💬 Im Chat fragen
             </button>
+            <button class="btn btn-secondary btn-xs btn-dismiss-catalog-question" type="button" title="Diese Frage aus dem Katalog entfernen (nicht benötigt)">
+              ✕ Verwerfen
+            </button>
           </div>
         `;
 
@@ -2504,6 +2579,16 @@ const App = {
 
         item.querySelector(".btn-discuss-chat")?.addEventListener("click", () => {
           this.discussQuestionInChat(qText, rationale);
+        });
+
+        item.querySelector(".btn-dismiss-catalog-question")?.addEventListener("click", () => {
+          item.style.transition = "all 0.22s ease";
+          item.style.opacity = "0";
+          item.style.transform = "translateX(15px)";
+          setTimeout(() => {
+            item.remove();
+            window.showToast("Frage aus Katalog entfernt.", "info");
+          }, 220);
         });
 
         list.appendChild(item);

@@ -362,6 +362,22 @@ const API = {
     return await res.json();
   },
 
+  async deleteDecisionGate(gateId) {
+    const res = await fetch(`/api/decision_gates/${gateId}`, {
+      method: "DELETE"
+    });
+    if (!res.ok) throw new Error("Fehler beim Löschen des Decision Gates");
+    return await res.json();
+  },
+
+  async clearSessionDecisionGates(sessionId) {
+    const res = await fetch(`/api/sessions/${sessionId}/decision_gates`, {
+      method: "DELETE"
+    });
+    if (!res.ok) throw new Error("Fehler beim Leeren der Decision Gates");
+    return await res.json();
+  },
+
   async getMessages(sessionId) {
     const res = await fetch(`/api/copilot/sessions/${sessionId}/messages`);
     return await res.json();
