@@ -1,0 +1,13 @@
+{
+  "name": "archify-sidecar-service",
+  "version": "1.0.0",
+  "description": "Headless HTTP rendering sidecar for Archify diagrams",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
