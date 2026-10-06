@@ -15,7 +15,7 @@ app.use(express.json({ limit: '10mb' }));
 const ALLOWED_TYPES = new Set(['architecture', 'dataflow', 'sequence']);
 
 // Helper: Führt Child-Process mit Parametern deterministisch aus
-function runArchify(args, timeoutMs = 20000) {
+function runArchify(args, timeoutMs = 25000) {
   return new Promise((resolve) => {
     const proc = spawn('node', [ARCHIFY_BIN, ...args], {
       stdio: ['ignore', 'pipe', 'pipe']

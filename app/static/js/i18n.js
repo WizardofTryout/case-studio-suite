@@ -118,6 +118,13 @@
       "archify_loading": "Archify berechnet Traces & Komponenten...",
       "archify_history_title": "Bisherige Deep-Dives zu diesem Baustein:",
       "archify_empty_history": "Noch keine Deep-Dives für diesen Knoten vorhanden.",
+      "archify_export_btn": "📥 Export",
+      "archify_export_html": "Interaktives HTML (.html)",
+      "archify_export_html_desc": "Eigenständige Offline-Datei",
+      "archify_export_svg": "SVG Vektorgrafik (.svg)",
+      "archify_export_svg_desc": "Für Confluence, Dokumente & Druck",
+      "archify_timeout_alert": "Archify Sidecar antwortet nicht oder Timeout (>25s) erreicht. Die Mermaid-Ansicht bleibt weiterhin aktiv.",
+      "archify_retry_btn": "🔄 Erneut versuchen",
 
 
       // Decision Gates
@@ -262,6 +269,13 @@
       "archify_loading": "Archify is computing traces & components...",
       "archify_history_title": "Previous Deep-Dives for this component:",
       "archify_empty_history": "No deep-dives generated for this node yet.",
+      "archify_export_btn": "📥 Export",
+      "archify_export_html": "Interactive HTML (.html)",
+      "archify_export_html_desc": "Standalone offline file",
+      "archify_export_svg": "SVG Vector Graphic (.svg)",
+      "archify_export_svg_desc": "For Confluence, docs & print",
+      "archify_timeout_alert": "Archify sidecar unreachable or timed out (>25s). Mermaid view remains fully active.",
+      "archify_retry_btn": "🔄 Retry",
 
 
       // Decision Gates

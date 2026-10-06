@@ -96,6 +96,13 @@ async def generate_deep_dive(req: DeepDiveGenerateRequest):
             detail="Archify Add-on ist in der Konfiguration deaktiviert (ARCHIFY_ENABLED=false)."
         )
 
+    # 0. Vorab prüfen, ob der Sidecar-Dienst erreichbar ist (Circuit-Breaker Schutz)
+    if not await archify_client.is_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Archify Sidecar-Dienst ist derzeit nicht erreichbar oder gestoppt."
+        )
+
     # 1. Projekt validieren
     proj = await repositories.get_project(req.project_id)
     if not proj:

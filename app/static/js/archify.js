@@ -1,10 +1,12 @@
 /**
- * Case Studio Suite - Archify Deep-Dive UI Module
+ * Case Studio Suite - Archify Deep-Dive UI Module (Sprint 4 Production-Ready)
  * Handles:
- * 1. Segmented Control Toggle (Mermaid vs Archify Showcase)
- * 2. Sandboxed Iframe Rendering with auto-resize & embed parameters
+ * 1. Dual-Engine Segmented Control Toggle (Mermaid vs Archify Showcase)
+ * 2. Sandboxed Iframe Rendering with auto-resize & theme synchronization
  * 3. Inspector Trigger & Question-First Dialog with Quick-Trigger Chips
- * 4. Project-Chronology persistence & restoration
+ * 4. Export Manager (Interactive HTML & SVG Extraction)
+ * 5. Circuit-Breaker & Timeout Protection (>25s) with Graceful Fallback
+ * 6. Project-Chronology persistence & restoration
  */
 
 const ArchifyUI = {
@@ -16,7 +18,10 @@ const ArchifyUI = {
     currentArtifactId: null,
     projectArtifacts: [],
     selectedNode: null,
-    isGenerating: false
+    isGenerating: false,
+    consecutiveFailures: 0,
+    circuitBreakerOpen: false,
+    statusPollTimer: null
   },
 
   async init() {
@@ -84,6 +89,16 @@ const ArchifyUI = {
       btnSubmit.addEventListener("click", () => this.handleGenerate());
     }
 
+    // Retry Button in Modal Error Banner
+    const btnRetry = document.getElementById("btn-retry-archify-modal");
+    if (btnRetry) {
+      btnRetry.addEventListener("click", () => {
+        const errorBanner = document.getElementById("archify-modal-error-banner");
+        if (errorBanner) errorBanner.style.display = "none";
+        this.handleGenerate();
+      });
+    }
+
     // Quick-Trigger Chips
     document.querySelectorAll(".archify-chip").forEach(chip => {
       chip.addEventListener("click", (e) => {
@@ -118,6 +133,79 @@ const ArchifyUI = {
         if (val) this.loadArtifact(val);
       });
     }
+
+    // Export Header Dropdown Toggle
+    const btnExportHeader = document.getElementById("btn-archify-export-header");
+    const exportDropdownMenu = document.getElementById("archify-export-dropdown-menu");
+
+    if (btnExportHeader && exportDropdownMenu) {
+      btnExportHeader.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const isOpen = exportDropdownMenu.style.display === "block";
+        exportDropdownMenu.style.display = isOpen ? "none" : "block";
+      });
+
+      // Close dropdown on click outside
+      document.addEventListener("click", (e) => {
+        if (!btnExportHeader.contains(e.target) && !exportDropdownMenu.contains(e.target)) {
+          exportDropdownMenu.style.display = "none";
+        }
+      });
+    }
+
+    // Export Buttons (Header Menu & Toolbar)
+    const btnExportHtml = document.getElementById("btn-export-archify-html");
+    const btnExportSvg = document.getElementById("btn-export-archify-svg");
+    const btnToolbarHtml = document.getElementById("btn-toolbar-export-html");
+    const btnToolbarSvg = document.getElementById("btn-toolbar-export-svg");
+
+    if (btnExportHtml) {
+      btnExportHtml.addEventListener("click", () => {
+        if (exportDropdownMenu) exportDropdownMenu.style.display = "none";
+        this.exportHTML();
+      });
+    }
+    if (btnToolbarHtml) {
+      btnToolbarHtml.addEventListener("click", () => this.exportHTML());
+    }
+
+    if (btnExportSvg) {
+      btnExportSvg.addEventListener("click", () => {
+        if (exportDropdownMenu) exportDropdownMenu.style.display = "none";
+        this.exportSVG();
+      });
+    }
+    if (btnToolbarSvg) {
+      btnToolbarSvg.addEventListener("click", () => this.exportSVG());
+    }
+  },
+
+  /**
+   * Sub-Sprint 4.1: Theme-Synchronisation
+   * Switches the active theme inside the iframe immediately via DOM attribute and postMessage.
+   */
+  setTheme(theme) {
+    const t = (theme === "light") ? "light" : "dark";
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe) return;
+
+    try {
+      // 1. Direct DOM attribute update on the iframe document
+      if (iframe.contentDocument && iframe.contentDocument.documentElement) {
+        iframe.contentDocument.documentElement.setAttribute("data-theme", t);
+      }
+
+      // 2. Archify viewer theme method (if defined in iframe window)
+      if (iframe.contentWindow) {
+        if (iframe.contentWindow.Archify?.theme?.apply) {
+          iframe.contentWindow.Archify.theme.apply(t);
+        }
+        // 3. postMessage broadcast for sandboxed listener
+        iframe.contentWindow.postMessage({ type: "theme-change", theme: t }, "*");
+      }
+    } catch (e) {
+      console.warn("[ArchifyUI] Could not sync theme to iframe:", e);
+    }
   },
 
   switchTab(tab) {
@@ -128,6 +216,7 @@ const ArchifyUI = {
     const mermaidPane = document.getElementById("mermaid-viewport");
     const archifyPane = document.getElementById("archify-viewport");
     const graphToolbar = document.querySelector(".live-graph-box .graph-toolbar");
+    const exportHeaderContainer = document.getElementById("archify-header-export-container");
 
     if (tab === "mermaid") {
       if (btnMermaid) btnMermaid.classList.add("active");
@@ -135,6 +224,7 @@ const ArchifyUI = {
       if (mermaidPane) mermaidPane.style.display = "flex";
       if (archifyPane) archifyPane.style.display = "none";
       if (graphToolbar) graphToolbar.style.visibility = "visible";
+      if (exportHeaderContainer) exportHeaderContainer.style.display = "none";
     } else {
       if (btnMermaid) btnMermaid.classList.remove("active");
       if (btnArchify) btnArchify.classList.add("active");
@@ -142,6 +232,11 @@ const ArchifyUI = {
       if (archifyPane) archifyPane.style.display = "flex";
       // Zoom controls are for Mermaid SVG; hide them in Archify showcase
       if (graphToolbar) graphToolbar.style.visibility = "hidden";
+
+      // Show Export menu in header if an artifact is loaded
+      if (exportHeaderContainer) {
+        exportHeaderContainer.style.display = this.state.currentArtifactId ? "inline-block" : "none";
+      }
 
       // If no artifact loaded yet, try to load latest
       if (!this.state.currentArtifactId && this.state.projectArtifacts.length > 0) {
@@ -189,9 +284,10 @@ const ArchifyUI = {
     this.state.projectArtifacts.forEach(art => {
       const opt = document.createElement("option");
       opt.value = art.id;
-      const typeLabel = art.diagram_type.toUpperCase();
-      const node = art.node_name || art.node_id;
-      opt.innerText = `[${typeLabel}] ${node} - ${art.question.substring(0, 30)}...`;
+      const typeLabel = (art.diagram_type || "arch").toUpperCase();
+      const node = art.node_name || art.node_id || "Knoten";
+      const qPreview = (art.question || "").substring(0, 32);
+      opt.innerText = `[${typeLabel}] ${node} - ${qPreview}...`;
       if (art.id === this.state.currentArtifactId) {
         opt.selected = true;
       }
@@ -203,20 +299,161 @@ const ArchifyUI = {
     this.state.currentArtifactId = artifactId;
     const iframe = document.getElementById("archify-iframe");
     const emptyState = document.getElementById("archify-empty-state");
-    const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+    const exportHeaderContainer = document.getElementById("archify-header-export-container");
+
+    const currentTheme = (document.documentElement.getAttribute("data-theme") === "light") ? "light" : "dark";
 
     if (iframe && artifactId) {
       iframe.style.display = "block";
       if (emptyState) emptyState.style.display = "none";
+      // URL-Param ?theme=light|dark passed at initial load
       iframe.src = `/api/deep-dive/artifact/${encodeURIComponent(artifactId)}?embed=1&theme=${currentTheme}`;
+      
+      iframe.onload = () => {
+        this.setTheme(currentTheme);
+      };
+    }
+
+    if (exportHeaderContainer && this.state.activeTab === "archify") {
+      exportHeaderContainer.style.display = artifactId ? "inline-block" : "none";
     }
 
     this.renderArtifactDropdown();
   },
 
+  getActiveArtifact() {
+    return this.state.projectArtifacts.find(a => a.id === this.state.currentArtifactId) || null;
+  },
+
+  buildExportFilename(extension) {
+    const art = this.getActiveArtifact();
+    const proj = (window.App?.state?.currentProject?.name || "Projekt").trim().replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, "_");
+    const node = ((art && (art.node_name || art.node_id)) || this.state.selectedNode || "Architektur").trim().replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, "_");
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, "");
+    return `${proj}_${node}_${dateStr}_${timeStr}.${extension}`;
+  },
+
+  _triggerDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  },
+
+  /**
+   * Sub-Sprint 4.2: Export-Manager - Interaktives HTML herunterladen
+   */
+  async exportHTML() {
+    if (!this.state.currentArtifactId) {
+      if (window.showToast) window.showToast("Bitte wähle zuerst ein Archify-Diagramm aus.", "warning");
+      return;
+    }
+
+    try {
+      const filename = this.buildExportFilename("html");
+      const res = await fetch(`/api/deep-dive/artifact/${encodeURIComponent(this.state.currentArtifactId)}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status} beim Laden des Artefakts`);
+      
+      const htmlText = await res.text();
+      const blob = new Blob([htmlText], { type: "text/html;charset=utf-8" });
+      this._triggerDownload(blob, filename);
+
+      if (window.showToast) window.showToast(`HTML-Export heruntergeladen: ${filename}`, "success");
+    } catch (err) {
+      console.error("[ArchifyUI] exportHTML error:", err);
+      if (window.showToast) window.showToast("Fehler beim HTML-Export: " + err.message, "error");
+    }
+  },
+
+  /**
+   * Sub-Sprint 4.2: Export-Manager - SVG Vektorgrafik exportieren
+   */
+  async exportSVG() {
+    if (!this.state.currentArtifactId) {
+      if (window.showToast) window.showToast("Bitte wähle zuerst ein Archify-Diagramm aus.", "warning");
+      return;
+    }
+
+    const iframe = document.getElementById("archify-iframe");
+    if (!iframe || !iframe.contentDocument) {
+      if (window.showToast) window.showToast("Iframe noch nicht geladen.", "warning");
+      return;
+    }
+
+    const filename = this.buildExportFilename("svg");
+
+    try {
+      // Option 1: Falls die Archify Engine im iframe ihren nativen Serializer anbietet
+      if (iframe.contentWindow?.Archify?.exportMenu?.run) {
+        try {
+          await iframe.contentWindow.Archify.exportMenu.run("svg");
+          if (window.showToast) window.showToast(`SVG-Diagramm exportiert: ${filename}`, "success");
+          return;
+        } catch (nativeErr) {
+          console.warn("[ArchifyUI] Nativer SVG-Export fehlgeschlagen, nutze direkte DOM-Extraktion:", nativeErr);
+        }
+      }
+
+      // Option 2: Direkte Extraktion & Inlining der Styles für Standalone-Portabilität (Confluence / Docs)
+      const iframeDoc = iframe.contentDocument;
+      const svgNode = iframeDoc.querySelector(".diagram-container svg") || iframeDoc.querySelector("svg");
+      if (!svgNode) {
+        throw new Error("Kein SVG-Element im Archify-Diagramm gefunden.");
+      }
+
+      const clone = svgNode.cloneNode(true);
+      clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+      clone.setAttribute("xmlns:xlink", "http://www.w3.org/1999/xlink");
+
+      // Aktives Theme festhalten
+      const activeTheme = iframeDoc.documentElement.getAttribute("data-theme") ||
+                          document.documentElement.getAttribute("data-theme") || "dark";
+      clone.setAttribute("data-theme", activeTheme);
+
+      // Stylesheet-Inhalte aus iframe in SVG <defs><style> einbetten
+      let embeddedStyles = "";
+      iframeDoc.querySelectorAll("style").forEach(st => {
+        embeddedStyles += "\n" + st.textContent;
+      });
+
+      let defs = clone.querySelector("defs");
+      if (!defs) {
+        defs = iframeDoc.createElementNS("http://www.w3.org/2000/svg", "defs");
+        clone.insertBefore(defs, clone.firstChild);
+      }
+      const styleTag = iframeDoc.createElementNS("http://www.w3.org/2000/svg", "style");
+      styleTag.textContent = embeddedStyles;
+      defs.appendChild(styleTag);
+
+      const serializer = new XMLSerializer();
+      let svgContent = serializer.serializeToString(clone);
+      if (!svgContent.startsWith("<?xml")) {
+        svgContent = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgContent;
+      }
+
+      const blob = new Blob([svgContent], { type: "image/svg+xml;charset=utf-8" });
+      this._triggerDownload(blob, filename);
+
+      if (window.showToast) window.showToast(`SVG-Diagramm erfolgreich exportiert: ${filename}`, "success");
+    } catch (err) {
+      console.error("[ArchifyUI] exportSVG error:", err);
+      if (window.showToast) window.showToast("Fehler beim SVG-Export: " + err.message, "error");
+    }
+  },
+
   openQuestionModal() {
     const modal = document.getElementById("archify-question-modal");
     if (!modal) return;
+
+    // Reset error banner
+    const errorBanner = document.getElementById("archify-modal-error-banner");
+    if (errorBanner) errorBanner.style.display = "none";
 
     // Extract current inspector node
     const nodeTitle = document.getElementById("drawer-node-title")?.innerText || "";
@@ -259,7 +496,7 @@ const ArchifyUI = {
     list.innerHTML = matched.map(m => `
       <div class="archify-history-item" style="display:flex; justify-content:space-between; align-items:center; padding:6px 10px; background:rgba(255,255,255,0.03); border-radius:6px; margin-bottom:4px; font-size:0.82rem;">
         <div>
-          <span style="font-weight:600; color:var(--cyan); margin-right:6px;">[${m.diagram_type.toUpperCase()}]</span>
+          <span style="font-weight:600; color:var(--cyan); margin-right:6px;">[${(m.diagram_type || "arch").toUpperCase()}]</span>
           <span>${m.question}</span>
         </div>
         <button class="btn btn-secondary btn-sm" style="padding:2px 8px; font-size:0.75rem;" onclick="ArchifyUI.loadAndSwitch('${m.id}')">Öffnen</button>
@@ -273,6 +510,9 @@ const ArchifyUI = {
     this.switchTab("archify");
   },
 
+  /**
+   * Sub-Sprint 4.3: Circuit-Breaker & Timeout-Schutz
+   */
   async handleGenerate() {
     if (this.state.isGenerating) return;
     this.state.isGenerating = true;
@@ -283,6 +523,9 @@ const ArchifyUI = {
       btn.disabled = true;
       btn.innerHTML = `<span class="spinner-icon"></span> <span>Wird generiert...</span>`;
     }
+
+    const errorBanner = document.getElementById("archify-modal-error-banner");
+    if (errorBanner) errorBanner.style.display = "none";
 
     const projectId = window.App?.state?.currentProjectId || window.App?.state?.currentProject?.id;
     if (!projectId) {
@@ -328,16 +571,51 @@ const ArchifyUI = {
 
       const res = await API.generateDeepDive(payload);
       if (res.success && res.artifact_id) {
+        // Reset failure counter on success
+        this.state.consecutiveFailures = 0;
+        this.state.circuitBreakerOpen = false;
+
         if (window.showToast) window.showToast("Archify Deep-Dive erfolgreich visualisiert!", "success");
         this.closeQuestionModal();
         await this.loadProjectArtifacts(projectId, currentPhase);
         this.loadArtifact(res.artifact_id);
         this.switchTab("archify");
       } else {
-        if (window.showToast) window.showToast("Generierung fehlgeschlagen.", "error");
+        throw new Error(res.error || "Generierung fehlgeschlagen.");
       }
     } catch (err) {
-      if (window.showToast) window.showToast("Fehler: " + err.message, "error");
+      this.state.consecutiveFailures++;
+      console.error("[ArchifyUI] Generation error:", err);
+
+      const isTimeoutOrUnavailable = err.message && (
+        err.message.includes("503") ||
+        err.message.includes("504") ||
+        err.message.includes("Timeout") ||
+        err.message.includes("nicht erreichbar") ||
+        err.message.includes("gestoppt")
+      );
+
+      // Display friendly in-modal error banner with retry option
+      if (errorBanner) {
+        errorBanner.style.display = "block";
+        const descEl = document.getElementById("archify-modal-error-desc");
+        if (descEl) {
+          descEl.innerText = isTimeoutOrUnavailable
+            ? (window.I18n ? window.I18n.t("archify_timeout_alert") : "Archify Sidecar antwortet nicht oder Timeout (>25s) erreicht. Die Mermaid-Ansicht bleibt weiterhin aktiv.")
+            : `Fehler: ${err.message}. Die Mermaid-Ansicht bleibt weiterhin aktiv.`;
+        }
+      }
+
+      if (window.showToast) {
+        window.showToast(isTimeoutOrUnavailable
+          ? "Archify Sidecar antwortet nicht (>25s). Mermaid-Flow bleibt uneingeschränkt aktiv."
+          : "Fehler: " + err.message, "error");
+      }
+
+      // Circuit Breaker: Nach 3 aufeinanderfolgenden Fehlern
+      if (this.state.consecutiveFailures >= 3) {
+        this.activateCircuitBreaker();
+      }
     } finally {
       this.state.isGenerating = false;
       if (btn) {
@@ -348,6 +626,27 @@ const ArchifyUI = {
     }
   },
 
+  activateCircuitBreaker() {
+    this.state.circuitBreakerOpen = true;
+    console.warn("[ArchifyUI] Circuit Breaker activated due to repeated sidecar failures.");
+
+    if (!this.state.statusPollTimer) {
+      this.state.statusPollTimer = setInterval(async () => {
+        try {
+          const st = await API.getDeepDiveStatus();
+          if (st.available) {
+            this.state.circuitBreakerOpen = false;
+            this.state.consecutiveFailures = 0;
+            clearInterval(this.state.statusPollTimer);
+            this.state.statusPollTimer = null;
+            if (window.showToast) {
+              window.showToast("Archify Sidecar-Dienst ist wieder verfügbar!", "info");
+            }
+          }
+        } catch (_) {}
+      }, 20000);
+    }
+  },
 
   reset() {
     this.state.currentArtifactId = null;
@@ -358,6 +657,8 @@ const ArchifyUI = {
     if (iframe) iframe.src = "about:blank";
     const badge = document.getElementById("archify-count-badge");
     if (badge) badge.style.display = "none";
+    const exportHeaderContainer = document.getElementById("archify-header-export-container");
+    if (exportHeaderContainer) exportHeaderContainer.style.display = "none";
   }
 };
 

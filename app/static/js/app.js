@@ -570,6 +570,9 @@ const App = {
     if (window.GraphViewer && typeof window.GraphViewer.setTheme === "function") {
       window.GraphViewer.setTheme(theme);
     }
+    if (window.ArchifyUI && typeof window.ArchifyUI.setTheme === "function") {
+      window.ArchifyUI.setTheme(theme);
+    }
   },
 
   // --- Docked Node Inspector Side Drawer Events ---

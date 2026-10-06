@@ -270,6 +270,29 @@
                     <span id="archify-count-badge" class="badge" style="background:var(--cyan); color:#000; font-size:0.7rem; padding:1px 5px; border-radius:10px; display:none; font-weight:bold;">0</span>
                   </button>
                 </div>
+
+                <!-- Export Menu Button in Diagram-Header (Visible when Archify Showcase is active) -->
+                <div id="archify-header-export-container" style="display:none; position:relative;">
+                  <button id="btn-archify-export-header" class="btn btn-secondary btn-sm" type="button" style="padding:4px 10px; font-size:0.8rem; display:inline-flex; align-items:center; gap:6px;" title="Diagramm exportieren">
+                    <span data-i18n="archify_export_btn">📥 Export</span> ▾
+                  </button>
+                  <div id="archify-export-dropdown-menu" style="display:none; position:absolute; left:0; top:calc(100% + 4px); z-index:1000; min-width:230px; background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4); padding:6px 0;">
+                    <button id="btn-export-archify-html" type="button" style="width:100%; text-align:left; padding:8px 14px; background:none; border:none; color:var(--text-main); font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:1.1rem;">🌐</span>
+                      <div>
+                        <div style="font-weight:600;" data-i18n="archify_export_html">Interaktives HTML (.html)</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);" data-i18n="archify_export_html_desc">Eigenständige Offline-Datei</div>
+                      </div>
+                    </button>
+                    <button id="btn-export-archify-svg" type="button" style="width:100%; text-align:left; padding:8px 14px; background:none; border:none; color:var(--text-main); font-size:0.8rem; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                      <span style="font-size:1.1rem;">📐</span>
+                      <div>
+                        <div style="font-weight:600;" data-i18n="archify_export_svg">SVG Vektorgrafik (.svg)</div>
+                        <div style="font-size:0.7rem; color:var(--text-muted);" data-i18n="archify_export_svg_desc">Für Confluence, Dokumente & Druck</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
               </div>
               <div class="graph-toolbar">
                 <button id="btn-zoom-in" class="graph-tool-btn" title="Vergrößern (Zoom In)">➕ In</button>
@@ -302,18 +325,26 @@
                       <option value="">Lade Deep-Dives...</option>
                     </select>
                   </div>
-                  <div>
+                  <div style="display:flex; align-items:center; gap:10px;">
+                    <div style="display:flex; gap:6px;">
+                      <button id="btn-toolbar-export-html" class="btn btn-secondary btn-sm" type="button" style="padding:2px 8px; font-size:0.75rem;" title="Als eigenständige HTML-Datei herunterladen">
+                        <span>🌐 HTML</span>
+                      </button>
+                      <button id="btn-toolbar-export-svg" class="btn btn-secondary btn-sm" type="button" style="padding:2px 8px; font-size:0.75rem;" title="Als SVG Vektorgrafik für Dokumente/Confluence exportieren">
+                        <span>📐 SVG</span>
+                      </button>
+                    </div>
                     <span style="font-size:0.75rem; color:var(--cyan); font-weight:600;">⚡ Archify Interactive Engine</span>
                   </div>
                 </div>
 
-                <!-- Sandboxed Iframe -->
+                <!-- Sandboxed Iframe with allow-downloads -->
                 <div style="flex:1; width:100%; height:calc(100% - 35px); position:relative;">
                   <div id="archify-empty-state" style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; color:var(--text-muted); font-size:0.85rem; padding:20px; text-align:center;">
                     <span>🔍 Noch kein Archify Deep-Dive ausgewählt.</span>
                     <span style="font-size:0.78rem; margin-top:4px;">Wähle rechts im Inspektor einen Baustein und klicke auf "🔍 Archify Deep-Dive".</span>
                   </div>
-                  <iframe id="archify-iframe" sandbox="allow-scripts allow-same-origin" style="width:100%; height:100%; border:none; display:none;"></iframe>
+                  <iframe id="archify-iframe" sandbox="allow-scripts allow-same-origin allow-downloads" style="width:100%; height:100%; border:none; display:none;"></iframe>
                 </div>
               </div>
 
@@ -1571,6 +1602,26 @@
           </div>
           <div class="catalog-loading-progress-bar" style="margin-top:10px;"></div>
         </div>
+
+        <!-- Circuit-Breaker & Timeout-Schutz Error Banner mit Retry-Option -->
+        <div id="archify-modal-error-banner" style="display:none; margin-top:8px; padding:12px 14px; border:1px solid rgba(239, 68, 68, 0.4); background:rgba(239, 68, 68, 0.08); border-radius:10px;">
+          <div style="display:flex; align-items:flex-start; gap:10px;">
+            <span style="font-size:1.2rem;">⚠️</span>
+            <div style="flex:1;">
+              <div id="archify-modal-error-title" style="font-weight:600; font-size:0.85rem; color:#fca5a5;">
+                Archify Sidecar antwortet nicht oder Timeout (>25s) erreicht.
+              </div>
+              <div id="archify-modal-error-desc" style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
+                Die Mermaid-Ansicht bleibt weiterhin voll funktionsfähig. Du kannst die Generierung wiederholen oder das Fenster schließen.
+              </div>
+              <div style="margin-top:8px;">
+                <button id="btn-retry-archify-modal" class="btn btn-secondary btn-sm" type="button" style="padding:4px 12px; font-size:0.78rem; border-color:rgba(239, 68, 68, 0.5); color:#fca5a5;">
+                  <span data-i18n="archify_retry_btn">🔄 Erneut versuchen</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="modal-actions" style="margin-top:18px; display:flex; justify-content:flex-end; gap:8px;">
@@ -1586,12 +1637,12 @@
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.9.5"></script>
-  <script src="/static/js/i18n.js?v=3.9.5"></script>
-  <script src="/static/js/api.js?v=3.9.5"></script>
-  <script src="/static/js/archify.js?v=3.9.5"></script>
-  <script src="/static/js/graph.js?v=3.9.5"></script>
-  <script src="/static/js/app.js?v=3.9.5"></script>
+  <script src="/static/js/toast.js?v=4.0.0"></script>
+  <script src="/static/js/i18n.js?v=4.0.0"></script>
+  <script src="/static/js/api.js?v=4.0.0"></script>
+  <script src="/static/js/archify.js?v=4.0.0"></script>
+  <script src="/static/js/graph.js?v=4.0.0"></script>
+  <script src="/static/js/app.js?v=4.0.0"></script>
 </body>
 
 </html>
