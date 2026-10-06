@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from app.db import repositories
 
 router = APIRouter(prefix="/api", tags=["sessions"])
@@ -62,3 +62,26 @@ async def update_session_by_id(session_id: str, payload: SessionUpdateRequest):
     if not sess:
         raise HTTPException(status_code=404, detail="Session not found")
     return sess
+
+
+@router.get("/sessions/{session_id}/phases")
+async def get_session_phases_alias(session_id: str):
+    sess = await repositories.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return await repositories.get_phase_states(session_id)
+
+
+@router.put("/sessions/{session_id}/phases/{phase}")
+async def update_session_phase_alias(session_id: str, phase: int, payload: Dict[str, Any]):
+    sess = await repositories.get_session(session_id)
+    if not sess:
+        raise HTTPException(status_code=404, detail="Session not found")
+    state = await repositories.save_phase_state(
+        session_id=session_id,
+        phase=phase,
+        content_html=payload.get("content_html"),
+        full_text=payload.get("full_text"),
+        architecture_graph_mermaid=payload.get("architecture_graph_mermaid")
+    )
+    return state

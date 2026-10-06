@@ -620,6 +620,7 @@ const App = {
     const sessions = await API.getSessions(projectId);
     if (sessions && sessions.length > 0) {
       const activeSession = sessions[0];
+      this.state.currentSession = activeSession;
       this.state.currentSessionId = activeSession.id;
 
       // Load saved phase states from SQLite
@@ -649,10 +650,14 @@ const App = {
       }
 
       const curPhase = activeSession.current_phase || 1;
-      await this.switchPhase(curPhase);
+      await this.switchPhase(curPhase, false);
       
       const graphToRender = this.state.phaseData[curPhase]?.graph || activeSession.architecture_graph_mermaid || "";
-      await GraphViewer.renderGraph(graphToRender);
+      if (graphToRender) {
+        await GraphViewer.renderGraph(graphToRender);
+      } else {
+        GraphViewer.renderGraph("");
+      }
 
       // Auto-open inspector drawer for primary node so KI-Ast functions are immediately visible
       setTimeout(() => {
@@ -664,7 +669,7 @@ const App = {
             this.openNodeInspector(label);
           }
         }
-      }, 300);
+      }, 350);
     } else {
       await this.switchPhase(1);
       GraphViewer.renderGraph("");
@@ -693,7 +698,7 @@ const App = {
     }
   },
 
-  async switchPhase(phase) {
+  async switchPhase(phase, renderGraphNow = true) {
     this.state.currentPhase = phase;
 
     // 1. Update stepper buttons
@@ -742,14 +747,50 @@ const App = {
     }
 
     // 6. Restore phase-specific graph if present
-    const phaseGraph = this.state.phaseData[phase]?.graph;
-    if (phaseGraph) {
-      GraphViewer.renderGraph(phaseGraph);
+    if (renderGraphNow) {
+      const phaseGraph = this.state.phaseData[phase]?.graph;
+      if (phaseGraph) {
+        await GraphViewer.renderGraph(phaseGraph);
+      } else {
+        const sessGraph = this.state.currentSession?.architecture_graph_mermaid || "";
+        if (sessGraph) {
+          await GraphViewer.renderGraph(sessGraph);
+        }
+      }
     }
 
     // 7. Persist session phase
     if (this.state.currentSessionId) {
       await API.updateSession(this.state.currentSessionId, { current_phase: phase });
+    }
+  },
+
+  async syncCurrentPhaseGraph() {
+    const curPhase = this.state.currentPhase || 1;
+    let graphToRender = this.state.phaseData[curPhase]?.graph;
+    if (!graphToRender && this.state.currentSessionId) {
+      try {
+        const phases = await API.getPhases(this.state.currentSessionId);
+        const matched = (phases || []).find(p => p.phase === curPhase);
+        if (matched && matched.architecture_graph_mermaid) {
+          graphToRender = matched.architecture_graph_mermaid;
+          if (!this.state.phaseData[curPhase]) this.state.phaseData[curPhase] = {};
+          this.state.phaseData[curPhase].graph = graphToRender;
+        }
+      } catch (e) {
+        console.warn("Could not reload phase graph:", e);
+      }
+    }
+    if (!graphToRender) {
+      graphToRender = this.state.currentSession?.architecture_graph_mermaid || "";
+    }
+
+    if (graphToRender) {
+      window.showToast(`Blueprint für Phase ${curPhase} wird synchronisiert...`, "info");
+      await GraphViewer.renderGraph(graphToRender);
+      window.showToast(`Blueprint für Phase ${curPhase} erfolgreich aufgebaut!`, "success");
+    } else {
+      window.showToast("Noch kein Graph vorhanden. Starte eine Synthese im Copilot.", "warning");
     }
   },
 

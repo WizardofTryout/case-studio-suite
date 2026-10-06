@@ -389,8 +389,18 @@ const API = {
   },
 
   async getPhases(sessionId) {
-    const res = await fetch(`/api/copilot/sessions/${sessionId}/phases`);
-    return await res.json();
+    try {
+      let res = await fetch(`/api/copilot/sessions/${sessionId}/phases`);
+      if (!res.ok) {
+        res = await fetch(`/api/sessions/${sessionId}/phases`);
+      }
+      if (!res.ok) return [];
+      const data = await res.json();
+      return Array.isArray(data) ? data : [];
+    } catch (e) {
+      console.warn("Failed to fetch phases:", e);
+      return [];
+    }
   },
 
   async savePhase(sessionId, phase, data) {

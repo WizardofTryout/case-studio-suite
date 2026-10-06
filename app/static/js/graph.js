@@ -68,25 +68,74 @@ const GraphViewer = {
     // Strip initialization directives
     code = code.replace(/%%\{init:[\s\S]*?\}%%\n?/g, "").trim();
 
-    // 1. Sanitize pipe edge labels: e.g. -->|NEIN (Netzausfall)| to -->|"NEIN (Netzausfall)"|
-    code = code.replace(/(-->|--|-\.->|==>)\s*\|([^|\r\n]+)\|/g, (match, arrow, label) => {
-      const trimmed = label.trim();
-      if (/[()[\]{}:;,]/.test(trimmed) && !(trimmed.startsWith('"') && trimmed.endsWith('"'))) {
-        return `${arrow}|"${trimmed.replace(/"/g, "'")}"|`;
-      }
-      return `${arrow}|${trimmed}|`;
+    // 1. Sanitize subgraphs with quotes only: e.g. subgraph "Title" to subgraph sub_xxx ["Title"]
+    code = code.replace(/subgraph\s+"([^"\r\n]+)"/g, (match, title) => {
+      const safeId = 'sub_' + title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 24);
+      return `subgraph ${safeId} ["${title.replace(/"/g, "'")}"]`;
     });
 
-    // 2. Sanitize inline edge labels: e.g. -- NEIN (Netzausfall) --> to -- "NEIN (Netzausfall)" -->
-    code = code.replace(/--\s+([^"\r\n-]+?[()[\]{}:;,][^"\r\n-]*?)\s+-->/g, (match, label) => {
-      const trimmed = label.trim();
-      if (!(trimmed.startsWith('"') && trimmed.endsWith('"'))) {
-        return `-- "${trimmed.replace(/"/g, "'")}" -->`;
-      }
-      return match;
+    // 2. Sanitize subgraphs with unquoted bracket titles: subgraph id [Title] to subgraph id ["Title"]
+    code = code.replace(/subgraph\s+([A-Za-z0-9_]+)\s*\[([^"\[\]\r\n]+)\]/g, (match, id, title) => {
+      return `subgraph ${id} ["${title.trim().replace(/"/g, "'")}"]`;
     });
 
-    return code;
+    // 3. Process line-by-line for node definitions and edge labels
+    const lines = code.split("\n");
+    const cleanedLines = lines.map(line => {
+      let l = line;
+      const trimmed = l.trim();
+      // Skip directives, subgraphs, styles, classDefs
+      if (trimmed.startsWith("subgraph") || trimmed.startsWith("style") || trimmed.startsWith("classDef") || trimmed.startsWith("class ") || trimmed.startsWith("%%")) {
+        return l;
+      }
+
+      // Sanitize pipe edge labels: -->|Label| to -->|"Label"|
+      l = l.replace(/(-->|--|-\.->|==>)\s*\|([^|\r\n]+)\|/g, (match, arrow, label) => {
+        const clean = label.trim().replace(/^"/, "").replace(/"$/, "").replace(/"/g, "'");
+        return `${arrow}|"${clean}"|`;
+      });
+
+      // Sanitize inline edge labels: -- Label --> to -- "Label" -->
+      l = l.replace(/--\s+([^"\r\n-]+?)\s+-->/g, (match, label) => {
+        const clean = label.trim().replace(/^"/, "").replace(/"$/, "").replace(/"/g, "'");
+        return `-- "${clean}" -->`;
+      });
+
+      // Sanitize standard node definitions: id[Some text (with parens) & symbols] -> id["Some text (with parens) & symbols"]
+      l = l.replace(/(\b[A-Za-z0-9_]+)\s*\[([^"\[\]\r\n]+)\]/g, (match, id, label) => {
+        const trimmedLabel = label.trim();
+        if (trimmedLabel.startsWith('"') && trimmedLabel.endsWith('"')) {
+          return match;
+        }
+        const clean = trimmedLabel.replace(/"/g, "'");
+        return `${id}["${clean}"]`;
+      });
+
+      // Sanitize rounded nodes: id(Some text & symbols) -> id("Some text & symbols")
+      l = l.replace(/(\b[A-Za-z0-9_]+)\s*\(([^"()\r\n]+)\)/g, (match, id, label) => {
+        const trimmedLabel = label.trim();
+        if (trimmedLabel.startsWith('"') && trimmedLabel.endsWith('"')) {
+          return match;
+        }
+        const clean = trimmedLabel.replace(/"/g, "'");
+        return `${id}("${clean}")`;
+      });
+
+      return l;
+    });
+
+    return cleanedLines.join("\n");
+  },
+
+  sanitizeFallbackMermaid(code) {
+    if (!code) return "graph TD\n  Start[\"System-Start\"]";
+    // Strip styles and subgraphs to provide clean basic flowchart
+    let simple = code.replace(/style\s+[^\n]+/g, "");
+    simple = simple.replace(/subgraph[\s\S]*?end/g, (sub) => {
+      const inner = sub.replace(/^subgraph[^\n]+\n/i, "").replace(/\nend$/i, "");
+      return inner;
+    });
+    return simple.trim() || "graph TD\n  Start[\"System-Start\"]";
   },
 
   setTheme(theme) {
@@ -440,12 +489,39 @@ const GraphViewer = {
       // Remove any intrusive error elements injected by Mermaid into body
       document.querySelectorAll('[id^="dmermaid-svg-"], [id^="dmermaid-"]').forEach(el => el.remove());
 
+      // Try automatic fallback rendering with simplified graph
+      try {
+        const fallbackCode = this.sanitizeFallbackMermaid(this.currentMermaidCode);
+        const fallbackId = "mermaid-fallback-" + Date.now();
+        const { svg: fallbackSvg } = await mermaid.render(fallbackId, fallbackCode);
+        layer.innerHTML = fallbackSvg;
+        const svgEl = layer.querySelector("svg");
+        if (svgEl) {
+          svgEl.style.maxWidth = "none";
+          svgEl.style.maxHeight = "none";
+          svgEl.style.display = "block";
+          this.attachNodeDirectListeners(layer);
+          this.fit();
+          return;
+        }
+      } catch (fallbackErr) {
+        console.warn("Mermaid fallback render also failed:", fallbackErr);
+        document.querySelectorAll('[id^="dmermaid-svg-"], [id^="dmermaid-"]').forEach(el => el.remove());
+      }
+
       if (!layer.querySelector("svg")) {
+        const app = window.App || (typeof App !== "undefined" ? App : null);
+        const curPhase = app?.state?.currentPhase || 1;
         layer.innerHTML = `
-          <div style="padding:24px; text-align:center; color:var(--text-muted);">
-            <div style="font-size:1.8rem; margin-bottom:8px;">📐</div>
-            <div style="font-size:0.86rem; font-weight:600; color:var(--text-main);">Architektur-Blueprint wird synchronisiert...</div>
-            <div style="font-size:0.75rem; margin-top:4px;">Knoten und Relationen werden nach Abschluss der Synthese gerendert.</div>
+          <div style="padding:28px 20px; text-align:center; color:var(--text-muted); max-width:440px; margin:0 auto;">
+            <div style="font-size:2rem; margin-bottom:10px;">📐</div>
+            <div style="font-size:0.92rem; font-weight:700; color:var(--text-main); margin-bottom:6px;">Architektur-Blueprint wird synchronisiert...</div>
+            <div style="font-size:0.78rem; line-height:1.5; color:var(--text-muted); margin-bottom:14px;">
+              Der Graph für Phase ${curPhase} wird synchronisiert. Klicke auf 'Blueprint jetzt aufbauen' oder starte eine Synthese im Copilot.
+            </div>
+            <div style="display:flex; justify-content:center; gap:8px;">
+              <button class="btn btn-primary btn-xs" type="button" onclick="App.syncCurrentPhaseGraph()">⚡ Blueprint jetzt aufbauen</button>
+            </div>
           </div>
         `;
       }
