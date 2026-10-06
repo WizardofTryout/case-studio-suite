@@ -85,7 +85,11 @@ const App = {
       return;
     }
     const btn = document.getElementById("btn-adapt-triggers");
-    if (btn) { btn.classList.add("is-loading"); btn.innerText = "⏳ Passe an…"; }
+    if (btn) {
+      btn.classList.add("is-busy");
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-icon"></span> <span>Passe an…</span>`;
+    }
     try {
       const data = await API.generateAdaptiveTriggers(pid, caseText);
       this.applyTriggers(data.triggers || []);
@@ -93,7 +97,11 @@ const App = {
     } catch (err) {
       window.showToast(`Anpassung fehlgeschlagen: ${err.message}`, "error");
     } finally {
-      if (btn) { btn.classList.remove("is-loading"); btn.innerText = "🔄 Triggers an Case anpassen"; }
+      if (btn) {
+        btn.classList.remove("is-busy");
+        btn.disabled = false;
+        btn.innerHTML = "🔄 Triggers an Case anpassen";
+      }
     }
   },
 
@@ -830,11 +838,13 @@ const App = {
     const followupBtn = document.getElementById("btn-send-followup");
     if (runBtn) {
       runBtn.disabled = true;
-      runBtn.innerText = "⏳ Analysiert...";
+      runBtn.classList.add("is-busy");
+      runBtn.innerHTML = `<span class="spinner-icon"></span> <span>Analysiert & streamt...</span>`;
     }
     if (followupBtn) {
       followupBtn.disabled = true;
-      followupBtn.innerText = "⏳ Nachschärfen...";
+      followupBtn.classList.add("is-busy");
+      followupBtn.innerHTML = `<span class="spinner-icon"></span> <span>Schärft nach...</span>`;
     }
 
     // Remove empty phase guidance card if present
@@ -940,10 +950,12 @@ const App = {
     const followupBtn = document.getElementById("btn-send-followup");
     if (runBtn) {
       runBtn.disabled = false;
+      runBtn.classList.remove("is-busy");
       runBtn.innerHTML = "🚀 Analysieren & Streamen";
     }
     if (followupBtn) {
       followupBtn.disabled = false;
+      followupBtn.classList.remove("is-busy");
       followupBtn.innerHTML = "🚀 Senden & Architektur nachschärfen";
     }
   },
@@ -1909,7 +1921,11 @@ const App = {
     const pill = document.getElementById("refiner-progress-pill");
     const btn = document.getElementById("btn-enhance-prompt");
     if (pill) pill.style.display = "flex";
-    if (btn) btn.disabled = true;
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add("is-busy");
+      btn.innerHTML = `<span class="spinner-icon"></span> <span>Veredelt Prompt...</span>`;
+    }
 
     try {
       const res = await API.enhancePrompt(
@@ -1927,7 +1943,11 @@ const App = {
       window.showToast(`Veredelungs-Fehler: ${e.message}`, "error");
     } finally {
       if (pill) pill.style.display = "none";
-      if (btn) btn.disabled = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove("is-busy");
+        btn.innerHTML = "✨ Prompt mit gewähltem Fachagenten veredeln";
+      }
     }
   },
 
@@ -1991,9 +2011,12 @@ const App = {
     const originalBtnText = triggerBtn ? triggerBtn.innerHTML : "";
     if (triggerBtn) {
       triggerBtn.disabled = true;
-      triggerBtn.innerHTML = `<span>⏳</span> Analysiere Sachverhalt...`;
+      triggerBtn.classList.add("is-busy");
+      triggerBtn.innerHTML = `<span class="spinner-icon"></span> <span>Analysiere Sachverhalt...</span>`;
     }
 
+    // Immediately display the animated loading card and progress indicator
+    this.showQuestionsCatalogLoading(focusLabel);
     window.showToast("Fachagenten analysieren den Sachverhalt und generieren Fragenkatalog...", "info");
 
     try {
@@ -2043,12 +2066,63 @@ const App = {
     } catch (err) {
       console.error("Error generating phase questions:", err);
       window.showToast(`Fehler: ${err.message || "Fragen konnten nicht generiert werden"}`, "error");
+      const card = document.getElementById("phase-questions-catalog-card");
+      if (card && !this.currentQuestionsCatalog) {
+        card.style.display = "none";
+      }
     } finally {
       if (triggerBtn) {
         triggerBtn.disabled = false;
+        triggerBtn.classList.remove("is-busy");
         triggerBtn.innerHTML = originalBtnText;
       }
     }
+  },
+
+  showQuestionsCatalogLoading(focusLabel = "Sachverhalt") {
+    const card = document.getElementById("phase-questions-catalog-card");
+    if (!card) return;
+
+    card.style.display = "flex";
+
+    const titleEl = document.getElementById("questions-catalog-title");
+    if (titleEl) {
+      titleEl.innerHTML = `<span class="spinner-icon"></span> Fachfragenkatalog &amp; Sachverhalt wird analysiert... (Phase ${this.state.currentPhase || 1})`;
+    }
+
+    const subtitleEl = document.getElementById("questions-catalog-subtitle");
+    if (subtitleEl) {
+      subtitleEl.textContent = "KI-Fachagenten erarbeiten domänenspezifische Perspektiven & Risikofallen...";
+    }
+
+    const summaryEl = document.getElementById("questions-catalog-summary");
+    if (summaryEl) {
+      summaryEl.style.display = "block";
+      summaryEl.innerHTML = `
+        <div class="catalog-loading-card">
+          <div class="catalog-loading-top">
+            <div class="catalog-loading-spinner-ring"></div>
+            <div class="catalog-loading-title-group">
+              <span class="catalog-loading-title-text">⚡ Multi-Agenten Deliberation aktiv</span>
+              <span class="catalog-loading-desc-text">Synthetisiere Prüffragen für ${this.escapeHtml(focusLabel)}... Bitte einen Moment Geduld.</span>
+            </div>
+          </div>
+          <div class="catalog-loading-progress-bar"></div>
+        </div>
+      `;
+    }
+
+    const grid = document.getElementById("questions-perspectives-grid");
+    if (grid) {
+      grid.style.display = "grid";
+      grid.innerHTML = `
+        <div class="catalog-skeleton-box"></div>
+        <div class="catalog-skeleton-box"></div>
+        <div class="catalog-skeleton-box"></div>
+      `;
+    }
+
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
   },
 
   renderQuestionsCatalog(catalog) {
@@ -2214,7 +2288,8 @@ const App = {
     const btn = document.getElementById("btn-run-deliberation");
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "⚔️ Debatte läuft...";
+      btn.classList.add("is-busy");
+      btn.innerHTML = `<span class="spinner-icon"></span> <span>⚔️ Debatte läuft...</span>`;
     }
 
     const thread = document.getElementById("chat-thread");
@@ -2288,6 +2363,7 @@ const App = {
     const btn = document.getElementById("btn-run-deliberation");
     if (btn) {
       btn.disabled = false;
+      btn.classList.remove("is-busy");
       btn.innerHTML = "🚀 Agenten debattieren lassen";
     }
   },

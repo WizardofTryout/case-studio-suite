@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
-  <link rel="stylesheet" href="/static/css/style.css?v=3.3.0">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="alternate icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.3.1">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -765,9 +767,9 @@
             <span>✨ Neue API-Schlüssel erfassen</span>
             <span style="font-size:0.72rem; color:var(--cyan);">Tipp: Kommagetrennte Liste oder Zeilenumbruch direkt einfügen</span>
           </div>
-          <div id="km-new-keys-container" style="display:flex; flex-direction:column; gap:8px;">
+          <form id="km-new-keys-container" onsubmit="return false;" autocomplete="off" style="display:flex; flex-direction:column; gap:8px;">
             <!-- Dynamically created new key input rows -->
-          </div>
+          </form>
           <button id="btn-add-key-row" type="button" class="btn btn-secondary btn-sm" style="align-self:flex-start; margin-top:8px; display:flex; align-items:center; gap:6px;">
             ➕ Weiteren Schlüssel hinzufügen
           </button>

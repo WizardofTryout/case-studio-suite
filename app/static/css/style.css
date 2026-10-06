@@ -3839,4 +3839,191 @@ svg .node.selected text {
   margin-top: 4px;
 }
 
+/* ==========================================================================
+   ANIMATED LOADING & SHIMMER STATES (ANTI-DOUBLE-CLICK)
+   ========================================================================== */
+
+@keyframes spinIcon {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes gradientShiftAnim {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes pulseGlowAnim {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(139, 92, 246, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(6, 182, 212, 0.65), 0 0 8px rgba(139, 92, 246, 0.5);
+  }
+}
+
+@keyframes shimmerWaveAnim {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.spinner-icon {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spinIcon 0.75s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+.btn.is-busy {
+  position: relative !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  cursor: wait !important;
+  opacity: 0.95 !important;
+  background: linear-gradient(90deg, #7c3aed, #06b6d4, #8b5cf6, #06b6d4) !important;
+  background-size: 300% 300% !important;
+  animation: gradientShiftAnim 2s ease infinite, pulseGlowAnim 2s ease-in-out infinite !important;
+  color: #ffffff !important;
+  border-color: #06b6d4 !important;
+  box-shadow: 0 0 14px rgba(6, 182, 212, 0.5) !important;
+}
+
+[data-theme="light"] .btn.is-busy {
+  background: linear-gradient(90deg, #6d28d9, #0284c7, #7c3aed, #0284c7) !important;
+  background-size: 300% 300% !important;
+  color: #ffffff !important;
+  border-color: #0284c7 !important;
+}
+
+/* Questions Catalog Loading State Container */
+.catalog-loading-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 18px;
+  background: rgba(139, 92, 246, 0.08);
+  border: 1px solid rgba(139, 92, 246, 0.4);
+  border-radius: var(--radius-md);
+  animation: pulseGlowAnim 2.5s infinite ease-in-out;
+}
+
+[data-theme="light"] .catalog-loading-card {
+  background: #f5f3ff;
+  border-color: #c4b5fd;
+}
+
+.catalog-loading-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.catalog-loading-spinner-ring {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(139, 92, 246, 0.2);
+  border-top-color: #8b5cf6;
+  border-right-color: #06b6d4;
+  border-radius: 50%;
+  animation: spinIcon 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+.catalog-loading-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.catalog-loading-title-text {
+  font-weight: 700;
+  font-size: 0.95rem;
+  background: linear-gradient(90deg, #c084fc, #38bdf8, #c084fc);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShiftAnim 3s linear infinite;
+}
+
+[data-theme="light"] .catalog-loading-title-text {
+  background: linear-gradient(90deg, #7c3aed, #0284c7, #7c3aed);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradientShiftAnim 3s linear infinite;
+}
+
+.catalog-loading-desc-text {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.catalog-loading-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+
+[data-theme="light"] .catalog-loading-progress-bar {
+  background: #e2e8f0;
+}
+
+.catalog-loading-progress-bar::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, #8b5cf6, #06b6d4);
+  border-radius: 2px;
+  animation: shimmerWaveAnim 1.4s ease-in-out infinite;
+}
+
+.catalog-skeleton-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.catalog-skeleton-box {
+  height: 120px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+[data-theme="light"] .catalog-skeleton-box {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.catalog-skeleton-box::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
+  animation: shimmerWaveAnim 1.6s infinite;
+}
+
+[data-theme="light"] .catalog-skeleton-box::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+}
+
+
 

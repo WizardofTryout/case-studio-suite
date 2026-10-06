@@ -119,3 +119,16 @@ async def root():
         "status": "ready",
         "ui": "static/index.html initializing..."
     })
+
+
+@app.get("/favicon.ico")
+@app.head("/favicon.ico")
+@app.get("/favicon.svg")
+@app.head("/favicon.svg")
+async def get_favicon():
+    fav = static_dir / "favicon.svg"
+    if fav.exists():
+        return FileResponse(str(fav), media_type="image/svg+xml")
+    return JSONResponse(status_code=204, content=None)
+
+
