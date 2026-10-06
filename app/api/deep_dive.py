@@ -103,16 +103,17 @@ async def generate_deep_dive(req: DeepDiveGenerateRequest):
     # 2. Mermaid-Graph aus DB laden
     mermaid_graph = ""
     if req.session_id:
-        sess = await repositories.get_case_session(req.session_id)
+        sess = await repositories.get_session(req.session_id)
         if sess and sess.get("architecture_graph_mermaid"):
             mermaid_graph = sess.get("architecture_graph_mermaid")
 
     if not mermaid_graph:
         # Fallback auf copilot_phase_states
         if req.session_id:
-            state = await repositories.get_copilot_phase_state(req.session_id, req.phase)
+            state = await repositories.get_phase_state(req.session_id, req.phase)
             if state and state.get("architecture_graph_mermaid"):
                 mermaid_graph = state.get("architecture_graph_mermaid")
+
 
     # 3. Sub-Graph Kontext extrahieren
     subgraph_ctx = extract_node_subgraph_context(mermaid_graph, req.node_name or req.node_id)

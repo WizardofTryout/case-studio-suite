@@ -637,11 +637,19 @@ const API = {
       body: JSON.stringify(payload)
     });
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || "Deep-Dive Generierung fehlgeschlagen");
+      let msg = "Deep-Dive Generierung fehlgeschlagen";
+      try {
+        const err = await res.json();
+        msg = err.detail || msg;
+      } catch (_) {
+        const txt = await res.text();
+        msg = txt || msg;
+      }
+      throw new Error(msg);
     }
     return await res.json();
   }
 };
+
 
 
