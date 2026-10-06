@@ -38,6 +38,9 @@ async def init_db() -> None:
             current_mode = row[0] if row else "unknown"
             logger.info(f"SQLite journal_mode verified: {current_mode}")
 
+        # Seed initial case statements for known projects if empty
+        await _seed_case_statements(db)
+
     # Seed system and custom data skills
     try:
         from app.services.skill_service import seed_system_and_data_skills
@@ -46,6 +49,66 @@ async def init_db() -> None:
         logger.error(f"Error during skills seeding: {e}")
 
     logger.info("Database schema initialized successfully.")
+
+
+async def _seed_case_statements(db: aiosqlite.Connection) -> None:
+    """Pre-seeds initial case study statements for core projects so no problem statement is ever lost."""
+    import uuid
+
+    seeds = [
+        (
+            "90a75a81-dc60-47b5-aa1e-7ba422349ffe",
+            "Ausgangs-Sachverhalt: 120 CNC-Fräsen & 8% Ausschuss (Tier-1 Autozulieferer)",
+            (
+                "Kunde ist ein Tier-1 Automobilzulieferer und betreibt an seinem Hauptstandort 120 hochpräzise 5-Achs-CNC-Fräsen "
+                "für Getriebe- und Motorblockkomponenten. Die Fertigung leidet unter einer Ausschussquote von ca. 8 % durch "
+                "unvorhersehbaren Werkzeugverschleiß und Werkzeugbruch (Spindel- und Fräserüberlastung).\n\n"
+                "Hohe Vibrationen belasten die mechanischen Komponenten, doch das Hallennetzwerk (WLAN/Ethernet) fällt regelmäßig "
+                "für bis zu 48 Stunden aus. Sicherheitskritische Not-Abschaltungen müssen deterministisch unter 20 ms direkt an der Maschine "
+                "reagieren und dürfen keinesfalls von Cloud-Systemen oder probabilistischen KI-Modellen abhängen.\n\n"
+                "Ziel ist der Aufbau einer robusten Industrial Edge-to-Cloud Architektur (SIMATIC S7 / Industrial Edge / Kafka / Snowflake Lakehouse) "
+                "mit 48h Offline-Pufferung, Einhaltung der IEC 62443 Zonentrennung und Steigerung der OEE um mindestens 3–4 % bei einem ROI unter 12 Monaten."
+            ),
+            "preset"
+        ),
+        (
+            "613979fd-73eb-461d-9053-052d8b82004f",
+            "Ausgangs-Sachverhalt: Smart Manufacturing & IEC 62443 Zonentrennung",
+            (
+                "Global agierender Industrie-Kunde mit heterogenem Maschinenpark (über 200 Werkzeugmaschinen, Robotikzellen und "
+                "fahrerlose Transportsysteme / FTS). Das Management fordert eine unternehmensweite Industrial AI Transformation "
+                "zur OEE-Steigerung um 5 % und Senkung des CO2-Fußabdrucks.\n\n"
+                "Zentrale Herausforderung: Proprietäre Daten-Silos in SIMATIC S7-300/1500 Steuerungen, fragmentierte Kommunikationsprotokolle "
+                "(OPC UA, MQTT, PROFINET) und strikte OT/IT-Trennung gemäß IEC 62443. Zudem herrscht Skepsis auf dem Shopfloor bezüglich Cloud-Sicherheit "
+                "und autonom agierenden KI-Assistenten.\n\n"
+                "Gefordert ist ein ganzheitlicher, praxistauglicher 4-Schichten Blueprint (OT-Ingest -> Industrial Edge -> Streaming & Data Lakehouse -> "
+                "Agentische MCP-Orchestrierung) inklusive robuster 48h Offline-Resilienz und deterministischer Not-Abschaltung."
+            ),
+            "preset"
+        )
+    ]
+
+    for proj_id, title, text, src in seeds:
+        # Check if project exists
+        async with db.execute("SELECT id FROM projects WHERE id = ?", (proj_id,)) as cur:
+            p_row = await cur.fetchone()
+            if not p_row:
+                continue
+
+        # Check if statements already exist for this project
+        async with db.execute("SELECT id FROM case_problem_statements WHERE project_id = ?", (proj_id,)) as cur:
+            s_row = await cur.fetchone()
+            if not s_row:
+                s_id = str(uuid.uuid4())
+                await db.execute(
+                    """
+                    INSERT INTO case_problem_statements (id, project_id, phase, statement_text, version_title, source)
+                    VALUES (?, ?, 1, ?, ?, ?)
+                    """,
+                    (s_id, proj_id, text, title, src)
+                )
+                await db.commit()
+                logger.info(f"Seeded initial problem statement for project {proj_id}: {title}")
 
 
 @asynccontextmanager

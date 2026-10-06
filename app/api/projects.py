@@ -149,3 +149,102 @@ async def update_trigger_endpoint(project_id: str, payload: UpdateTriggerRequest
         raise HTTPException(status_code=400, detail="Failed to update trigger")
     return updated
 
+
+# --- Problem Statement Chronology Endpoints ---
+
+class ProblemStatementCreateRequest(BaseModel):
+    statement_text: str = Field(..., min_length=5)
+    version_title: Optional[str] = None
+    phase: Optional[int] = 1
+    source: Optional[str] = "user_input"
+
+
+@router.get("/{project_id}/statements/presets")
+async def get_problem_statement_presets(project_id: str):
+    """Retrieve curated industry problem statement presets."""
+    return {
+        "presets": [
+            {
+                "id": "cnc_120_autozulieferer",
+                "title": "🚗 120 CNC-Fräsen & 8% Ausschuss (Tier-1 Autozulieferer)",
+                "category": "Industrial OT & Edge",
+                "text": (
+                    "Kunde ist ein Tier-1 Automobilzulieferer und betreibt an seinem Hauptstandort 120 hochpräzise 5-Achs-CNC-Fräsen "
+                    "für Getriebe- und Motorblockkomponenten. Die Fertigung leidet unter einer Ausschussquote von ca. 8 % durch "
+                    "unvorhersehbaren Werkzeugverschleiß und Werkzeugbruch (Spindel- und Fräserüberlastung).\n\n"
+                    "Hohe Vibrationen belasten die mechanischen Komponenten, doch das Hallennetzwerk (WLAN/Ethernet) fällt regelmäßig "
+                    "für bis zu 48 Stunden aus. Sicherheitskritische Not-Abschaltungen müssen deterministisch unter 20 ms direkt an der Maschine "
+                    "reagieren und dürfen keinesfalls von Cloud-Systemen oder probabilistischen KI-Modellen abhängen.\n\n"
+                    "Ziel ist der Aufbau einer robusten Industrial Edge-to-Cloud Architektur (SIMATIC S7 / Industrial Edge / Kafka / Snowflake Lakehouse) "
+                    "mit 48h Offline-Pufferung, Einhaltung der IEC 62443 Zonentrennung und Steigerung der OEE um mindestens 3–4 % bei einem ROI unter 12 Monaten."
+                )
+            },
+            {
+                "id": "smart_factory_siemens",
+                "title": "🏭 Smart Manufacturing & IEC 62443 Zonentrennung",
+                "category": "Smart Factory & Data Lakehouse",
+                "text": (
+                    "Global agierender Industrie-Kunde mit heterogenem Maschinenpark (über 200 Werkzeugmaschinen, Robotikzellen und "
+                    "fahrerlose Transportsysteme / FTS). Das Management fordert eine unternehmensweite Industrial AI Transformation "
+                    "zur OEE-Steigerung um 5 % und Senkung des CO2-Fußabdrucks.\n\n"
+                    "Zentrale Herausforderung: Proprietäre Daten-Silos in SIMATIC S7-300/1500 Steuerungen, fragmentierte Kommunikationsprotokolle "
+                    "(OPC UA, MQTT, PROFINET) und strikte OT/IT-Trennung gemäß IEC 62443. Zudem herrscht Skepsis auf dem Shopfloor bezüglich Cloud-Sicherheit "
+                    "und autonom agierenden KI-Assistenten.\n\n"
+                    "Gefordert ist ein ganzheitlicher, praxistauglicher 4-Schichten Blueprint (OT-Ingest -> Industrial Edge -> Streaming & Data Lakehouse -> "
+                    "Agentische MCP-Orchestrierung) inklusive robuster 48h Offline-Resilienz und deterministischer Not-Abschaltung."
+                )
+            },
+            {
+                "id": "pharma_batch_compliance",
+                "title": "💊 Pharma & MedTech: Chargen-Validierung & GMP",
+                "category": "Regulated Manufacturing",
+                "text": (
+                    "Pharma- und Medizintechnik-Hersteller betreibt sterile Abfüll- und Verpackungslinien mit strengen FDA 21 CFR Part 11 "
+                    "und EU-GMP Annex 11 Compliance-Vorgaben. Bei minimalen Temperatur- oder Druckabweichungen droht die Vernichtung ganzer Chargen.\n\n"
+                    "Herausforderung: Vollständige Audit-Trail-Integrität, verschlüsselte Echtzeit-Prozessdatenerfassung ohne Datenverlust "
+                    "und KI-gestützte Root-Cause-Analyse von Prozessanomalien vor Chargenabschluss."
+                )
+            }
+        ]
+    }
+
+
+@router.get("/{project_id}/statements")
+async def get_project_statements(project_id: str):
+    """Retrieve all chronological problem statements for a project."""
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    statements = await repositories.list_problem_statements(project_id)
+    return {
+        "project_id": project_id,
+        "count": len(statements),
+        "statements": statements
+    }
+
+
+@router.post("/{project_id}/statements", status_code=201)
+async def create_project_statement_endpoint(project_id: str, payload: ProblemStatementCreateRequest):
+    """Create or save a new version/milestone of the problem statement."""
+    proj = await repositories.get_project(project_id)
+    if not proj:
+        raise HTTPException(status_code=404, detail="Project not found")
+    created = await repositories.create_problem_statement(
+        project_id=project_id,
+        statement_text=payload.statement_text,
+        version_title=payload.version_title,
+        phase=payload.phase or 1,
+        source=payload.source or "user_input"
+    )
+    return created
+
+
+@router.delete("/{project_id}/statements/{statement_id}")
+async def delete_project_statement_endpoint(project_id: str, statement_id: str):
+    """Delete a problem statement version."""
+    success = await repositories.delete_problem_statement(statement_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Statement not found")
+    return {"message": "Statement deleted successfully", "id": statement_id}
+
+

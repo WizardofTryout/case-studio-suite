@@ -98,6 +98,41 @@ const API = {
     return await res.json();
   },
 
+  async getProjectStatements(projectId) {
+    const res = await fetch(`/api/projects/${projectId}/statements`);
+    return await res.json();
+  },
+
+  async saveProjectStatement(projectId, statementText, versionTitle = null, phase = 1, source = "user_input") {
+    const res = await fetch(`/api/projects/${projectId}/statements`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        statement_text: statementText,
+        version_title: versionTitle,
+        phase: phase,
+        source: source
+      })
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fehler beim Speichern der Problemstellung");
+    }
+    return await res.json();
+  },
+
+  async getStatementPresets(projectId) {
+    const res = await fetch(`/api/projects/${projectId}/statements/presets`);
+    return await res.json();
+  },
+
+  async deleteProjectStatement(projectId, statementId) {
+    const res = await fetch(`/api/projects/${projectId}/statements/${statementId}`, {
+      method: "DELETE"
+    });
+    return await res.json();
+  },
+
   async getDocuments(projectId) {
     const res = await fetch(`/api/projects/${projectId}/documents`);
     return await res.json();

@@ -895,5 +895,85 @@ async def update_api_key_status(key_id: str, status: str) -> None:
         await db.commit()
 
 
+# --- Case Problem Statements Chronology ---
+
+async def list_problem_statements(project_id: str) -> List[Dict[str, Any]]:
+    """List all saved problem statement versions for a project, newest first."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, project_id, phase, statement_text, version_title, source, created_at
+            FROM case_problem_statements
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            """,
+            (project_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            return [dict(r) for r in rows]
+
+
+async def get_latest_problem_statement(project_id: str) -> Optional[Dict[str, Any]]:
+    """Get the most recent problem statement for a project."""
+    async with get_db() as db:
+        async with db.execute(
+            """
+            SELECT id, project_id, phase, statement_text, version_title, source, created_at
+            FROM case_problem_statements
+            WHERE project_id = ?
+            ORDER BY created_at DESC
+            LIMIT 1
+            """,
+            (project_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else None
+
+
+async def create_problem_statement(
+    project_id: str,
+    statement_text: str,
+    version_title: Optional[str] = None,
+    phase: int = 1,
+    source: str = "user_input",
+    statement_id: Optional[str] = None
+) -> Dict[str, Any]:
+    """Save a new problem statement version into the project chronology."""
+    s_id = statement_id or str(uuid.uuid4())
+    cleaned_text = statement_text.strip()
+    
+    # Auto-generate title if none provided
+    if not version_title or not version_title.strip():
+        first_line = cleaned_text.split("\n")[0][:60]
+        version_title = f"Version: {first_line}…" if len(cleaned_text) > 60 else f"Version: {first_line}"
+        
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO case_problem_statements (id, project_id, phase, statement_text, version_title, source)
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (s_id, project_id, phase, cleaned_text, version_title, source)
+        )
+        await db.commit()
+
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT id, project_id, phase, statement_text, version_title, source, created_at FROM case_problem_statements WHERE id = ?",
+            (s_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else {}
+
+
+async def delete_problem_statement(statement_id: str) -> bool:
+    """Delete a problem statement version."""
+    async with get_db() as db:
+        cursor = await db.execute("DELETE FROM case_problem_statements WHERE id = ?", (statement_id,))
+        await db.commit()
+        return cursor.rowcount > 0
+
+
+
 
 

@@ -112,6 +112,7 @@ const App = {
     activeTab: "copilot",
     isStreaming: false,
     projects: [],
+    statementHistory: [],
     decisionGates: [],
     activeSkills: [],
     inspectedNodeName: null,
@@ -230,7 +231,24 @@ const App = {
           this.runCopilot();
         }
       });
+      // Real-time draft auto-save to localStorage
+      promptArea.addEventListener("input", () => {
+        if (this.state.currentProjectId) {
+          localStorage.setItem(`case_studio_prompt_${this.state.currentProjectId}`, promptArea.value);
+        }
+      });
     }
+
+    // Statement Chronology & Presets Modals
+    document.getElementById("btn-statement-history")?.addEventListener("click", () => this.openStatementHistoryModal());
+    document.getElementById("btn-close-statement-history")?.addEventListener("click", () => this.closeStatementHistoryModal());
+    document.getElementById("btn-close-statement-history-footer")?.addEventListener("click", () => this.closeStatementHistoryModal());
+    document.getElementById("btn-statement-save-milestone")?.addEventListener("click", () => this.openStatementHistoryModal(true));
+    document.getElementById("btn-confirm-save-milestone")?.addEventListener("click", () => this.saveCurrentStatementMilestone());
+
+    document.getElementById("btn-statement-presets")?.addEventListener("click", () => this.openStatementPresetsModal());
+    document.getElementById("btn-close-statement-presets")?.addEventListener("click", () => this.closeStatementPresetsModal());
+    document.getElementById("btn-close-statement-presets-footer")?.addEventListener("click", () => this.closeStatementPresetsModal());
 
     // Follow-up Chat Submit (Phase 1)
     const followupBtn = document.getElementById("btn-send-followup");
@@ -659,6 +677,7 @@ const App = {
     await this.loadMessages();
     await this.loadDeliberationTeam();
     await this.loadProjectTriggers(projectId);
+    await this.loadProjectStatements(projectId);
   },
 
   switchTab(tabId) {
@@ -798,16 +817,269 @@ const App = {
     }
   },
 
+  // --- Case Problem Statement Chronology & Version Memory ---
+
+  async loadProjectStatements(projectId) {
+    if (!projectId) return;
+    try {
+      const data = await API.getProjectStatements(projectId);
+      this.state.statementHistory = data.statements || [];
+      this.updateStatementHistoryBadge();
+
+      const promptArea = document.getElementById("copilot-prompt");
+      if (promptArea) {
+        const localDraft = localStorage.getItem(`case_studio_prompt_${projectId}`);
+        // If textarea is currently empty, try local draft first, then latest saved statement from database
+        if (!promptArea.value.trim()) {
+          if (localDraft && localDraft.trim()) {
+            promptArea.value = localDraft;
+          } else if (this.state.statementHistory.length > 0) {
+            promptArea.value = this.state.statementHistory[0].statement_text;
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load statements chronology:", err);
+    }
+  },
+
+  updateStatementHistoryBadge() {
+    const badge = document.getElementById("statement-history-count");
+    if (badge) {
+      badge.textContent = (this.state.statementHistory || []).length;
+    }
+    const modalCount = document.getElementById("sh-versions-count");
+    if (modalCount) {
+      modalCount.textContent = (this.state.statementHistory || []).length;
+    }
+  },
+
+  openStatementHistoryModal(focusSaveInput = false) {
+    const modal = document.getElementById("modal-statement-history");
+    if (!modal) return;
+    this.renderStatementHistoryList();
+    modal.style.display = "flex";
+    if (focusSaveInput) {
+      setTimeout(() => {
+        const inp = document.getElementById("input-new-milestone-title");
+        if (inp) inp.focus();
+      }, 100);
+    }
+  },
+
+  closeStatementHistoryModal() {
+    const modal = document.getElementById("modal-statement-history");
+    if (modal) modal.style.display = "none";
+  },
+
+  renderStatementHistoryList() {
+    const list = document.getElementById("statement-history-list");
+    if (!list) return;
+    list.innerHTML = "";
+
+    const history = this.state.statementHistory || [];
+    if (history.length === 0) {
+      list.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:16px; text-align:center;">Noch keine gespeicherten Stände vorhanden. Sichern Sie den aktuellen Entwurf oben oder wählen Sie eine Vorlage.</div>`;
+      return;
+    }
+
+    history.forEach((item, idx) => {
+      const card = document.createElement("div");
+      card.className = "statement-history-item";
+
+      const dateStr = item.created_at ? new Date(item.created_at).toLocaleString("de-DE") : "Gespeichert";
+      const isLatest = idx === 0;
+
+      card.innerHTML = `
+        <div class="sh-header-row">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="sh-title">${this.escapeHtml(item.version_title || `Version ${history.length - idx}`)}</span>
+            ${isLatest ? `<span style="font-size:0.68rem; background:rgba(0,212,255,0.15); color:var(--cyan); border:1px solid rgba(0,212,255,0.3); padding:2px 6px; border-radius:4px; font-weight:700;">Aktuell</span>` : ""}
+          </div>
+          <span class="sh-date">🕒 ${dateStr}</span>
+        </div>
+        <div class="sh-preview">${this.escapeHtml(item.statement_text)}</div>
+        <div class="sh-actions-row">
+          <button class="btn btn-secondary btn-xs btn-delete-statement" type="button" title="Diesen Stand löschen">
+            🗑️ Löschen
+          </button>
+          <button class="btn btn-secondary btn-xs btn-append-statement" type="button" title="Als Ergänzung an das Textfeld anhängen">
+            ➕ Als Ergänzung anfügen
+          </button>
+          <button class="btn btn-primary btn-xs btn-apply-statement" type="button" title="Textfeld mit diesem Stand vollständig überschreiben">
+            📥 In Textfeld übernehmen
+          </button>
+        </div>
+      `;
+
+      card.querySelector(".btn-apply-statement")?.addEventListener("click", () => {
+        this.applyStatementText(item.statement_text, "replace");
+        this.closeStatementHistoryModal();
+        window.showToast("Sachverhalt in Textfeld übernommen!", "success");
+      });
+
+      card.querySelector(".btn-append-statement")?.addEventListener("click", () => {
+        this.applyStatementText(item.statement_text, "append");
+        this.closeStatementHistoryModal();
+        window.showToast("Ergänzung an Textfeld angehängt!", "info");
+      });
+
+      card.querySelector(".btn-delete-statement")?.addEventListener("click", () => {
+        this.showConfirmModal({
+          title: "Stand aus Chronologie löschen?",
+          bodyHtml: `Möchtest du die Version <strong>${this.escapeHtml(item.version_title || "Stand")}</strong> wirklich unwiderruflich löschen?`,
+          confirmText: "Löschen",
+          confirmClass: "btn-danger",
+          onConfirm: async () => {
+            await this.deleteStatementMilestone(item.id);
+          }
+        });
+      });
+
+      list.appendChild(card);
+    });
+  },
+
+  async saveCurrentStatementMilestone() {
+    const textarea = document.getElementById("copilot-prompt");
+    const text = (textarea?.value || "").trim();
+    if (!text) {
+      window.showToast("Das Textfeld ist leer. Bitte zuerst eine Problemstellung eingeben.", "warning");
+      return;
+    }
+
+    const titleInput = document.getElementById("input-new-milestone-title");
+    const title = (titleInput?.value || "").trim();
+
+    try {
+      await API.saveProjectStatement(
+        this.state.currentProjectId,
+        text,
+        title || null,
+        this.state.currentPhase || 1,
+        "user_edit"
+      );
+      if (titleInput) titleInput.value = "";
+      await this.loadProjectStatements(this.state.currentProjectId);
+      this.renderStatementHistoryList();
+      window.showToast("Aktueller Sachverhalt als Version gesichert!", "success");
+    } catch (err) {
+      window.showToast(`Fehler beim Speichern: ${err.message}`, "error");
+    }
+  },
+
+  async deleteStatementMilestone(statementId) {
+    try {
+      await API.deleteProjectStatement(this.state.currentProjectId, statementId);
+      await this.loadProjectStatements(this.state.currentProjectId);
+      this.renderStatementHistoryList();
+      window.showToast("Stand aus Chronologie gelöscht.", "info");
+    } catch (err) {
+      window.showToast(`Löschen fehlgeschlagen: ${err.message}`, "error");
+    }
+  },
+
+  async openStatementPresetsModal() {
+    const modal = document.getElementById("modal-statement-presets");
+    if (!modal) return;
+
+    modal.style.display = "flex";
+    const list = document.getElementById("statement-presets-list");
+    if (!list) return;
+    list.innerHTML = `<div style="color:var(--text-muted); font-size:0.85rem; padding:12px;">Lade Vorlagen...</div>`;
+
+    try {
+      const data = await API.getStatementPresets(this.state.currentProjectId);
+      const presets = data.presets || [];
+      list.innerHTML = "";
+
+      presets.forEach(p => {
+        const card = document.createElement("div");
+        card.className = "statement-preset-card";
+        card.innerHTML = `
+          <div class="preset-title-row">
+            <span class="preset-title">${this.escapeHtml(p.title)}</span>
+            <span class="preset-category-badge">${this.escapeHtml(p.category)}</span>
+          </div>
+          <div class="preset-text-preview">${this.escapeHtml(p.text)}</div>
+          <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+            <button class="btn btn-secondary btn-xs btn-preset-append" type="button">
+              ➕ Als Ergänzung anfügen
+            </button>
+            <button class="btn btn-primary btn-xs btn-preset-apply" type="button">
+              📥 In Textfeld laden
+            </button>
+          </div>
+        `;
+
+        card.querySelector(".btn-preset-apply")?.addEventListener("click", () => {
+          this.applyStatementText(p.text, "replace");
+          this.closeStatementPresetsModal();
+          window.showToast(`Vorlage "${p.title}" geladen!`, "success");
+        });
+
+        card.querySelector(".btn-preset-append")?.addEventListener("click", () => {
+          this.applyStatementText(p.text, "append");
+          this.closeStatementPresetsModal();
+          window.showToast(`Vorlage "${p.title}" als Ergänzung angehängt!`, "info");
+        });
+
+        list.appendChild(card);
+      });
+    } catch (err) {
+      list.innerHTML = `<div style="color:#ef4444; font-size:0.85rem;">Fehler beim Laden der Vorlagen: ${err.message}</div>`;
+    }
+  },
+
+  closeStatementPresetsModal() {
+    const modal = document.getElementById("modal-statement-presets");
+    if (modal) modal.style.display = "none";
+  },
+
+  applyStatementText(text, mode = "replace") {
+    const textarea = document.getElementById("copilot-prompt");
+    if (!textarea) return;
+
+    if (mode === "append") {
+      textarea.value = (textarea.value ? textarea.value.trim() + "\n\n" : "") + text;
+    } else {
+      textarea.value = text;
+    }
+
+    if (this.state.currentProjectId) {
+      localStorage.setItem(`case_studio_prompt_${this.state.currentProjectId}`, textarea.value);
+    }
+    textarea.focus();
+  },
+
   // --- Copilot Execution & Follow-Up Q&A ---
 
   async runCopilot() {
     if (this.state.isStreaming) return;
     const promptEl = document.getElementById("copilot-prompt");
-    const promptText = promptEl ? promptEl.value.trim() : "";
+    let promptText = promptEl ? promptEl.value.trim() : "";
     if (!promptText) {
-      window.showToast("Bitte gib eine Problemstellung oder Anforderung ein!", "warning");
-      return;
+      if (this.state.statementHistory && this.state.statementHistory.length > 0) {
+        promptText = this.state.statementHistory[0].statement_text;
+        if (promptEl) promptEl.value = promptText;
+        window.showToast("Ausgangs-Problemstellung des Projekts automatisch geladen!", "info");
+      } else {
+        this.openStatementPresetsModal();
+        window.showToast("Bitte wähle eine Case-Vorlage oder gib eine Problemstellung ein!", "warning");
+        return;
+      }
     }
+
+    // Auto-save statement milestone if changed
+    if (promptText && this.state.currentProjectId) {
+      const topSaved = this.state.statementHistory[0]?.statement_text;
+      if (promptText !== topSaved) {
+        API.saveProjectStatement(this.state.currentProjectId, promptText, null, this.state.currentPhase || 1, "user_edit")
+          .then(() => this.loadProjectStatements(this.state.currentProjectId))
+          .catch(() => {});
+      }
+    }
+
     await this.runCopilotWithPrompt(promptText, true);
   },
 
@@ -1960,7 +2232,31 @@ const App = {
     if (sourceContext === "copilot_main") {
       const textarea = document.getElementById("copilot-prompt");
       promptText = (textarea?.value || "").trim();
+
+      // Auto-fallback if empty: check if we have a saved statement for this project!
+      if (!promptText) {
+        if (this.state.statementHistory && this.state.statementHistory.length > 0) {
+          promptText = this.state.statementHistory[0].statement_text;
+          if (textarea) textarea.value = promptText;
+          localStorage.setItem(`case_studio_prompt_${this.state.currentProjectId}`, promptText);
+          window.showToast("Ausgangs-Problemstellung des Projekts automatisch geladen!", "info");
+        } else {
+          this.openStatementPresetsModal();
+          window.showToast("Bitte wähle eine Case-Vorlage oder gib eine Problemstellung ein.", "warning");
+          return;
+        }
+      }
       focusLabel = "Haupt-Problemstellung";
+
+      // Auto-persist new text into project statement chronology if different
+      if (promptText && this.state.currentProjectId) {
+        const topSaved = this.state.statementHistory[0]?.statement_text;
+        if (promptText !== topSaved) {
+          API.saveProjectStatement(this.state.currentProjectId, promptText, null, this.state.currentPhase || 1, "copilot_refinement")
+            .then(() => this.loadProjectStatements(this.state.currentProjectId))
+            .catch(() => {});
+        }
+      }
     } else if (sourceContext === "copilot_followup") {
       const followupInput = document.getElementById("copilot-followup-input");
       promptText = (followupInput?.value || "").trim();

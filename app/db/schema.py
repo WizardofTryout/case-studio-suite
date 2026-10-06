@@ -158,6 +158,17 @@ CREATE TABLE IF NOT EXISTS api_keys (
     UNIQUE(tenant_id, key_fingerprint)
 );
 
+-- 14. CHRONOLOGIE DER PROBLEMSTELLUNGEN & KUNDENANFORDERUNGEN
+CREATE TABLE IF NOT EXISTS case_problem_statements (
+    id TEXT PRIMARY KEY,
+    project_id TEXT REFERENCES projects(id) ON DELETE CASCADE,
+    phase INTEGER DEFAULT 1,
+    statement_text TEXT NOT NULL,
+    version_title TEXT,
+    source TEXT DEFAULT 'user_input', -- 'initial_case', 'user_edit', 'copilot_refinement', 'preset'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Performance indices on foreign keys and skill search
 CREATE INDEX IF NOT EXISTS idx_docs_project ON project_documents(project_id);
 CREATE INDEX IF NOT EXISTS idx_skills_project ON project_skills(project_id);
@@ -173,6 +184,7 @@ CREATE INDEX IF NOT EXISTS idx_delib_teams_session ON session_deliberation_teams
 CREATE INDEX IF NOT EXISTS idx_prompt_refinements_session ON prompt_refinements(session_id);
 CREATE INDEX IF NOT EXISTS idx_triggers_project ON project_adaptive_triggers(project_id);
 CREATE INDEX IF NOT EXISTS idx_api_keys_tenant ON api_keys(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_statements_project ON case_problem_statements(project_id);
 """
 
 

@@ -6,7 +6,7 @@
   <title>Case Studio Suite – Enterprise Architecture & Decision-Gate OS</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <link rel="alternate icon" href="/favicon.ico">
-  <link rel="stylesheet" href="/static/css/style.css?v=3.3.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=3.4.0">
   <!-- Mermaid.js for real-time live architecture graphing -->
   <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
 </head>
@@ -126,9 +126,22 @@
 
           <!-- Prompt Input Box -->
           <div class="prompt-box">
-            <label for="copilot-prompt" style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">
-              Eingabe der Problemstellung / Kunden-Anforderung:
-            </label>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <label for="copilot-prompt" style="font-size:0.8rem; font-weight:700; color:#94a3b8; text-transform:uppercase;">
+                Eingabe der Problemstellung / Kunden-Anforderung:
+              </label>
+              <div class="statement-history-toolbar" style="display:flex; align-items:center; gap:6px;">
+                <button id="btn-statement-history" class="btn btn-secondary btn-xs" type="button" title="Chronologie und bisherige Versionen der Problemstellung aufrufen">
+                  📜 Chronologie (<span id="statement-history-count">0</span>)
+                </button>
+                <button id="btn-statement-save-milestone" class="btn btn-secondary btn-xs" type="button" title="Aktuellen Text als benannte Version / Meilenstein sichern">
+                  💾 Als Version sichern
+                </button>
+                <button id="btn-statement-presets" class="btn btn-secondary btn-xs" type="button" title="Ausgangs-Sachverhalt & typische Case-Vorlagen laden">
+                  📑 Case-Vorlagen ▾
+                </button>
+              </div>
+            </div>
             <textarea id="copilot-prompt" class="prompt-textarea" placeholder="z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8 % Ausschuss durch Werkzeugverschleiß. Hohe Vibrationen, aber das Hallen-WLAN ist instabil..."></textarea>
             
             <!-- Quick-Triggers Toolbar -->
@@ -1315,14 +1328,85 @@
     </div>
   </div>
 
+  <!-- MODAL: PROBLEM STATEMENT CHRONOLOGY & VERSIONS -->
+  <div id="modal-statement-history" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:780px; width:94%; max-height:86vh; display:flex; flex-direction:column;">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+        <div>
+          <div class="modal-title" style="font-size:1.1rem; font-weight:700; color:var(--text-main);">
+            📜 Sachverhalts-Chronologie &amp; Versionen
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+            Vergangene Problemstellungen, Ergänzungen und Meilensteine dieses Projekts
+          </div>
+        </div>
+        <button id="btn-close-statement-history" class="btn btn-secondary btn-xs" type="button">✕ Schließen</button>
+      </div>
+
+      <div class="modal-body" style="padding:16px 0; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:16px;">
+        <!-- Quick save current statement box -->
+        <div style="background:var(--bg-surface-secondary); border:1px solid var(--border-subtle); border-radius:var(--radius-md); padding:12px; display:flex; flex-direction:column; gap:8px;">
+          <div style="font-size:0.82rem; font-weight:700; color:var(--cyan);">💾 Aktuellen Text als Version / Meilenstein sichern</div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <input type="text" id="input-new-milestone-title" class="gate-answer-input" placeholder="Bezeichnung (z. B. 'Initialer Case', 'Ergänzung Latenzen', 'Workshop-Stand')..." style="flex:1;" />
+            <button id="btn-confirm-save-milestone" class="btn btn-primary btn-sm" type="button">
+              💾 Sichern
+            </button>
+          </div>
+        </div>
+
+        <!-- Versions List -->
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <span style="font-size:0.84rem; font-weight:700; color:var(--text-main);">Gespeicherte Stände (<span id="sh-versions-count">0</span>):</span>
+          <span style="font-size:0.75rem; color:var(--text-muted);">Klicke auf Übernehmen, um den Text ins Eingabefeld zu laden</span>
+        </div>
+
+        <div id="statement-history-list" style="display:flex; flex-direction:column; gap:10px;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="border-top:1px solid var(--border-subtle); padding-top:12px; display:flex; justify-content:flex-end;">
+        <button id="btn-close-statement-history-footer" class="btn btn-secondary btn-sm" type="button">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CASE-STUDIEN VORLAGEN (PRESETS) -->
+  <div id="modal-statement-presets" class="modal-overlay" style="display:none;">
+    <div class="modal-card" style="max-width:760px; width:94%; max-height:86vh; display:flex; flex-direction:column;">
+      <div class="modal-header" style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--border-subtle); padding-bottom:12px;">
+        <div>
+          <div class="modal-title" style="font-size:1.1rem; font-weight:700; color:var(--text-main);">
+            📑 Case-Studien Vorlagen &amp; Ausgangs-Sachverhalte
+          </div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+            Wähle eine praxiserprobte Ausgangs-Problemstellung mit technischen Parametern
+          </div>
+        </div>
+        <button id="btn-close-statement-presets" class="btn btn-secondary btn-xs" type="button">✕ Schließen</button>
+      </div>
+
+      <div class="modal-body" style="padding:16px 0; overflow-y:auto; flex:1; display:flex; flex-direction:column; gap:12px;">
+        <div id="statement-presets-list" style="display:flex; flex-direction:column; gap:12px;">
+          <!-- Dynamically populated presets -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="border-top:1px solid var(--border-subtle); padding-top:12px; display:flex; justify-content:flex-end;">
+        <button id="btn-close-statement-presets-footer" class="btn btn-secondary btn-sm" type="button">Schließen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast-container"></div>
 
   <!-- JavaScript Modules -->
-  <script src="/static/js/toast.js?v=3.3.0"></script>
-  <script src="/static/js/api.js?v=3.3.0"></script>
-  <script src="/static/js/graph.js?v=3.3.0"></script>
-  <script src="/static/js/app.js?v=3.3.0"></script>
+  <script src="/static/js/toast.js?v=3.4.0"></script>
+  <script src="/static/js/api.js?v=3.4.0"></script>
+  <script src="/static/js/graph.js?v=3.4.0"></script>
+  <script src="/static/js/app.js?v=3.4.0"></script>
 </body>
 </html>
 
