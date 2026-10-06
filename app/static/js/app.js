@@ -2143,12 +2143,18 @@ const App = {
 
     const summaryEl = document.getElementById("questions-catalog-summary");
     if (summaryEl) {
+      summaryEl.style.display = "block";
       summaryEl.innerHTML = `<strong>📌 Sachverhalt & Kernfokus:</strong> ${this.escapeHtml(catalog.case_summary || "Umfassende Prüfung der Anforderungen und System-Randbedingungen.")}`;
     }
 
     const grid = document.getElementById("questions-perspectives-grid");
     if (!grid) return;
+    grid.style.display = "grid";
     grid.innerHTML = "";
+
+    card.style.maxHeight = "520px";
+    const collapseBtn = document.getElementById("btn-toggle-questions-collapse");
+    if (collapseBtn) collapseBtn.textContent = "⤢ Minimieren";
 
     (catalog.perspectives || []).forEach((p) => {
       const col = document.createElement("div");
@@ -2238,13 +2244,17 @@ const App = {
   toggleQuestionsCatalogCollapse() {
     const grid = document.getElementById("questions-perspectives-grid");
     const summary = document.getElementById("questions-catalog-summary");
+    const card = document.getElementById("phase-questions-catalog-card");
     const btn = document.getElementById("btn-toggle-questions-collapse");
     if (!grid) return;
 
     const isCollapsed = grid.style.display === "none";
     grid.style.display = isCollapsed ? "grid" : "none";
     if (summary) summary.style.display = isCollapsed ? "block" : "none";
-    if (btn) btn.textContent = isCollapsed ? "▲ Einklappen" : "▼ Ausklappen";
+    if (card) {
+      card.style.maxHeight = isCollapsed ? "520px" : "none";
+    }
+    if (btn) btn.textContent = isCollapsed ? "⤢ Minimieren" : "⤢ Ausklappen";
   },
 
   exportQuestionsCatalogMarkdown() {
