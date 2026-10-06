@@ -34,25 +34,41 @@ const GraphViewer = {
       mermaid.initialize({
         startOnLoad: false,
         suppressErrorRendering: true,
-        theme: isLight ? "neutral" : "dark",
+        theme: "base",
         themeVariables: isLight ? {
           darkMode: false,
           background: "#ffffff",
-          primaryColor: "#0284c7",
-          primaryTextColor: "#0f172a",
-          primaryBorderColor: "#0ea5e9",
+          mainBkg: "#ffffff",
+          nodeBorder: "#0284c7",
           lineColor: "#475569",
-          secondaryColor: "#7c3aed",
-          tertiaryColor: "#059669"
+          primaryTextColor: "#0f172a",
+          primaryColor: "#ffffff",
+          primaryBorderColor: "#0284c7",
+          secondaryColor: "#f8fafc",
+          tertiaryColor: "#ffffff",
+          clusterBkg: "#ffffff",
+          clusterBorder: "#cbd5e1",
+          edgeLabelBackground: "#ffffff",
+          nodeTextColor: "#0f172a",
+          defaultLinkColor: "#475569",
+          titleColor: "#0f172a"
         } : {
           darkMode: true,
           background: "#090c12",
-          primaryColor: "#00d4ff",
-          primaryTextColor: "#f8fafc",
-          primaryBorderColor: "#38bdf8",
+          mainBkg: "#151a26",
+          nodeBorder: "#38bdf8",
           lineColor: "#64748b",
-          secondaryColor: "#8b5cf6",
-          tertiaryColor: "#10b981"
+          primaryTextColor: "#f8fafc",
+          primaryColor: "#151a26",
+          primaryBorderColor: "#00d4ff",
+          secondaryColor: "#1e293b",
+          tertiaryColor: "#0f172a",
+          clusterBkg: "#0f172a",
+          clusterBorder: "#334155",
+          edgeLabelBackground: "#1e293b",
+          nodeTextColor: "#f8fafc",
+          defaultLinkColor: "#64748b",
+          titleColor: "#f8fafc"
         },
         securityLevel: "loose"
       });
@@ -472,8 +488,8 @@ const GraphViewer = {
 
       // Explicitly inject theme directive
       const themeDirective = isLight
-        ? `%%{init: {'theme': 'neutral', 'themeVariables': {'darkMode': false, 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#0284c7', 'lineColor': '#475569', 'primaryTextColor': '#0f172a', 'primaryColor': '#ffffff', 'primaryBorderColor': '#0284c7'}}}%%\n`
-        : `%%{init: {'theme': 'dark', 'themeVariables': {'darkMode': true, 'background': '#090c12', 'mainBkg': '#151a26', 'nodeBorder': '#38bdf8', 'lineColor': '#64748b', 'primaryTextColor': '#f8fafc', 'primaryColor': '#151a26', 'primaryBorderColor': '#00d4ff'}}}%%\n`;
+        ? `%%{init: {'theme': 'base', 'themeVariables': {'darkMode': false, 'background': '#ffffff', 'mainBkg': '#ffffff', 'nodeBorder': '#0284c7', 'lineColor': '#475569', 'primaryTextColor': '#0f172a', 'primaryColor': '#ffffff', 'primaryBorderColor': '#0284c7', 'clusterBkg': '#ffffff', 'clusterBorder': '#cbd5e1', 'edgeLabelBackground': '#ffffff', 'nodeTextColor': '#0f172a'}}}%%\n`
+        : `%%{init: {'theme': 'base', 'themeVariables': {'darkMode': true, 'background': '#090c12', 'mainBkg': '#151a26', 'nodeBorder': '#38bdf8', 'lineColor': '#64748b', 'primaryTextColor': '#f8fafc', 'primaryColor': '#151a26', 'primaryBorderColor': '#00d4ff', 'clusterBkg': '#0f172a', 'clusterBorder': '#334155', 'edgeLabelBackground': '#1e293b', 'nodeTextColor': '#f8fafc'}}}%%\n`;
 
       const codeWithTheme = themeDirective + this.currentMermaidCode;
 
@@ -516,6 +532,9 @@ const GraphViewer = {
 
         svgEl.setAttribute("width", vbWidth);
         svgEl.setAttribute("height", vbHeight);
+
+        // WCAG Dynamic Contrast Tuning for all nodes & edge labels
+        this.postProcessNodeContrast(svgEl, isLight);
       }
 
       // Attach direct node listeners and title attributes for hover info
@@ -539,6 +558,8 @@ const GraphViewer = {
           svgEl.style.maxWidth = "none";
           svgEl.style.maxHeight = "none";
           svgEl.style.display = "block";
+          const isLight = document.documentElement.getAttribute("data-theme") === "light" || this.currentTheme === "light";
+          this.postProcessNodeContrast(svgEl, isLight);
           this.attachNodeDirectListeners(layer);
           this.fit();
           return;
@@ -568,6 +589,8 @@ const GraphViewer = {
           svgEl.style.maxWidth = "none";
           svgEl.style.maxHeight = "none";
           svgEl.style.display = "block";
+          const isLight = document.documentElement.getAttribute("data-theme") === "light" || this.currentTheme === "light";
+          this.postProcessNodeContrast(svgEl, isLight);
           this.attachNodeDirectListeners(layer);
           this.fit();
           return;
@@ -594,6 +617,172 @@ const GraphViewer = {
         `;
       }
     }
+  },
+
+  /**
+   * Enforces WCAG-grade contrast on all Mermaid nodes, edge labels, and clusters.
+   * Eliminates unreadable white text on light pastel nodes in dark mode,
+   * and black text on dark nodes in light mode.
+   */
+  postProcessNodeContrast(svgEl, isLight) {
+    if (!svgEl) return;
+
+    // Relative luminance calculation from any valid color representation
+    const getLuminance = (colorStr) => {
+      if (!colorStr || colorStr === "none" || colorStr === "transparent") return null;
+      let r = 255, g = 255, b = 255;
+      const clean = colorStr.trim().toLowerCase();
+
+      if (clean.startsWith("#")) {
+        let hex = clean.slice(1);
+        if (hex.length === 3) {
+          hex = hex.split("").map(c => c + c).join("");
+        }
+        if (hex.length === 6) {
+          r = parseInt(hex.slice(0, 2), 16);
+          g = parseInt(hex.slice(2, 4), 16);
+          b = parseInt(hex.slice(4, 6), 16);
+        }
+      } else if (clean.startsWith("rgb")) {
+        const matches = clean.match(/\d+/g);
+        if (matches && matches.length >= 3) {
+          r = parseInt(matches[0], 10);
+          g = parseInt(matches[1], 10);
+          b = parseInt(matches[2], 10);
+        }
+      } else {
+        const namedColors = {
+          yellow: [255, 255, 0],
+          pink: [255, 192, 203],
+          lavender: [230, 230, 250],
+          lightblue: [173, 216, 230],
+          lightgreen: [144, 238, 144],
+          white: [255, 255, 255],
+          black: [0, 0, 0]
+        };
+        if (namedColors[clean]) {
+          [r, g, b] = namedColors[clean];
+        }
+      }
+      return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    };
+
+    const nodes = svgEl.querySelectorAll(".node");
+    nodes.forEach(node => {
+      const shape = node.querySelector("rect, circle, polygon, path");
+      if (!shape) return;
+
+      // Extract inline fill from style or fill attribute
+      let fillVal = null;
+      const styleAttr = shape.getAttribute("style") || "";
+      const fillMatch = styleAttr.match(/(?:^|;)\s*fill\s*:\s*([^;]+)/i);
+      if (fillMatch) {
+        fillVal = fillMatch[1].trim();
+      } else if (shape.style.fill) {
+        fillVal = shape.style.fill;
+      } else if (shape.getAttribute("fill") && shape.getAttribute("fill") !== "none") {
+        fillVal = shape.getAttribute("fill");
+      }
+
+      if (fillVal) {
+        node.setAttribute("data-has-custom-fill", "true");
+      }
+
+      const lum = getLuminance(fillVal);
+
+      if (!isLight) {
+        // DARK MODE:
+        // If a node has a light / pastel background (e.g. #f9f, #bbf, #ffb, #ff9):
+        // enforce crisp, bold dark text (#090c12) for 100% legibility!
+        if (lum !== null && lum > 0.45) {
+          node.querySelectorAll("text, tspan").forEach(t => {
+            t.style.setProperty("fill", "#090c12", "important");
+            t.style.setProperty("font-weight", "700", "important");
+          });
+          node.querySelectorAll(".nodeLabel, .label span, .label div, .label").forEach(s => {
+            s.style.setProperty("color", "#090c12", "important");
+            s.style.setProperty("font-weight", "700", "important");
+          });
+          if (shape) {
+            shape.style.setProperty("stroke", "#475569", "important");
+            shape.style.setProperty("stroke-width", "2px", "important");
+          }
+        } else {
+          // Normal dark node in Dark Mode: crisp white text
+          node.querySelectorAll("text, tspan").forEach(t => {
+            t.style.setProperty("fill", "#f8fafc", "important");
+          });
+          node.querySelectorAll(".nodeLabel, .label span, .label div, .label").forEach(s => {
+            s.style.setProperty("color", "#f8fafc", "important");
+          });
+        }
+      } else {
+        // LIGHT MODE:
+        // If a node has a dark background (luminance <= 0.45):
+        // enforce crisp, bold white text (#ffffff)
+        if (lum !== null && lum <= 0.45) {
+          node.querySelectorAll("text, tspan").forEach(t => {
+            t.style.setProperty("fill", "#ffffff", "important");
+            t.style.setProperty("font-weight", "700", "important");
+          });
+          node.querySelectorAll(".nodeLabel, .label span, .label div, .label").forEach(s => {
+            s.style.setProperty("color", "#ffffff", "important");
+            s.style.setProperty("font-weight", "700", "important");
+          });
+        } else {
+          // Light or pastel node in Light Mode: crisp dark slate text (#0f172a)
+          node.querySelectorAll("text, tspan").forEach(t => {
+            t.style.setProperty("fill", "#0f172a", "important");
+            t.style.setProperty("font-weight", "600", "important");
+          });
+          node.querySelectorAll(".nodeLabel, .label span, .label div, .label").forEach(s => {
+            s.style.setProperty("color", "#0f172a", "important");
+            s.style.setProperty("font-weight", "600", "important");
+          });
+        }
+      }
+    });
+
+    // Style edge label pills with high contrast
+    svgEl.querySelectorAll(".edgeLabel").forEach(el => {
+      const rect = el.querySelector("rect");
+      if (rect) {
+        rect.style.setProperty("fill", isLight ? "#ffffff" : "#1e293b", "important");
+        rect.style.setProperty("stroke", isLight ? "#cbd5e1" : "#475569", "important");
+        rect.style.setProperty("stroke-width", "1px", "important");
+        rect.style.setProperty("rx", "4px", "important");
+        rect.style.setProperty("ry", "4px", "important");
+      }
+      el.querySelectorAll("text, tspan").forEach(t => {
+        t.style.setProperty("fill", isLight ? "#0f172a" : "#f1f5f9", "important");
+        t.style.setProperty("font-weight", "600", "important");
+      });
+      el.querySelectorAll("span, div").forEach(s => {
+        s.style.setProperty("color", isLight ? "#0f172a" : "#f1f5f9", "important");
+        s.style.setProperty("font-weight", "600", "important");
+      });
+    });
+
+    // Subgraphs / clusters styling
+    svgEl.querySelectorAll(".cluster").forEach(cluster => {
+      const rect = cluster.querySelector("rect, polygon");
+      if (rect) {
+        rect.style.setProperty("fill", isLight ? "rgba(248, 250, 252, 0.75)" : "rgba(15, 23, 42, 0.55)", "important");
+        rect.style.setProperty("stroke", isLight ? "#cbd5e1" : "#334155", "important");
+        rect.style.setProperty("stroke-width", "1.5px", "important");
+        rect.style.setProperty("stroke-dasharray", "4 4", "important");
+        rect.style.setProperty("rx", "8px", "important");
+        rect.style.setProperty("ry", "8px", "important");
+      }
+      cluster.querySelectorAll("text, tspan").forEach(t => {
+        t.style.setProperty("fill", isLight ? "#0f172a" : "#94a3b8", "important");
+        t.style.setProperty("font-weight", "700", "important");
+      });
+      cluster.querySelectorAll("span, div").forEach(s => {
+        s.style.setProperty("color", isLight ? "#0f172a" : "#94a3b8", "important");
+        s.style.setProperty("font-weight", "700", "important");
+      });
+    });
   },
 
   attachNodeDirectListeners(layer) {

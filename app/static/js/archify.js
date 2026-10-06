@@ -195,6 +195,112 @@ const ArchifyUI = {
   },
 
   /**
+   * Theme Polish: Inject or update high-contrast styles inside the Archify iframe
+   */
+  injectIframeStyles(doc, theme) {
+    if (!doc || !doc.head) return;
+    let style = doc.getElementById("archify-case-studio-injected-style");
+    if (!style) {
+      style = doc.createElement("style");
+      style.id = "archify-case-studio-injected-style";
+      doc.head.appendChild(style);
+    }
+
+    style.textContent = `
+      /* Sub-Sprint 5.3: Enable Semantic Passport Card & Interactive Lenses when active */
+      html[data-embed="true"] .focus-chip:not([hidden]),
+      html[data-embed="true"] .relationship-lens:not([hidden]),
+      html[data-embed="true"] .semantic-lens:not([hidden]),
+      html[data-embed="true"] .route-probe:not([hidden]) {
+        display: block !important;
+      }
+      html[data-embed="true"] .toolbar,
+      html[data-embed="true"] .header,
+      html[data-embed="true"] .diagram-nav {
+        display: none !important;
+      }
+
+      /* Dark Mode Semantic Passport */
+      html[data-theme="dark"] .focus-chip {
+        z-index: 9999 !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7) !important;
+        border: 1px solid rgba(0, 212, 255, 0.35) !important;
+        background: rgba(15, 23, 42, 0.95) !important;
+        color: #f8fafc !important;
+        backdrop-filter: blur(20px) !important;
+      }
+      html[data-theme="dark"] .focus-chip * {
+        color: #f8fafc;
+      }
+      html[data-theme="dark"] .focus-chip .passport-header,
+      html[data-theme="dark"] .focus-chip .relationship-lens-head {
+        background: rgba(30, 41, 59, 0.7) !important;
+        border-bottom: 1px solid rgba(51, 65, 85, 0.8) !important;
+      }
+
+      /* Light Mode Semantic Passport - Crisp, clean, readable light card */
+      html[data-theme="light"] .focus-chip {
+        z-index: 9999 !important;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06) !important;
+        border: 1px solid #cbd5e1 !important;
+        background: rgba(255, 255, 255, 0.98) !important;
+        color: #0f172a !important;
+        backdrop-filter: blur(20px) !important;
+      }
+      html[data-theme="light"] .focus-chip * {
+        color: #0f172a !important;
+      }
+      html[data-theme="light"] .focus-chip .passport-header,
+      html[data-theme="light"] .focus-chip .relationship-lens-head {
+        background: #f1f5f9 !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+      }
+      html[data-theme="light"] .focus-chip .focus-chip-title,
+      html[data-theme="light"] .focus-chip h4,
+      html[data-theme="light"] .focus-chip strong,
+      html[data-theme="light"] .focus-chip .relationship-lens-title {
+        color: #0f172a !important;
+        font-weight: 700 !important;
+      }
+      html[data-theme="light"] .focus-chip .relationship-lens-kicker,
+      html[data-theme="light"] .focus-chip .relationship-lens-subline,
+      html[data-theme="light"] .focus-chip .reach-label,
+      html[data-theme="light"] .focus-chip .relationship-lens-group-title {
+        color: #475569 !important;
+      }
+      html[data-theme="light"] .focus-chip button {
+        background: #f1f5f9 !important;
+        color: #0f172a !important;
+        border: 1px solid #cbd5e1 !important;
+      }
+      html[data-theme="light"] .focus-chip button:hover {
+        background: #e2e8f0 !important;
+      }
+      html[data-theme="light"] .focus-chip .reach-box,
+      html[data-theme="light"] .focus-chip .metric-box,
+      html[data-theme="light"] .focus-chip .cell {
+        background: #f8fafc !important;
+        border: 1px solid #cbd5e1 !important;
+        color: #0f172a !important;
+      }
+
+      /* Light Mode Canvas node & text readability boost */
+      html[data-theme="light"] svg[data-focus-active] [data-node-id]:not([aria-pressed="true"]) {
+        opacity: 0.55 !important;
+      }
+      html[data-theme="light"] svg[data-focus-active] [data-edge-from] {
+        opacity: 0.45 !important;
+      }
+      html[data-theme="light"] .t-primary {
+        fill: #0f172a !important;
+      }
+      html[data-theme="light"] .t-muted {
+        fill: #475569 !important;
+      }
+    `;
+  },
+
+  /**
    * Sub-Sprint 4.1: Theme-Synchronisation
    * Switches the active theme inside the iframe immediately via DOM attribute and postMessage.
    */
@@ -207,6 +313,7 @@ const ArchifyUI = {
       // 1. Direct DOM attribute update on the iframe document
       if (iframe.contentDocument && iframe.contentDocument.documentElement) {
         iframe.contentDocument.documentElement.setAttribute("data-theme", t);
+        this.injectIframeStyles(iframe.contentDocument, t);
       }
 
       // 2. Archify viewer theme method (if defined in iframe window)
@@ -339,37 +446,11 @@ const ArchifyUI = {
       iframe.onload = () => {
         this.setTheme(currentTheme);
 
-        // Sub-Sprint 5.3: Ensure Semantic Passport (.focus-chip) is visible and style injected
+        // Sub-Sprint 5.3 & Theme Polish: Ensure Semantic Passport (.focus-chip) is styled and visible
         try {
           const doc = iframe.contentDocument;
           if (doc) {
-            let style = doc.getElementById("archify-case-studio-injected-style");
-            if (!style) {
-              style = doc.createElement("style");
-              style.id = "archify-case-studio-injected-style";
-              style.textContent = `
-                /* Sub-Sprint 5.3: Enable Semantic Passport Card when node selected */
-                html[data-embed="true"] .focus-chip:not([hidden]),
-                html[data-embed="true"] .relationship-lens:not([hidden]),
-                html[data-embed="true"] .semantic-lens:not([hidden]),
-                html[data-embed="true"] .route-probe:not([hidden]) {
-                  display: block !important;
-                }
-                html[data-embed="true"] .toolbar,
-                html[data-embed="true"] .header,
-                html[data-embed="true"] .diagram-nav {
-                  display: none !important;
-                }
-                .focus-chip {
-                  z-index: 9999 !important;
-                  box-shadow: 0 12px 36px rgba(0,0,0,0.55) !important;
-                  border: 1px solid rgba(0, 212, 255, 0.3) !important;
-                  background: rgba(15, 23, 42, 0.92) !important;
-                  backdrop-filter: blur(20px) !important;
-                }
-              `;
-              doc.head.appendChild(style);
-            }
+            this.injectIframeStyles(doc, currentTheme);
 
             // Cross-window message responder for viewport controls inside iframe
             iframe.contentWindow.addEventListener("message", (msgEvt) => {

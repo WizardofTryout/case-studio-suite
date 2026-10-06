@@ -261,11 +261,11 @@
             <div class="box-header">
               <div class="box-title" style="display:flex; align-items:center; gap:10px;">
                 <!-- Segmented Control Dual-Engine Switcher -->
-                <div id="archify-segment-control" class="archify-segment-control" style="display:inline-flex; background:rgba(0,0,0,0.25); padding:2px; border-radius:6px; border:1px solid var(--border-subtle);">
-                  <button id="tab-btn-mermaid" class="archify-seg-btn active" type="button" data-i18n="tab_mermaid_flow" style="background:transparent; border:none; padding:4px 10px; font-size:0.8rem; border-radius:4px; color:var(--text-main); cursor:pointer; font-weight:600;">
+                <div id="archify-segment-control" class="archify-segment-control">
+                  <button id="tab-btn-mermaid" class="archify-seg-btn active" type="button" data-i18n="tab_mermaid_flow">
                     📊 Mermaid Flow
                   </button>
-                  <button id="tab-btn-archify" class="archify-seg-btn" type="button" style="background:transparent; border:none; padding:4px 10px; font-size:0.8rem; border-radius:4px; color:var(--text-muted); cursor:pointer; font-weight:600; display:flex; align-items:center; gap:6px;">
+                  <button id="tab-btn-archify" class="archify-seg-btn" type="button" style="display:flex; align-items:center; gap:6px;">
                     <span data-i18n="tab_archify_showcase">🔍 Archify Showcase</span>
                     <span id="archify-count-badge" class="badge" style="background:var(--cyan); color:#000; font-size:0.7rem; padding:1px 5px; border-radius:10px; display:none; font-weight:bold;">0</span>
                   </button>
@@ -273,7 +273,7 @@
 
                 <!-- Deep-Dive History Dropdown Container (Dezent in oberer Leiste) -->
                 <div id="archify-history-dropdown-container" style="display:none; align-items:center; gap:6px;">
-                  <select id="archify-artifact-select" class="form-select" style="padding:3px 8px; font-size:0.78rem; background:rgba(0,0,0,0.35); color:var(--text-main); border:1px solid var(--border-subtle); border-radius:4px; max-width:280px;" title="Gespeicherte Deep-Dives auswählen">
+                  <select id="archify-artifact-select" class="form-select" style="max-width:280px;" title="Gespeicherte Deep-Dives auswählen">
                     <option value="">Lade Deep-Dives...</option>
                   </select>
                 </div>
@@ -555,7 +555,7 @@
             <div id="project-details-industry" style="font-size:0.85rem; color:#cbd5e1;"></div>
             <div id="project-details-persona" style="font-size:0.85rem; color:#94a3b8;"></div>
           </div>
-          <div style="font-size:0.82rem; color:#64748b; background:rgba(0,0,0,0.25); padding:10px; border-radius:8px;">
+          <div style="font-size:0.82rem; color:var(--text-muted); background:var(--bg-input); padding:10px; border-radius:8px; border:1px solid var(--border-subtle);">
             💾 <strong>Lokale Persistenz:</strong> Sämtliche Daten dieses Projekts sind in <code>/app/data/case_studio.db</code> und physisch im Ordner <code>/app/data/projects/{id}/</code> gesichert.
           </div>
         </div>

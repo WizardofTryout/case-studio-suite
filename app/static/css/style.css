@@ -1411,47 +1411,39 @@ body {
 [data-theme="light"] .mermaid-viewport {
   background: #ffffff !important;
   border-color: #cbd5e1 !important;
-  box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.02);
+  box-shadow: none !important;
 }
 
 [data-theme="light"] .mermaid-canvas-layer {
-  background: transparent !important;
+  background: #ffffff !important;
 }
 
 [data-theme="light"] .mermaid-viewport svg {
-  background-color: transparent !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
 }
 
-[data-theme="light"] svg .node rect,
-[data-theme="light"] svg .node circle,
-[data-theme="light"] svg .node polygon,
-[data-theme="light"] svg .node path {
+/* Default unstyled nodes in Light mode */
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) rect,
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) circle,
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) polygon,
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) path {
   fill: #ffffff !important;
   stroke: #0284c7 !important;
   stroke-width: 1.5px !important;
 }
 
-[data-theme="light"] svg .node .nodeLabel,
-[data-theme="light"] svg .node text {
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) .nodeLabel,
+[data-theme="light"] svg .node:not([data-has-custom-fill="true"]) text {
   fill: #0f172a !important;
   color: #0f172a !important;
   font-weight: 600 !important;
 }
 
+/* Edge paths & arrows */
 [data-theme="light"] svg .edgePath .path {
   stroke: #475569 !important;
   stroke-width: 1.5px !important;
-}
-
-[data-theme="light"] svg .edgeLabel {
-  background-color: #ffffff !important;
-  color: #334155 !important;
-  fill: #334155 !important;
-}
-
-[data-theme="light"] svg .edgeLabel rect {
-  fill: #ffffff !important;
-  stroke: #cbd5e1 !important;
 }
 
 [data-theme="light"] svg marker path {
@@ -1459,9 +1451,85 @@ body {
   stroke: #475569 !important;
 }
 
-[data-theme="light"] svg .cluster rect {
-  fill: #f8fafc !important;
+/* Edge Labels (Pill badges) in Light mode */
+[data-theme="light"] svg .edgeLabel {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  fill: #0f172a !important;
+  font-weight: 600 !important;
+}
+
+[data-theme="light"] svg .edgeLabel rect {
+  fill: #ffffff !important;
   stroke: #cbd5e1 !important;
+  stroke-width: 1px !important;
+  rx: 4px !important;
+  ry: 4px !important;
+}
+
+[data-theme="light"] svg .edgeLabel text,
+[data-theme="light"] svg .edgeLabel span {
+  fill: #0f172a !important;
+  color: #0f172a !important;
+}
+
+/* Clusters (Subgraphs) in Light mode: Crisp white / subtle light card with dark title */
+[data-theme="light"] svg .cluster rect,
+[data-theme="light"] svg .cluster polygon {
+  fill: rgba(248, 250, 252, 0.75) !important;
+  stroke: #cbd5e1 !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 4 4 !important;
+  rx: 8px !important;
+  ry: 8px !important;
+}
+
+[data-theme="light"] svg .cluster text,
+[data-theme="light"] svg .cluster .nodeLabel {
+  fill: #0f172a !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+}
+
+/* Dark mode defaults for Mermaid SVG clusters & edge labels */
+svg .cluster rect,
+svg .cluster polygon {
+  fill: rgba(15, 23, 42, 0.5) !important;
+  stroke: #334155 !important;
+  stroke-width: 1.5px !important;
+  stroke-dasharray: 4 4 !important;
+  rx: 8px !important;
+  ry: 8px !important;
+}
+
+svg .cluster text,
+svg .cluster .nodeLabel {
+  fill: #94a3b8 !important;
+  color: #94a3b8 !important;
+  font-weight: 700 !important;
+  font-size: 0.85rem !important;
+}
+
+svg .edgeLabel {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  fill: #f1f5f9 !important;
+}
+
+svg .edgeLabel rect {
+  fill: #1e293b !important;
+  stroke: #475569 !important;
+  stroke-width: 1px !important;
+  rx: 4px !important;
+  ry: 4px !important;
+}
+
+svg .edgeLabel text,
+svg .edgeLabel span {
+  fill: #f1f5f9 !important;
+  color: #f1f5f9 !important;
+  font-weight: 600 !important;
 }
 
 
@@ -4400,10 +4468,29 @@ svg .node.selected text {
 
 /* Archify Dual-Engine & History Dropdown Controls (Sprint 5) */
 .archify-segment-control {
+  display: inline-flex;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 2px;
+  border-radius: 6px;
+  border: 1px solid var(--border-subtle);
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
 }
 
+[data-theme="light"] .archify-segment-control {
+  background: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+}
+
 .archify-seg-btn {
+  background: transparent;
+  border: none;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 600;
   transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -4415,6 +4502,20 @@ svg .node.selected text {
   background: var(--bg-card) !important;
   color: var(--cyan) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+[data-theme="light"] .archify-seg-btn {
+  color: #64748b !important;
+}
+
+[data-theme="light"] .archify-seg-btn:hover {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .archify-seg-btn.active {
+  background: #ffffff !important;
+  color: #0284c7 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1) !important;
 }
 
 #archify-history-dropdown-container {
@@ -4441,10 +4542,12 @@ svg .node.selected text {
 }
 
 [data-theme="light"] #archify-artifact-select {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
 }
+
 
 
 
