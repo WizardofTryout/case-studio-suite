@@ -71,6 +71,32 @@
         
         <!-- Left Column: Workspace & Stepper -->
         <div class="copilot-left">
+
+          <!-- Active Agent Team Banner in Phase 1-4 (Synchronized with Deliberation Team) -->
+          <div class="team-dashboard-banner copilot-team-banner" style="margin-bottom:12px;">
+            <div class="team-dashboard-header">
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-weight:700; font-size:0.95rem; color:var(--text-main);">👥 Dein aktives Agententeam</span>
+                <span class="status-indicator-badge">🟢 Orchestrator online</span>
+              </div>
+              <div class="team-header-actions">
+                <button id="btn-toggle-autopilot-copilot" class="btn-toggle-autopilot active" type="button" title="Auto-Pilot umschalten">
+                  <span class="autopilot-icon">🤖</span>
+                  <span id="autopilot-status-text-copilot">Auto-Pilot: AKTIV</span>
+                </button>
+                <button id="btn-add-agent-slot-copilot" class="btn btn-secondary btn-sm" type="button">
+                  ＋ Experte hinzufügen
+                </button>
+                <button id="btn-sync-catalog-copilot" class="btn btn-secondary btn-sm" type="button" title="Aus 35+ Fachdomänen wählen">
+                  🏛️ Aus Katalog wählen ▾
+                </button>
+              </div>
+            </div>
+            <div id="copilot-team-grid" class="team-slots-grid">
+              <!-- Dynamically populated via JS, synchronized with deliberation team -->
+            </div>
+          </div>
+
           <!-- 4-Phase Stepper -->
           <div class="phase-stepper">
             <button class="phase-step-btn active" data-phase="1">
@@ -104,9 +130,16 @@
             <textarea id="copilot-prompt" class="prompt-textarea" placeholder="z. B. Kunde betreibt 120 CNC-Fräsen und klagt über 8 % Ausschuss durch Werkzeugverschleiß. Hohe Vibrationen, aber das Hallen-WLAN ist instabil..."></textarea>
             
             <!-- Quick-Triggers Toolbar -->
-            <div style="display:flex; align-items:center; gap:10px; margin-top:2px;">
-              <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Situative Quick-Triggers:</span>
-              <button id="btn-adapt-triggers" class="btn btn-secondary btn-xs">🔄 Triggers an Case anpassen</button>
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:2px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:0.75rem; color:#64748b; font-weight:600;">Situative Quick-Triggers:</span>
+                <button id="btn-adapt-triggers" class="btn btn-secondary btn-xs" type="button">🔄 Triggers an Case anpassen</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btn-generate-phase-questions" class="btn btn-secondary btn-xs btn-highlight-ai" type="button" title="Analysiert den Sachverhalt tiefgründig aus den Perspektiven aller aktiven Fachagenten">
+                  🔍 Fachfragen-Katalog &amp; Sachverhalt analysieren
+                </button>
+              </div>
             </div>
             <div id="quick-triggers-container" class="quick-triggers">
               <!-- Dynamically populated per phase by App.updatePhaseUI -->
@@ -118,6 +151,33 @@
                 🚀 Analysieren & Streamen
               </button>
             </div>
+          </div>
+
+          <!-- Dynamic Fachfragenkatalog & Sachverhalts-Analyse Document (Generated from Active Agent Perspectives) -->
+          <div id="phase-questions-catalog-card" class="questions-catalog-card" style="display:none;">
+            <div class="questions-catalog-header">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.15rem;">📋</span>
+                <div>
+                  <div class="catalog-title" id="questions-catalog-title">Fachfragenkatalog &amp; Sachverhalts-Analyse</div>
+                  <div class="catalog-subtitle" id="questions-catalog-subtitle">Generiert aus den Perspektiven deiner aktiven Fachagenten</div>
+                </div>
+              </div>
+              <div class="catalog-header-actions">
+                <button id="btn-export-questions-md" class="btn btn-secondary btn-xs" type="button" title="Diesen Fragenkatalog als Markdown-Datei für Termine/Workshops herunterladen">
+                  📥 Als .md exportieren
+                </button>
+                <button id="btn-toggle-questions-collapse" class="btn btn-secondary btn-xs" type="button" title="Fragenkatalog minimieren/maximieren">
+                  ⤢ Minimieren
+                </button>
+              </div>
+            </div>
+
+            <!-- Summary Banner -->
+            <div id="questions-catalog-summary" class="catalog-summary-banner"></div>
+
+            <!-- Agent Perspectives Grid -->
+            <div id="questions-perspectives-grid" class="perspectives-grid"></div>
           </div>
 
           <!-- Live Output Stream Windows (Per-Phase Separate State & History) -->
@@ -161,12 +221,17 @@
 
           <!-- Interactive Follow-Up Chat Box for Active Phase -->
           <div class="followup-chat-container">
-            <textarea id="copilot-followup-input" class="followup-textarea" placeholder="Eigene Rückfrage zum Inhalt stellen ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)"></textarea>
+            <textarea id="copilot-followup-input" class="followup-textarea" placeholder="Eigene Rückfrage / Verständnisfrage stellen (z.B. 'Warum ist Frage 2 kritisch?' oder 'Erkläre mir Latenz-Jitter') ODER Kunden-Antwort eingeben... (Shortcut: ⌘/Ctrl + Enter)"></textarea>
             <div class="followup-actions">
               <span class="shortcut-hint">Shortcut: ⌘/Ctrl + Enter</span>
-              <button id="btn-send-followup" class="btn btn-primary btn-sm">
-                🚀 Senden & Architektur nachschärfen
-              </button>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button id="btn-generate-followup-questions" class="btn btn-secondary btn-sm" type="button" title="Analysiert den bisherigen Phase-Output und generiert gezielte Klärungs- und Verständnisfragen">
+                  💡 Klärungsbedarf &amp; Fachfragen ermitteln
+                </button>
+                <button id="btn-send-followup" class="btn btn-primary btn-sm">
+                  🚀 Senden &amp; Architektur nachschärfen
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -366,9 +431,14 @@
             </div>
           </div>
 
-          <button id="btn-enhance-prompt" class="btn btn-primary btn-sm btn-enhance-prompt" type="button" style="width:100%; justify-content:center; padding:9px 14px;">
-            ✨ Prompt mit gewähltem Fachagenten veredeln / schärfen
-          </button>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button id="btn-enhance-prompt" class="btn btn-primary btn-sm btn-enhance-prompt" type="button" style="width:100%; justify-content:center; padding:9px 14px;">
+              ✨ Prompt mit gewähltem Fachagenten veredeln
+            </button>
+            <button id="btn-generate-refiner-questions" class="btn btn-secondary btn-sm" type="button" style="width:100%; justify-content:center; padding:9px 14px; font-weight:700; border:1px solid rgba(139, 92, 246, 0.4); background: rgba(139, 92, 246, 0.08);" title="Erzeuge tiefgehende Fachfragen und Sachverhalts-Klärungen aus Perspektive dieses ausgewählten Fachagenten">
+              ❓ Fachfragen aus Agenten-Sicht erzeugen
+            </button>
+          </div>
 
           <div id="refiner-progress-pill" class="refiner-progress-pill" style="display:none;">
             <span class="spinner-small"></span>

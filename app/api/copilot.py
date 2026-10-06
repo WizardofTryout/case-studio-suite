@@ -143,6 +143,57 @@ async def save_session_phase(session_id: str, phase: int, payload: SavePhaseRequ
     return saved
 
 
+class GenerateQuestionsRequest(BaseModel):
+    project_id: Optional[str] = None
+    session_id: Optional[str] = None
+    phase: Optional[int] = 1
+    case_text: Optional[str] = None
+    prompt: Optional[str] = None
+    agents: Optional[List[Dict[str, Any]]] = None
+    active_agents: Optional[List[Dict[str, Any]]] = None
+    focus_agent_key: Optional[str] = None
+    focus_mode: Optional[str] = None
+    source_context: Optional[str] = "top_prompt"
+
+
+@router.post("/generate-questions")
+async def generate_questions_endpoint(payload: GenerateQuestionsRequest):
+    """
+    Multi-Agent Question Generator & Case Analysis:
+    Synthesizes critical domain questions, rationales, and risks from the perspectives
+    of all active specialists and returns quick-triggers plus exportable markdown report.
+    """
+    case_text = payload.case_text or payload.prompt or ""
+    if not case_text.strip():
+        raise HTTPException(status_code=400, detail="Keine Problemstellung / Anforderung übergeben")
+
+    project_id = payload.project_id
+    if not project_id:
+        projs = await repositories.list_projects()
+        if projs:
+            project_id = projs[0]["id"]
+        else:
+            project_id = "default"
+
+    agents = payload.agents or payload.active_agents or []
+
+    from app.services.question_generator_service import generate_perspective_questions
+    try:
+        res = await generate_perspective_questions(
+            project_id=project_id,
+            phase=payload.phase or 1,
+            case_text=case_text,
+            session_id=payload.session_id,
+            agents=agents,
+            focus_agent_key=payload.focus_agent_key,
+            source_context=payload.source_context or "top_prompt"
+        )
+        return res
+    except Exception as e:
+        logger.error(f"Error generating questions: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 class NodeChatRequest(BaseModel):
     project_id: str
     session_id: str

@@ -517,6 +517,19 @@ const API = {
       throw new Error(err.detail || "Modell konnte nicht gesetzt werden");
     }
     return await res.json();
+  },
+
+  async generatePhaseQuestions(payload) {
+    const res = await fetch("/api/copilot/generate-questions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || "Fragen-Generierung fehlgeschlagen");
+    }
+    return await res.json();
   }
 };
 

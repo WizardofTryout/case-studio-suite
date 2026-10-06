@@ -170,6 +170,7 @@ const App = {
     await this.loadProjects();
     await this.loadSkillsCatalog();
     await this.initModelSelector();
+    await this.loadDeliberationTeam();
     
     // Auto-refresh telemetry every 20 seconds
     setInterval(() => this.refreshTelemetry(), 20000);
@@ -256,6 +257,30 @@ const App = {
     const adaptBtn = document.getElementById("btn-adapt-triggers");
     if (adaptBtn) {
       adaptBtn.addEventListener("click", () => this.adaptTriggersToCase());
+    }
+
+    // Phase Questions Generator (Top Box Button next to Quick-Triggers)
+    const genPhaseQuestionsBtn = document.getElementById("btn-generate-phase-questions");
+    if (genPhaseQuestionsBtn) {
+      genPhaseQuestionsBtn.addEventListener("click", () => this.generatePhaseQuestions("copilot_main"));
+    }
+
+    // Follow-up Questions Generator (Bottom Box Button next to Senden)
+    const genFollowupQuestionsBtn = document.getElementById("btn-generate-followup-questions");
+    if (genFollowupQuestionsBtn) {
+      genFollowupQuestionsBtn.addEventListener("click", () => this.generatePhaseQuestions("copilot_followup"));
+    }
+
+    // Export Questions Markdown
+    const exportQuestionsMdBtn = document.getElementById("btn-export-questions-md");
+    if (exportQuestionsMdBtn) {
+      exportQuestionsMdBtn.addEventListener("click", () => this.exportQuestionsCatalogMarkdown());
+    }
+
+    // Toggle Questions Catalog Collapse
+    const toggleQuestionsBtn = document.getElementById("btn-toggle-questions-collapse");
+    if (toggleQuestionsBtn) {
+      toggleQuestionsBtn.addEventListener("click", () => this.toggleQuestionsCatalogCollapse());
     }
 
     // Quick Triggers
@@ -1393,6 +1418,28 @@ const App = {
       enhanceBtn.addEventListener("click", () => this.enhancePromptAction());
     }
 
+    // Refiner Agent Questions button (Tab 2)
+    const refinerQuestionsBtn = document.getElementById("btn-generate-refiner-questions");
+    if (refinerQuestionsBtn) {
+      refinerQuestionsBtn.addEventListener("click", () => this.generatePhaseQuestions("deliberation_refiner"));
+    }
+
+    // Copilot Phase 1-4 Team Banner Controls
+    const apBtnCopilot = document.getElementById("btn-toggle-autopilot-copilot");
+    if (apBtnCopilot) {
+      apBtnCopilot.addEventListener("click", () => this.toggleAutoPilot());
+    }
+
+    const addSlotBtnCopilot = document.getElementById("btn-add-agent-slot-copilot");
+    if (addSlotBtnCopilot) {
+      addSlotBtnCopilot.addEventListener("click", () => this.openAgentTileModal("slot", null));
+    }
+
+    const syncCatalogBtnCopilot = document.getElementById("btn-sync-catalog-copilot");
+    if (syncCatalogBtnCopilot) {
+      syncCatalogBtnCopilot.addEventListener("click", () => this.openAgentTileModal("slot", null));
+    }
+
     // Deliberation input shortcut: Cmd/Ctrl + Enter
     const delibInput = document.getElementById("deliberation-input");
     if (delibInput) {
@@ -1488,6 +1535,7 @@ const App = {
   },
 
   renderDeliberationTeamGrid() {
+    // 1. Sync Auto-Pilot Toggle Button in Tab 2
     const apBtn = document.getElementById("btn-toggle-autopilot");
     if (apBtn) {
       if (this.deliberationState.autoPilot) {
@@ -1499,77 +1547,93 @@ const App = {
       }
     }
 
-    const grid = document.getElementById("deliberation-team-grid");
-    if (!grid) return;
-    grid.innerHTML = "";
-
-    // 1. Render all configured team slots
-    this.deliberationState.teamSlots.forEach((slot, idx) => {
-      const card = document.createElement("div");
-      card.className = "team-slot-card";
-
-      let badgeHtml = "";
-      let icon = "⚡";
-      if (slot.role === "master_consultant") {
-        icon = "👑";
-        card.classList.add("slot-lead");
-        badgeHtml = `<span class="team-slot-badge slot-lead">👑 Lead-Architekt</span>`;
-      } else if (slot.role === "critic") {
-        icon = "🛡️";
-        card.classList.add("slot-critic");
-        badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Qualitätswächter</span>`;
+    // 2. Sync Auto-Pilot Toggle Button in Tab 1 (Copilot Header)
+    const apBtnCopilot = document.getElementById("btn-toggle-autopilot-copilot");
+    const apTextCopilot = document.getElementById("autopilot-status-text-copilot");
+    if (apBtnCopilot) {
+      if (this.deliberationState.autoPilot) {
+        apBtnCopilot.classList.add("active");
+        if (apTextCopilot) apTextCopilot.textContent = "Auto-Pilot: AKTIV (KI wählt dynamisch)";
       } else {
-        icon = "⚡";
-        card.classList.add("slot-expert");
-        badgeHtml = `<span class="team-slot-badge slot-specialist">⚡ Fachspezialist</span>`;
+        apBtnCopilot.classList.remove("active");
+        if (apTextCopilot) apTextCopilot.textContent = "Auto-Pilot: AUS (Manuell)";
       }
+    }
 
-      let actionsHtml = "";
-      if (!slot.is_fixed && slot.role !== "master_consultant" && slot.role !== "critic") {
-        actionsHtml = `
-          <div class="team-slot-actions">
-            <button class="btn btn-secondary btn-sm" onclick="App.openAgentTileModal('slot', ${idx})" title="Experte austauschen">
-              Ändern ▾
-            </button>
-            <button class="btn btn-secondary btn-sm" onclick="App.removeTeamSlot(${idx})" title="Entfernen" style="color:var(--rose);">
-              ✕
-            </button>
+    // 3. Helper to populate any team grid container
+    const populateGrid = (grid) => {
+      if (!grid) return;
+      grid.innerHTML = "";
+
+      this.deliberationState.teamSlots.forEach((slot, idx) => {
+        const card = document.createElement("div");
+        card.className = "team-slot-card";
+
+        let badgeHtml = "";
+        let icon = "⚡";
+        if (slot.role === "master_consultant") {
+          icon = "👑";
+          card.classList.add("slot-lead");
+          badgeHtml = `<span class="team-slot-badge slot-lead">👑 Lead-Architekt</span>`;
+        } else if (slot.role === "critic") {
+          icon = "🛡️";
+          card.classList.add("slot-critic");
+          badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Qualitätswächter</span>`;
+        } else {
+          icon = "⚡";
+          card.classList.add("slot-expert");
+          badgeHtml = `<span class="team-slot-badge slot-specialist">⚡ Fachspezialist</span>`;
+        }
+
+        let actionsHtml = "";
+        if (!slot.is_fixed && slot.role !== "master_consultant" && slot.role !== "critic") {
+          actionsHtml = `
+            <div class="team-slot-actions">
+              <button class="btn btn-secondary btn-sm" onclick="App.openAgentTileModal('slot', ${idx})" title="Experte austauschen">
+                Ändern ▾
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="App.removeTeamSlot(${idx})" title="Entfernen" style="color:var(--rose);">
+                ✕
+              </button>
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="team-slot-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.15rem;">${icon}</span>
+              <strong style="font-size:0.88rem; color:var(--text);">${this.escapeHtml(slot.name)}</strong>
+            </div>
+            ${badgeHtml}
+          </div>
+          <div class="team-slot-desc">${this.escapeHtml(slot.description || "Bringt tiefgreifendes Domänenwissen in die Debatte ein.")}</div>
+          ${actionsHtml}
+        `;
+        grid.appendChild(card);
+      });
+
+      if (this.deliberationState.autoPilot) {
+        const autoCard = document.createElement("div");
+        autoCard.className = "team-slot-card auto-pilot-slot";
+        autoCard.innerHTML = `
+          <div class="team-slot-header">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:1.2rem;">🤖</span>
+              <strong style="font-size:0.88rem; color:var(--cyan);">Dynamische Fachagenten (Auto-Scan)</strong>
+            </div>
+            <span class="badge-autopilot">[Auto-Pilot Aktiv]</span>
+          </div>
+          <div class="team-slot-desc">
+            Erkennt anhand Deines Themas automatisch passende Spezialisten (z. B. SPS/OPC UA, Kafka, Snowflake, AI) und bindet sie dynamisch ein.
           </div>
         `;
+        grid.appendChild(autoCard);
       }
+    };
 
-      card.innerHTML = `
-        <div class="team-slot-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.15rem;">${icon}</span>
-            <strong style="font-size:0.88rem; color:var(--text);">${this.escapeHtml(slot.name)}</strong>
-          </div>
-          ${badgeHtml}
-        </div>
-        <div class="team-slot-desc">${this.escapeHtml(slot.description || "Bringt tiefgreifendes Domänenwissen in die Debatte ein.")}</div>
-        ${actionsHtml}
-      `;
-      grid.appendChild(card);
-    });
-
-    // 2. If Auto-Pilot is enabled, show the dynamic auto-scan slot card
-    if (this.deliberationState.autoPilot) {
-      const autoCard = document.createElement("div");
-      autoCard.className = "team-slot-card auto-pilot-slot";
-      autoCard.innerHTML = `
-        <div class="team-slot-header">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:1.2rem;">🤖</span>
-            <strong style="font-size:0.88rem; color:var(--cyan);">Dynamische Fachagenten (Auto-Scan)</strong>
-          </div>
-          <span class="badge-autopilot">[Auto-Pilot Aktiv]</span>
-        </div>
-        <div class="team-slot-desc">
-          Erkennt anhand Deines Themas automatisch passende Spezialisten (z. B. SPS/OPC UA, Kafka, Snowflake, AI) und bindet sie dynamisch ein.
-        </div>
-      `;
-      grid.appendChild(autoCard);
-    }
+    populateGrid(document.getElementById("deliberation-team-grid"));
+    populateGrid(document.getElementById("copilot-team-grid"));
   },
 
   async removeTeamSlot(idx) {
@@ -1865,6 +1929,267 @@ const App = {
       if (pill) pill.style.display = "none";
       if (btn) btn.disabled = false;
     }
+  },
+
+  currentQuestionsCatalog: null,
+
+  async generatePhaseQuestions(sourceContext = "copilot_main") {
+    let promptText = "";
+    let focusLabel = "";
+
+    if (sourceContext === "copilot_main") {
+      const textarea = document.getElementById("copilot-prompt");
+      promptText = (textarea?.value || "").trim();
+      focusLabel = "Haupt-Problemstellung";
+    } else if (sourceContext === "copilot_followup") {
+      const followupInput = document.getElementById("copilot-followup-input");
+      promptText = (followupInput?.value || "").trim();
+      if (!promptText) {
+        const phasePane = document.getElementById(`copilot-output-phase-${this.state.currentPhase}`);
+        promptText = (phasePane?.innerText || "").trim().slice(0, 1500);
+      }
+      focusLabel = "Klärungsbedarf & Phase-Output";
+    } else if (sourceContext === "deliberation_refiner") {
+      const delibInput = document.getElementById("deliberation-input");
+      promptText = (delibInput?.value || "").trim();
+      if (!promptText) {
+        const textarea = document.getElementById("copilot-prompt");
+        promptText = (textarea?.value || "").trim();
+      }
+      const refinerName = this.deliberationState.selectedRefinerName || "Ausgewählter Fachagent";
+      focusLabel = `Fachagent: ${refinerName}`;
+    }
+
+    if (!promptText) {
+      window.showToast("Bitte gib zuerst kurz eine Problemstellung oder Anforderung ein, die analysiert werden soll.", "warning");
+      const targetInput = sourceContext === "deliberation_refiner"
+        ? document.getElementById("deliberation-input")
+        : (sourceContext === "copilot_followup" ? document.getElementById("copilot-followup-input") : document.getElementById("copilot-prompt"));
+      if (targetInput) targetInput.focus();
+      return;
+    }
+
+    let activeAgents = (this.deliberationState.teamSlots || []).map(s => ({
+      role: s.role || "expert",
+      name: s.name,
+      focus: s.description || ""
+    }));
+
+    if (sourceContext === "deliberation_refiner" && this.deliberationState.selectedRefinerName) {
+      const rName = this.deliberationState.selectedRefinerName;
+      const rKey = this.deliberationState.selectedRefinerSkillKey;
+      activeAgents = [
+        { role: "refiner", name: rName, focus: `Spezialist für ${rName} (${rKey})` },
+        ...activeAgents.filter(a => a.name !== rName)
+      ];
+    }
+
+    const triggerBtn = sourceContext === "copilot_main"
+      ? document.getElementById("btn-generate-phase-questions")
+      : (sourceContext === "copilot_followup" ? document.getElementById("btn-generate-followup-questions") : document.getElementById("btn-generate-refiner-questions"));
+
+    const originalBtnText = triggerBtn ? triggerBtn.innerHTML : "";
+    if (triggerBtn) {
+      triggerBtn.disabled = true;
+      triggerBtn.innerHTML = `<span>⏳</span> Analysiere Sachverhalt...`;
+    }
+
+    window.showToast("Fachagenten analysieren den Sachverhalt und generieren Fragenkatalog...", "info");
+
+    try {
+      const response = await API.generatePhaseQuestions({
+        project_id: this.state.currentProjectId || null,
+        session_id: this.state.currentSessionId || null,
+        case_text: promptText,
+        prompt: promptText,
+        phase: this.state.currentPhase || 1,
+        active_agents: activeAgents,
+        agents: activeAgents,
+        focus_mode: "balanced"
+      });
+
+      const catalog = response?.catalog || response?.data;
+      if (!response || !response.success || !catalog) {
+        throw new Error(response?.error || "Fehler bei der Generierung des Fragenkatalogs.");
+      }
+
+      this.currentQuestionsCatalog = catalog;
+      this.renderQuestionsCatalog(catalog);
+
+      if (catalog.quick_triggers && catalog.quick_triggers.length > 0) {
+        const currentTriggers = this.triggerStore[this.state.currentPhase] || [];
+        const newTriggers = catalog.quick_triggers.map(qt => ({
+          label: qt.label || qt,
+          prompt: qt.prompt || (typeof qt === "string" ? qt : qt.label)
+        }));
+
+        const existingLabels = new Set(currentTriggers.map(t => t.label.toLowerCase()));
+        const uniqueNew = newTriggers.filter(t => !existingLabels.has(t.label.toLowerCase()));
+        this.triggerStore[this.state.currentPhase] = [...uniqueNew, ...currentTriggers];
+        this.renderQuickTriggers(this.state.currentPhase);
+      }
+
+      window.showToast("✅ Fragenkatalog & Sachverhalts-Analyse erfolgreich generiert!", "success");
+
+      if (sourceContext === "deliberation_refiner") {
+        this.switchTab("copilot");
+      }
+
+      const catalogCard = document.getElementById("phase-questions-catalog-card");
+      if (catalogCard) {
+        catalogCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      }
+
+    } catch (err) {
+      console.error("Error generating phase questions:", err);
+      window.showToast(`Fehler: ${err.message || "Fragen konnten nicht generiert werden"}`, "error");
+    } finally {
+      if (triggerBtn) {
+        triggerBtn.disabled = false;
+        triggerBtn.innerHTML = originalBtnText;
+      }
+    }
+  },
+
+  renderQuestionsCatalog(catalog) {
+    const card = document.getElementById("phase-questions-catalog-card");
+    if (!card) return;
+
+    card.style.display = "flex";
+
+    const titleEl = document.getElementById("questions-catalog-title");
+    if (titleEl) {
+      titleEl.textContent = `📋 Fachfragenkatalog & Sachverhalts-Analyse (Phase ${this.state.currentPhase || 1})`;
+    }
+
+    const subtitleEl = document.getElementById("questions-catalog-subtitle");
+    if (subtitleEl) {
+      subtitleEl.textContent = `${(catalog.perspectives || []).length} Agenten-Perspektiven analysiert • Bereit für Workshop & Klärung`;
+    }
+
+    const summaryEl = document.getElementById("questions-catalog-summary");
+    if (summaryEl) {
+      summaryEl.innerHTML = `<strong>📌 Sachverhalt & Kernfokus:</strong> ${this.escapeHtml(catalog.case_summary || "Umfassende Prüfung der Anforderungen und System-Randbedingungen.")}`;
+    }
+
+    const grid = document.getElementById("questions-perspectives-grid");
+    if (!grid) return;
+    grid.innerHTML = "";
+
+    (catalog.perspectives || []).forEach((p) => {
+      const col = document.createElement("div");
+      col.className = "perspective-column-card";
+
+      const header = document.createElement("div");
+      header.className = "perspective-card-header";
+      header.innerHTML = `
+        <span class="perspective-agent-name">${this.escapeHtml(p.agent_name || "Fachspezialist")}</span>
+        <span class="perspective-focus-badge">${this.escapeHtml(p.focus || "Architektur")}</span>
+      `;
+      col.appendChild(header);
+
+      const list = document.createElement("div");
+      list.className = "perspective-questions-list";
+
+      (p.questions || []).forEach((q) => {
+        const item = document.createElement("div");
+        item.className = "perspective-question-item";
+
+        const qText = typeof q === "string" ? q : (q.question || "");
+        const rationale = q.rationale || "";
+        const risk = q.risk_if_unclear || "";
+
+        let metaHtml = "";
+        if (rationale || risk) {
+          metaHtml = `
+            <div class="question-meta-block">
+              ${rationale ? `<div class="meta-rationale">🎯 <strong>Warum entscheidend:</strong> ${this.escapeHtml(rationale)}</div>` : ""}
+              ${risk ? `<div class="meta-risk">⚠️ <strong>Risiko bei Nicht-Klärung:</strong> ${this.escapeHtml(risk)}</div>` : ""}
+            </div>
+          `;
+        }
+
+        item.innerHTML = `
+          <div class="question-text">${this.escapeHtml(qText)}</div>
+          ${metaHtml}
+          <div class="question-actions-row">
+            <button class="btn btn-secondary btn-xs btn-add-to-prompt" type="button" title="Diese Frage in den Haupt-Prompt übernehmen">
+              ➕ In Prompt
+            </button>
+            <button class="btn btn-secondary btn-xs btn-discuss-chat" type="button" title="Diese Frage im Chat diskutieren oder Verständnisfrage stellen">
+              💬 Im Chat fragen
+            </button>
+          </div>
+        `;
+
+        item.querySelector(".btn-add-to-prompt")?.addEventListener("click", () => {
+          this.insertQuestionToPrompt(qText);
+        });
+
+        item.querySelector(".btn-discuss-chat")?.addEventListener("click", () => {
+          this.discussQuestionInChat(qText, rationale);
+        });
+
+        list.appendChild(item);
+      });
+
+      col.appendChild(list);
+      grid.appendChild(col);
+    });
+  },
+
+  insertQuestionToPrompt(questionText) {
+    const textarea = document.getElementById("copilot-prompt");
+    if (textarea) {
+      if (textarea.value.trim()) {
+        textarea.value = `${textarea.value.trim()}\n\n[Klärungsfrage: ${questionText}]`;
+      } else {
+        textarea.value = `Klärungsfrage: ${questionText}`;
+      }
+      textarea.focus();
+      window.showToast("Frage in Prompt übernommen!", "info");
+    }
+  },
+
+  discussQuestionInChat(questionText, rationale) {
+    const followupInput = document.getElementById("copilot-followup-input");
+    if (followupInput) {
+      followupInput.value = `Warum ist folgende Frage für die Architektur entscheidend: "${questionText}"? Erkläre mir die Hintergründe und technische Bedeutung.`;
+      followupInput.focus();
+      followupInput.scrollIntoView({ behavior: "smooth", block: "center" });
+      window.showToast("Frage in Chat-Eingabe platziert!", "info");
+    }
+  },
+
+  toggleQuestionsCatalogCollapse() {
+    const grid = document.getElementById("questions-perspectives-grid");
+    const summary = document.getElementById("questions-catalog-summary");
+    const btn = document.getElementById("btn-toggle-questions-collapse");
+    if (!grid) return;
+
+    const isCollapsed = grid.style.display === "none";
+    grid.style.display = isCollapsed ? "grid" : "none";
+    if (summary) summary.style.display = isCollapsed ? "block" : "none";
+    if (btn) btn.textContent = isCollapsed ? "▲ Einklappen" : "▼ Ausklappen";
+  },
+
+  exportQuestionsCatalogMarkdown() {
+    if (!this.currentQuestionsCatalog) {
+      window.showToast("Kein Fragenkatalog vorhanden zum Exportieren.", "warning");
+      return;
+    }
+
+    const mdContent = this.currentQuestionsCatalog.markdown_report || `# Fragenkatalog Phase ${this.state.currentPhase}\n\n${this.currentQuestionsCatalog.case_summary}`;
+    const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Fragenkatalog_Phase_${this.state.currentPhase || 1}_${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    window.showToast("Markdown-Datei erfolgreich heruntergeladen!", "success");
   },
 
   appendSystemNotice(container, htmlContent) {
