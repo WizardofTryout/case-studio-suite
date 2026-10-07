@@ -171,15 +171,15 @@ Die About-Seite wird als eigenständiger Tab `ℹ️ Über Case Studio` im Glass
 
 ### 🔹 Sub-Sprint 7.1: Wissensbasis & i18n Content-Katalog
 * **Aufgaben:**
-  * Erstellung eines strukturierten JSON/JS-Wissenskatalogs (`app/static/js/help_content.js`) mit allen FAQ-Einträgen, Kurzbeschreibungen für Tooltips und Deep-Link-IDs.
-  * Zweisprachige Pflege (Deutsch & Englisch) synchron zur Spracheinstellung in `i18n.js`.
+  * [x] Erstellung eines strukturierten JSON/JS-Wissenskatalogs (`app/static/js/help_content.js`) mit allen FAQ-Einträgen, Kurzbeschreibungen für Tooltips und Deep-Link-IDs.
+  * [x] Zweisprachige Pflege (Deutsch & Englisch) synchron zur Spracheinstellung in `i18n.js`.
 * **Deliverables:**
-  * `app/static/js/help_content.js` mit mindestens 12 kuratierten Fragen/Antworten in 5 Kategorien.
+  * [x] `app/static/js/help_content.js` mit mindestens 12 kuratierten Fragen/Antworten in 5 Kategorien.
 
 ### 🔹 Sub-Sprint 7.2: Kontextuelle Info-Buttons & Quick-Modal
 * **Aufgaben:**
-  * CSS-Klassen für dezent pulsierende, elegante Glassmorphism-Info-Buttons (`.info-badge-btn`, `.info-tooltip`).
-  * Integration der Info-Buttons in `index.html` an den 8 Schlüsselstellen:
+  * [x] CSS-Klassen für dezent pulsierende, elegante Glassmorphism-Info-Buttons (`.info-badge-btn`, `.info-tooltip`).
+  * [x] Integration der Info-Buttons in `index.html` an den 8 Schlüsselstellen:
     1. Header Status-Chips
     2. DMS Upload-Bereich
     3. Skill-Katalog Snapshotting
@@ -188,39 +188,39 @@ Die About-Seite wird als eigenständiger Tab `ℹ️ Über Case Studio` im Glass
     6. Decision Gates Box & Eigene Rückfragen Formular
     7. Dual-Visualizer Toolbar
     8. Multi-Agenten Deliberation Box
-  * JavaScript-Handler `App.openContextualHelp(topicKey)`:
+  * [x] JavaScript-Handler `App.openContextualHelp(topicKey)`:
     * Zeigt ein schnelles, fokussiertes Glass-Modal mit der 1-Klick-Option *„Vollständige Erklärung im FAQ-Center lesen“*.
 * **Deliverables:**
-  * Funktionierende Buttons mit Tooltip & Popover-Modal ohne native Alerts.
+  * [x] Funktionierende Buttons mit Tooltip & Popover-Modal ohne native Alerts.
 
 ### 🔹 Sub-Sprint 7.3: Das interaktive FAQ-Center (Tab `❓ FAQ & Hilfe`)
 * **Aufgaben:**
-  * Neuer Navigations-Tab im Hauptmenü: `❓ FAQ & Hilfe`.
-  * Responsive Akkordeon-Komponente mit Kategorie-Filtern (*Alle*, *Methodik*, *Decision Gates*, *Architektur*, *Deliberation*, *Technik*).
-  * Live-Suchfeld: Filtert Fragen und Antworten in Echtzeit; hebt Suchbegriffe hervor.
-  * Deep-Linking: Klick auf einen Info-Button im Copilot kann direkt zum aufgeklappten FAQ-Eintrag springen und ihn optisch hervorheben (Smooth-Scroll + Glow-Effekt).
+  * [x] Neuer Navigations-Tab im Hauptmenü: `❓ FAQ & Hilfe`.
+  * [x] Responsive Akkordeon-Komponente mit Kategorie-Filtern (*Alle*, *Methodik*, *Decision Gates*, *Architektur*, *Deliberation*, *Technik*).
+  * [x] Live-Suchfeld: Filtert Fragen und Antworten in Echtzeit; hebt Suchbegriffe hervor.
+  * [x] Deep-Linking: Klick auf einen Info-Button im Copilot kann direkt zum aufgeklappten FAQ-Eintrag springen und ihn optisch hervorheben (Smooth-Scroll + Glow-Effekt).
 * **Deliverables:**
-  * Vollständig interaktiver FAQ-Tab mit Filter, Suche und Deep-Link-Anker.
+  * [x] Vollständig interaktiver FAQ-Tab mit Filter, Suche und Deep-Link-Anker.
 
 ### 🔹 Sub-Sprint 7.4: Die „Über Case Studio“-Plattform (Tab `ℹ️ Über Case Studio`)
 * **Aufgaben:**
-  * Neuer Navigations-Tab: `ℹ️ Über Case Studio`.
-  * Visuelles Storytelling-Layout:
+  * [x] Neuer Navigations-Tab: `ℹ️ Über Case Studio`.
+  * [x] Visuelles Storytelling-Layout:
     * Hero-Banner mit Leitbild & Vision.
     * 3 interaktive Funktions-Säulen mit animierten Akzenten.
     * Technologie-Radar (Visuelle Kacheln für FastAPI, SQLite WAL, Gemini Pool, Archify, GitNexus).
     * Compliance & Sovereignty Checkliste mit grünen Prüfhaken.
     * Quick-Links zu GitNexus Web-UI (`:4173`), Archify Canvas (`:3089`) und GitHub-Repo.
-  * Light- & Dark-Mode Perfektion: Perfekt abgestimmte Kontraste in beiden Modi.
+  * [x] Light- & Dark-Mode Perfektion: Perfekt abgestimmte Kontraste in beiden Modi.
 * **Deliverables:**
-  * C-Level- und Laien-taugliche About-Seite im High-End Corporate Glassmorphism Look.
+  * [x] C-Level- und Laien-taugliche About-Seite im High-End Corporate Glassmorphism Look.
 
 ### 🔹 Sub-Sprint 7.5: Docker-Rebuild, GitNexus-Sync & GitHub-Backup
 * **Aufgaben:**
-  * Rebuild des Docker-Containers `case-studio-suite` auf Port `3088`.
-  * Test aller neuen Buttons, Modals und Tabs.
-  * Git-Commit & Push nach `main` und `develop`.
-  * Pflicht-Aktualisierung des GitNexus-Wissensgraphen via `docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio`.
+  * [x] Rebuild des Docker-Containers `case-studio-suite` auf Port `3088`.
+  * [x] Test aller neuen Buttons, Modals und Tabs.
+  * [x] Git-Commit & Push nach `main` und `develop`.
+  * [x] Pflicht-Aktualisierung des GitNexus-Wissensgraphen via `docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio`.
 
 ---
 

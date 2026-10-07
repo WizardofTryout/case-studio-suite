@@ -186,6 +186,9 @@ const App = {
       await window.ArchifyUI.init();
     }
 
+    // FAQ & Help Center initialisieren
+    this.initHelpAndFaq();
+
     // Auto-refresh telemetry every 20 seconds
     setInterval(() => this.refreshTelemetry(), 20000);
   },
@@ -904,6 +907,12 @@ const App = {
     });
     if (tabId === "deliberation") {
       this.loadDeliberationTeam();
+    }
+    if (tabId === "faq") {
+      this.renderFaqList();
+    }
+    if (tabId === "about") {
+      this.renderAboutPage();
     }
   },
 
@@ -5094,6 +5103,304 @@ const App = {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  },
+
+  // ----------------------------------------------------
+  // Sprint 7: Interactive FAQ Center, In-Situ Help & About Platform
+  // ----------------------------------------------------
+  initHelpAndFaq() {
+    this.faqCategoryFilter = "all";
+    this.faqSearchQuery = "";
+    this.renderFaqCategories();
+    this.renderFaqList();
+
+    // Re-render when language changes
+    window.addEventListener("caseStudioLanguageChanged", () => {
+      this.renderFaqCategories();
+      this.renderFaqList();
+      if (this.state && this.state.activeTab === "about") {
+        this.renderAboutPage();
+      }
+    });
+  },
+
+  openContextualHelp(topicKey) {
+    if (!window.HelpContent || !window.HelpContent.contextualTopics) return;
+    const topic = window.HelpContent.contextualTopics[topicKey];
+    if (!topic) return;
+
+    const lang = (window.I18n && window.I18n.currentLang) || "de";
+    const overlay = document.getElementById("help-modal-overlay");
+    const titleEl = document.getElementById("help-modal-title");
+    const badgeEl = document.getElementById("help-modal-badge");
+    const summaryEl = document.getElementById("help-modal-summary");
+    const detailsEl = document.getElementById("help-modal-details");
+    const faqBtn = document.getElementById("btn-help-modal-faq");
+
+    if (!overlay) return;
+
+    if (titleEl) titleEl.textContent = topic.title[lang] || topic.title.de;
+    if (badgeEl) badgeEl.textContent = topic.badge[lang] || topic.badge.de;
+    if (summaryEl) summaryEl.textContent = topic.summary[lang] || topic.summary.de;
+    if (detailsEl) detailsEl.textContent = topic.details[lang] || topic.details.de;
+
+    if (faqBtn) {
+      if (topic.faqRef) {
+        faqBtn.style.display = "inline-flex";
+        faqBtn.dataset.faqRef = topic.faqRef;
+      } else {
+        faqBtn.style.display = "none";
+      }
+    }
+
+    overlay.style.display = "flex";
+    overlay.classList.add("active");
+  },
+
+  closeHelpModal() {
+    const overlay = document.getElementById("help-modal-overlay");
+    if (overlay) {
+      overlay.classList.remove("active");
+      overlay.style.display = "none";
+    }
+  },
+
+  jumpFromModalToFaq() {
+    const faqBtn = document.getElementById("btn-help-modal-faq");
+    const faqRef = faqBtn ? faqBtn.dataset.faqRef : null;
+    this.closeHelpModal();
+    if (faqRef) {
+      this.navigateToFaq(faqRef);
+    } else {
+      this.switchTab("faq");
+    }
+  },
+
+  renderFaqCategories() {
+    const container = document.getElementById("faq-categories-row");
+    if (!container || !window.HelpContent || !window.HelpContent.faqCategories) return;
+
+    const lang = (window.I18n && window.I18n.currentLang) || "de";
+    const activeCat = this.faqCategoryFilter || "all";
+
+    container.innerHTML = window.HelpContent.faqCategories.map(cat => {
+      const isActive = cat.id === activeCat;
+      const label = cat.label[lang] || cat.label.de;
+      return `
+        <button type="button" 
+                class="faq-category-pill ${isActive ? 'active' : ''}" 
+                onclick="App.filterFaqCategory('${cat.id}')">
+          <span>${cat.icon}</span>
+          <span>${label}</span>
+        </button>
+      `;
+    }).join("");
+  },
+
+  filterFaqCategory(catId) {
+    this.faqCategoryFilter = catId;
+    this.renderFaqCategories();
+    this.renderFaqList();
+  },
+
+  searchFaq(query) {
+    this.faqSearchQuery = (query || "").trim().toLowerCase();
+    this.renderFaqList();
+  },
+
+  renderFaqList() {
+    const container = document.getElementById("faq-items-list");
+    if (!container || !window.HelpContent || !window.HelpContent.faqItems) return;
+
+    const lang = (window.I18n && window.I18n.currentLang) || "de";
+    const activeCat = this.faqCategoryFilter || "all";
+    const query = this.faqSearchQuery || "";
+
+    let items = window.HelpContent.faqItems;
+
+    // Filter by Category
+    if (activeCat !== "all") {
+      items = items.filter(it => it.category === activeCat);
+    }
+
+    // Filter by Search Query
+    if (query) {
+      items = items.filter(it => {
+        const qText = (it.question[lang] || it.question.de || "").toLowerCase();
+        const aText = (it.answer[lang] || it.answer.de || "").toLowerCase();
+        const bText = (it.badge && (it.badge[lang] || it.badge.de || "")).toLowerCase();
+        return qText.includes(query) || aText.includes(query) || bText.includes(query);
+      });
+    }
+
+    if (items.length === 0) {
+      container.innerHTML = `
+        <div class="faq-empty-state" style="text-align:center; padding:40px 20px; color:var(--text-muted);">
+          <div style="font-size:2.5rem; margin-bottom:12px;">🔍</div>
+          <div style="font-weight:700; font-size:1.1rem; color:var(--text-main); margin-bottom:6px;">
+            ${lang === "de" ? "Keine passenden Fragen gefunden" : "No matching questions found"}
+          </div>
+          <p style="font-size:0.9rem;">
+            ${lang === "de" ? "Versuche einen anderen Suchbegriff oder wechsle auf 'Alle Themen'." : "Try a different search term or select 'All Topics'."}
+          </p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = items.map(it => {
+      const q = it.question[lang] || it.question.de;
+      const rawAns = it.answer[lang] || it.answer.de;
+      const formattedAns = this.renderMarkdown(rawAns);
+      const badge = it.badge ? (it.badge[lang] || it.badge.de) : "";
+
+      return `
+        <div class="faq-card" id="faq-card-${it.id}">
+          <div class="faq-card-header" onclick="App.toggleFaqItem('${it.id}')">
+            <div class="faq-card-header-left">
+              ${badge ? `<span class="faq-card-badge">${badge}</span>` : ""}
+              <h3 class="faq-card-question">${this.escapeHtml(q)}</h3>
+            </div>
+            <span class="faq-card-toggle-icon">▼</span>
+          </div>
+          <div class="faq-card-body">
+            <div class="faq-card-body-content">${formattedAns}</div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  },
+
+  toggleFaqItem(faqId) {
+    const card = document.getElementById(`faq-card-${faqId}`);
+    if (!card) return;
+    card.classList.toggle("open");
+  },
+
+  navigateToFaq(faqId) {
+    this.switchTab("faq");
+
+    // Reset category filter if necessary so target item is displayed
+    if (window.HelpContent && window.HelpContent.faqItems) {
+      const item = window.HelpContent.faqItems.find(it => it.id === faqId);
+      if (item && this.faqCategoryFilter !== "all" && this.faqCategoryFilter !== item.category) {
+        this.faqCategoryFilter = "all";
+        this.renderFaqCategories();
+      }
+    }
+
+    // Clear search query
+    this.faqSearchQuery = "";
+    const searchInput = document.getElementById("faq-search-input");
+    if (searchInput) searchInput.value = "";
+
+    this.renderFaqList();
+
+    setTimeout(() => {
+      const card = document.getElementById(`faq-card-${faqId}`);
+      if (card) {
+        card.classList.add("open");
+        card.classList.add("faq-highlight-pulse");
+        card.scrollIntoView({ behavior: "smooth", block: "center" });
+        setTimeout(() => {
+          card.classList.remove("faq-highlight-pulse");
+        }, 3200);
+      }
+    }, 150);
+  },
+
+  renderAboutPage() {
+    const container = document.getElementById("about-container");
+    if (!container || !window.HelpContent || !window.HelpContent.aboutData) return;
+
+    const lang = (window.I18n && window.I18n.currentLang) || "de";
+    const data = window.HelpContent.aboutData;
+
+    container.innerHTML = `
+      <!-- Hero Section -->
+      <div class="about-hero-card">
+        <div class="about-hero-badge">${data.hero.badge[lang] || data.hero.badge.de}</div>
+        <h1 class="about-hero-title">${data.hero.headline[lang] || data.hero.headline.de}</h1>
+        <p class="about-hero-subtitle">${data.hero.subhead[lang] || data.hero.subhead.de}</p>
+        <div class="about-hero-actions">
+          <button class="btn btn-primary" onclick="App.switchTab('copilot')">
+            <span>🚀</span>
+            <span>${lang === 'de' ? 'Case Copilot starten' : 'Launch Case Copilot'}</span>
+          </button>
+          <button class="btn btn-secondary" onclick="App.switchTab('faq')">
+            <span>❓</span>
+            <span>${lang === 'de' ? 'FAQ & Praxishilfe' : 'FAQ & Knowledge Base'}</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3 Säulen Section -->
+      <div class="about-section">
+        <div class="about-section-header">
+          <h2 class="about-section-title">${lang === 'de' ? 'Die 3 Kernsäulen der Architektur' : 'The 3 Architectural Pillars'}</h2>
+          <p class="about-section-desc">${lang === 'de' ? 'Wie Case Studio Enterprise-Qualität garantiert, ohne in spekulative Halluzinationen abzugleiten.' : 'How Case Studio delivers enterprise rigor without speculative drift.'}</p>
+        </div>
+        <div class="about-pillars-grid">
+          ${data.pillars.map(pillar => `
+            <div class="about-pillar-card">
+              <div class="about-pillar-icon">${pillar.icon}</div>
+              <h3 class="about-pillar-title">${pillar.title[lang] || pillar.title.de}</h3>
+              <p class="about-pillar-desc">${pillar.desc[lang] || pillar.desc.de}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Tech Stack Radar -->
+      <div class="about-section">
+        <div class="about-section-header">
+          <h2 class="about-section-title">${lang === 'de' ? 'Technologie-Radar & Performance' : 'Technology Radar & Performance'}</h2>
+          <p class="about-section-desc">${lang === 'de' ? 'Autonome, containerisierte Komponenten im lokalen Verbund.' : 'Autonomous containerized stack running in local harmony.'}</p>
+        </div>
+        <div class="about-tech-grid">
+          ${data.techRadar.map(tech => `
+            <div class="about-tech-card">
+              <div class="about-tech-card-header">
+                <span class="about-tech-name">${tech.name}</span>
+                <span class="about-tech-metric">${tech.metric}</span>
+              </div>
+              <div class="about-tech-role">${tech.role[lang] || tech.role.de}</div>
+              <p class="about-tech-desc">${tech.desc[lang] || tech.desc.de}</p>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Compliance & Sovereignty Checklist -->
+      <div class="about-section">
+        <div class="about-section-header">
+          <h2 class="about-section-title">${lang === 'de' ? 'Datensouveränität & Compliance' : 'Data Sovereignty & Compliance'}</h2>
+          <p class="about-section-desc">${lang === 'de' ? 'Entwickelt für höchste Ansprüche an Datensicherheit und Nicht-Funktionale Anforderungen.' : 'Engineered for strict enterprise data security and non-functional requirements.'}</p>
+        </div>
+        <div class="about-compliance-list">
+          ${data.compliance.map(item => `
+            <div class="about-compliance-item">
+              <span class="about-compliance-check">✓</span>
+              <span class="about-compliance-text">${item.label[lang] || item.label.de}</span>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- Creator & Vision Statement -->
+      <div class="about-creator-card">
+        <div class="about-creator-header">
+          <div class="about-creator-avatar">MK</div>
+          <div>
+            <div class="about-creator-name">${data.creator.name}</div>
+            <div class="about-creator-role">${data.creator.role[lang] || data.creator.role.de}</div>
+          </div>
+        </div>
+        <blockquote class="about-creator-quote">
+          ${data.creator.quote[lang] || data.creator.quote.de}
+        </blockquote>
+      </div>
+    `;
   },
 
   showConfirmModal({ title, bodyHtml, confirmText = "Bestätigen", confirmClass = "btn-primary", onConfirm }) {
