@@ -1,7 +1,21 @@
-# Environment & secrets
+# Environment & Secrets Protection (Never commit keys or credentials)
 .env
-.env.local
+.env.*
 *.env
+!/.env.example
+*.key
+*.pem
+*.cert
+*.crt
+*.pfx
+*.p12
+*.token
+credentials.md
+secrets.json
+secrets.yaml
+id_rsa*
+id_ed25519*
+
 
 # SQLite and data folder
 /data/case_studio.db

@@ -1,149 +1,259 @@
 # 🏛️ Case Studio Suite
 
-[![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg?logo=docker)](https://www.docker.com/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/Docker-Multi--Container%20Ready-blue.svg?logo=docker)](https://www.docker.com/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB.svg?logo=python)](https://www.python.org/)
 [![SQLite WAL](https://img.shields.io/badge/SQLite-WAL%20Mode-003B57.svg?logo=sqlite)](https://www.sqlite.org/wal.html)
 [![Google Gemini](https://img.shields.io/badge/Gemini%20API-Multi--Key%20Round--Robin-orange.svg?logo=google)](https://deepmind.google/technologies/gemini/)
 [![Archify Canvas](https://img.shields.io/badge/Archify-Sidecar%20Engine-8A2BE2.svg)](http://localhost:3089)
-[![GitNexus Indexed](https://img.shields.io/badge/GitNexus-1621%20Nodes%20%7C%20121%20Flows-success.svg)](http://localhost:4173)
+[![GitNexus Indexed](https://img.shields.io/badge/GitNexus-1717%20Nodes%20%7C%20129%20Flows-success.svg)](http://localhost:4173)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/WizardofTryout/case-studio-suite/pulls)
 
-> **Enterprise-grade Standalone Platform for Real-Time Case Studies, Architecture Reviews, Decision Gates & Multi-Agent Deliberation.**
+> **Enterprise Standalone Platform for Real-Time Technical Case Studies, Architecture Reviews, Decision Gates & Multi-Agent Deliberation.**
 
-Developed for high-stakes enterprise technical case studies, C-level evaluations (e.g., Siemens Advanta Senior Technical Fit), and complex industrial AI / IoT workshops.
-
----
-
-## 🌟 Executive Overview
-
-In technical consulting and client workshops, requirements are almost never complete. Standard LLMs and junior consultants routinely fall into the **"assumption trap"**—hallucinating missing parameters and designing architectures that fail against real customer constraints.
-
-**Case Studio Suite** solves this through:
-1. **Master-Consultant Decision Gates:** Proactively identifies missing facts (cycle times, fieldbus protocols, latency, regulatory classes) and halts speculative branching. Provides formulated client questions and branches architecture in real time once answered.
-2. **Custom Client Inquiry Management:** Consultants can manually create, track, edit, and reopen custom decision gates with full parity to AI-detected gates.
-3. **Dual Visualizer (Mermaid Flow & Archify Canvas):** Instant schematic flowcharts via Mermaid.js plus deep interactive architectural exploration via containerized **Archify Sidecar** with Gemini **Semantic Passports** (latency, throughput, protocol tags, status badges).
-4. **Synchronized Viewport & Fullscreen:** Unified toolbar controls (`+ In`, `- Out`, `Fit`, `100%`, `Vollbild`) controlling both the SVG diagram and Archify's canvas via bidirectional PostMessage.
-5. **Multi-Agent Deliberation Studio:** Four-eyes review between a **Hallucination Critic**, an **OT & Cloud Specialist**, and the **Master-Consultant Lead**.
-6. **Local-First Data Sovereignty:** 100% Docker-contained on Port `3088` with embedded **SQLite WAL** (`case_studio.db`) and immutable physical skill snapshots.
-7. **GitNexus Code Intelligence:** Full knowledge graph indexing (1,621 symbols, 3,181 edges, 121 execution flows) on Ports `4173` / `4747` for instant impact analysis, blast-radius queries, and visual graph navigation.
+Designed for high-stakes enterprise technical case studies, C-level architecture pitches, and complex industrial IoT/AI workshops. Bridges the critical gap between executive consulting strategy and rigorous engineering constraints.
 
 ---
 
-## 🏗️ System Architecture & Port Map
+## 🌟 Why Case Studio Suite?
+
+In real-world client workshops and architecture evaluations, requirements are **almost never complete**. Standard generative AI chat tools routinely fall into the **"assumption trap"**—unnoticeably guessing missing cycle times, fieldbus protocols, latency boundaries, or buffer capacities, which produces brittle architectures that fail in production.
+
+**Case Studio Suite changes the paradigm:**
+
+1. **Master-Consultant Decision Gates:** When critical facts are missing, the AI halts speculative drifting. It isolates the ambiguity and generates an executive **Decision Gate**—a targeted question to present to the client. Once answered, the fact is permanently locked in, dynamically re-branching the architecture.
+2. **First-Class Custom Client Inquiries:** Consultants can record in-situ questions raised during live client workshops via a single click (`➕ Eigene Rückfrage anlegen`). Custom inquiries enjoy full parity with AI-detected gates.
+3. **Dual Visualizer Engine:**
+   - **Mermaid Flow:** Instant schematic topology rendered in real time.
+   - **Archify Sidecar Canvas (Port 3089):** Interactive zoomable canvas with **Semantic Passports** for every node (throughput, latencies, protocols like OPC UA / MQTT Sparkplug B, IEC 62443 security levels).
+4. **Multi-Agent Deliberation Studio:** A 4-eyes architecture review board featuring an incorruptible **Hallucination Critic** (red), a **Domain Specialist** (cyan), and the **Master-Consultant Lead** (purple) to stress-test hypotheses before finalizing designs.
+5. **Interactive FAQ & Knowledge Center (`❓ FAQ & Hilfe`):** Curated guidance with live instant search, category filtering, and deep-link navigation with smooth-scroll and highlight pulses.
+6. **"About Case Studio" Platform (`🏛️ Über Case Studio`):** Elegant executive-level breakdown of the 3 architectural pillars, technology radar, and compliance metrics.
+7. **100% Local-First Data Sovereignty:** Embedded **SQLite WAL** (`case_studio.db`), physical skill snapshotting with SHA-256 integrity, zero external database requirements, and no cloud lock-in.
+8. **Resilient Key Mesh & Offline Simulation:** Built-in **GeminiKeyPool** with sub-50ms failover across multiple keys, automated 60s cooldowns on HTTP 429 rate limits, and an embedded deterministic **simulation engine** for fully functional offline demonstrations.
+9. **GitNexus Code Intelligence:** Live knowledge graph mapping 1,700+ symbols, 3,300+ relationships, and 129 execution flows on Ports `4173` / `4747`.
+
+---
+
+## 🏗️ System Architecture & Port Topology
 
 ```
-┌──────────────────────────────────────────────────────────────────────────────────┐
-│                           DOCKER CONTAINER TOPOLOGY                              │
-├─────────────────────┬──────────────┬─────────────────────────────────────────────┤
-│ Service             │ Port         │ Description                                 │
-├─────────────────────┼──────────────┼─────────────────────────────────────────────┤
-│ case-studio-suite   │ 3088 : 8000  │ FastAPI Backend + Glassmorphism UI (SPA)    │
-│ archify-sidecar     │ 3089 : 80    │ Archify Interactive Canvas Engine (Nginx)   │
-│ gitnexus-web        │ 4173 : 4173  │ GitNexus Visual Knowledge Graph UI          │
-│ gitnexus-server     │ 4747 : 4747  │ GitNexus Code Intelligence & MCP Backend    │
-└─────────────────────┴──────────────┴─────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                               DOCKER CONTAINER TOPOLOGY                                │
+├─────────────────────┬──────────────┬───────────────────────────────────────────────────┤
+│ Service             │ Port         │ Description                                       │
+├─────────────────────┼──────────────┼───────────────────────────────────────────────────┤
+│ case-studio-suite   │ 3088 : 8000  │ FastAPI REST/SSE Gateway + Glassmorphism UI (SPA) │
+│ archify-sidecar     │ 3089 : 80    │ Archify Interactive Canvas Engine (Nginx Sidecar) │
+│ gitnexus-web        │ 4173 : 4173  │ GitNexus Visual Knowledge Graph UI                │
+│ gitnexus-server     │ 4747 : 4747  │ GitNexus MCP Server & Code Intelligence Engine    │
+└─────────────────────┴──────────────┴───────────────────────────────────────────────────┘
 ```
 
 ```mermaid
-flowchart LR
-    Client["Browser (:3088)"] <-->|REST & SSE| FastAPI["FastAPI Gateway (:8000)"]
-    Client <-->|PostMessage Viewports| ArchifyIframe["Archify Canvas (:3089)"]
-    FastAPI --> GeminiPool["Gemini Key Pool (Multi-Key Round Robin)"]
-    GeminiPool --> GeminiAPI["Google Gemini Pro / Flash"]
-    FastAPI --> DB[(SQLite WAL: case_studio.db)]
-    FastAPI --> Storage["/app/data/projects/{id}/"]
-    GitNexus["GitNexus Graph (:4173 / :4747)"] -.->|Code Intelligence| Codebase["Case Studio Codebase"]
+flowchart TD
+    subgraph UI ["Client Tier (Browser :3088)"]
+        SPA["Glassmorphism UI (Vanilla JS + CSS Tokens)"]
+        Mermaid["Mermaid.js Real-Time Renderer"]
+        IframeBridge["PostMessage Viewport Bridge"]
+    end
+
+    subgraph Core ["Case Studio Suite Container (:8000)"]
+        FastAPI["FastAPI 0.110+ Asynchronous Gateway"]
+        Copilot["4-Phase Copilot Engine"]
+        GateEngine["Decision Gate Parser & Branching"]
+        Deliberation["Multi-Agent Deliberation Studio"]
+        KeyPool["Gemini Key Pool & Cooldown Mesh"]
+        SQLite[("SQLite WAL: case_studio.db")]
+        DMSStorage["Local Project & Document Storage"]
+    end
+
+    subgraph Sidecar ["Archify Canvas Container (:3089)"]
+        ArchifyEngine["Archify Interactive Canvas"]
+        SemanticPassports["Semantic Passports (KPIs, IEC 62443)"]
+    end
+
+    subgraph Intelligence ["GitNexus Code Intelligence (:4173 / :4747)"]
+        GitNexusGraph["Knowledge Graph (1.717 Nodes, 129 Flows)"]
+    end
+
+    SPA <-->|REST & Server-Sent Events| FastAPI
+    SPA <-->|Bi-Directional PostMessage| ArchifyEngine
+    FastAPI --> KeyPool
+    KeyPool -->|Gemini API / Offline Sim| Copilot
+    Copilot --> GateEngine
+    Copilot --> Deliberation
+    FastAPI --> SQLite
+    FastAPI --> DMSStorage
+    GitNexusGraph -.->|Code Intelligence & Impact Queries| FastAPI
 ```
 
 ---
 
-## 🚀 Quickstart & Docker Commands
+## ⚡ Quickstart (Ready in 60 Seconds)
 
 ### 1. Prerequisites
-- Docker & Docker Compose
-- Google Gemini API Keys (optional; local simulation fallback is built-in)
+- [Docker](https://docs.docker.com/get-docker/) & [Docker Compose](https://docs.docker.com/compose/)
+- Google Gemini API Key(s) *(Optional: Case Studio runs completely self-contained with offline simulation if no keys are provided)*
 
-### 2. Launch Case Studio Suite (with Archify Sidecar)
+### 2. Clone Repository
 ```bash
-cd /Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio
+git clone https://github.com/WizardofTryout/case-studio-suite.git
+cd case-studio-suite
+```
 
-# Build and start container suite
+### 3. Environment Setup (Optional)
+```bash
+cp .env.example .env
+# Edit .env and enter your Gemini API keys if desired:
+# GEMINI_API_KEYS=AIzaSy...,AIzaSy...
+```
+
+### 4. Launch Container Suite
+```bash
+# Build and start Case Studio Suite with Archify Sidecar
 docker compose --profile archify up -d --build case-studio-suite
 ```
-Open **[http://localhost:3088](http://localhost:3088)** in your browser.
 
-### 3. Launch GitNexus Code Intelligence
-```bash
-cd /Volumes/Spacestation/MCP/Antigravity-MCP-tools/gitnexus
-
-# Start GitNexus web & server
-docker compose up -d
-
-# Re-index Case Studio codebase
-docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio
-```
-Open **[http://localhost:4173](http://localhost:4173)** in your browser to explore the knowledge graph.
+Open **[http://localhost:3088](http://localhost:3088)** in your browser!
 
 ---
 
-## 📂 Project Structure
+## 🎯 The 4-Phase Consulting Framework
+
+Case Studio structures complex technical problem-solving into 4 consulting-grade phases:
 
 ```
-Case-Studio/
-├── app/
-│   ├── api/                 # FastAPI Endpoints (health, copilot, decision_gates, archify, etc.)
-│   ├── core/                # Key pool, decision gate parser, deliberation engine, prompts
-│   ├── db/                  # SQLite WAL database & repositories
-│   ├── services/            # Copilot, Archify semantic passports, DMS, skills
-│   └── static/              # Reactive Glassmorphism UI (HTML, CSS tokens, Vanilla JS)
-├── data/                    # Persistent storage (case_studio.db, projects, skills snapshots)
-├── skills_catalog/          # Curated enterprise domain skills (OT Edge, Snowflake, Critic, etc.)
-├── features-add-ons/        # Archify Sidecar specifications & sprint documentation
-├── Dockerfile               # Production multi-stage Dockerfile (Python 3.11-slim)
-├── docker-compose.yml       # Container composition & volume mappings
-├── how-to-case-studio.md    # Comprehensive 360-degree user and architecture manual
-├── ARCHITECTURE.md          # Technical architecture & protocol specification
-└── README.md                # Executive overview & quickstart
+┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐   ┌─────────────────┐
+│  1. CLARIFY     │ ➔ │  2. ARCHITECT   │ ➔ │  3. DEEP DIVE   │ ➔ │ 4. VALUE/ROADMAP│
+│ Scoping & Gaps  │   │ 4-Layer Plan    │   │ Limits & Buffer │   │ ROI & Rollout   │
+└─────────────────┘   └─────────────────┘   └─────────────────┘   └─────────────────┘
 ```
+
+1. **Phase 1: Clarify & Scoping**  
+   Isolates problem statements, identifies missing prerequisites, and surfaces initial client ambiguities before making assumptions.
+2. **Phase 2: Architect & Blueprint**  
+   Synthesizes the 4-layer enterprise blueprint (*OT Ingest ➔ Industrial Edge ➔ Streaming/Buffer ➔ Lakehouse/Cloud*) and generates live interactive graphs.
+3. **Phase 3: Deep Dive & Trade-offs**  
+   Stress-tests edge conditions: validates 48h offline buffering, latency thresholds (<20ms), and IEC 62443 security zones.
+4. **Phase 4: Business Value & Executive Roadmap**  
+   Quantifies business impact (OEE uplift, scrap rate reduction, payback in months) and structures a realistic 3-phase rollout roadmap (*PoC ➔ Pilot ➔ Scale*).
 
 ---
 
-## 🛡️ Key Features In-Depth
+## 💡 Key Features Breakdown
 
-### 1. Decision Gates & Real-Time Branching
-- **AI-Detected Gates:** Automatically extracted from LLM streaming responses when missing facts are identified.
-- **Consultant-Authored Inquiries:** Fast entry modal (`➕ Eigene Rückfrage anlegen`) for on-the-fly client questions.
-- **Copy-to-Clipboard:** One-click copy of formulated questions for live video calls or emails.
-- **Automatic Architecture Branching:** Once answered, the customer answer is permanently anchored as a hard fact and triggers real-time graph re-generation.
-- **Reopen & Edit:** Easily reopen resolved gates with `✏️ Bearbeiten` if the client updates their requirements.
+### 🚪 1. Decision Gates & Live Branching
+- **Automatic Gap Detection:** Detects when a customer briefing lacks crucial parameters and creates actionable decision gates.
+- **Custom Client Inquiries:** Record questions that arise spontaneously in meetings with `➕ Eigene Rückfrage anlegen`.
+- **Single-Click Copy:** Fast clipboard copying for video call chats or emails.
+- **Fact Anchoring:** Submitting client answers locks them into the knowledge base as immutable facts, immediately re-triggering blueprint generation.
+- **Reopen & Refine:** Existing gates can be reopened anytime with `✏️ Bearbeiten` when client requirements change.
 
-### 2. Archify Sidecar & Semantic Passports
-- **Sidecar Isolation:** Runs in a separate container without bloating the main backend.
-- **Bi-Directional PostMessage Bridge:** Seamless communication between host window and canvas iframe.
-- **Semantic Passports:** Nodes feature structured technical attributes:
-  - Throughput & Latency KPIs
-  - Security & Compliance Badges (IEC 62443, TLS 1.3)
-  - Protocol Badges (OPC UA, MQTT Sparkplug B, Kafka)
-- **Unified Viewport Toolbar:** Zoom In/Out, Fit, 100%, and true Fullscreen.
+### 📐 2. Dual Visualizer & Archify Semantic Passports
+- **Mermaid Flow:** Lightning-fast, lightweight flowcharts for rapid streaming overviews.
+- **Archify Sidecar (Port 3089):** Rich architectural canvas with node expansion.
+- **Semantic Passports:** Every architectural node contains verified operational parameters:
+  - Throughput (e.g., `50,000 msgs/s`)
+  - Latency guarantees (`< 20ms`)
+  - Protocols (`OPC UA`, `MQTT Sparkplug B`, `Kafka`)
+  - Security certifications (`IEC 62443 SL2`, `mTLS`)
+- **Synchronized Viewport Toolbar:** Zoom In, Zoom Out, Fit, 100%, and Fullscreen controls seamlessly synchronize across both engines.
 
-### 3. Gemini Multi-Key Round-Robin & Simulation Fallback
-- Dynamic pool across multiple Gemini API keys (`GEMINI_API_KEYS=key1,key2,...`).
-- 60-second cooldown on HTTP 429 errors with sub-50ms instant failover.
-- Embedded deterministic simulation fallback for offline demonstrations.
+### ⚔️ 3. Multi-Agent Deliberation Studio
+- **Hallucination Critic (Red):** Tears down unverified assumptions, calculates hidden egress costs, and points out physics limits.
+- **Domain Specialist (Cyan):** Supplies battle-tested OT, cloud, and streaming patterns.
+- **Master-Consultant Lead (Purple):** Moderates debate, builds consensus, and produces the finalized architecture proposal.
 
-### 4. GitNexus Knowledge Graph Integration
-- Indexed repository: **1,621 symbols**, **3,181 edges**, **44 clusters**, **121 flows**.
-- Run blast-radius impact analysis before making code changes:
+### ❓ 4. In-Situ Help & Interactive FAQ Center
+- **Contextual Info Badges (`ℹ️`):** Placed at all 8+ core UI components (telemetry, DMS, skills, stepper, triggers, gates, visualizer, deliberation).
+- **Glassmorphism Quick-Modal:** Concise summary with single-click deep-link to the full FAQ.
+- **Live-Search FAQ:** Real-time keyword filter across all questions, answers, and tags.
+- **Smooth Deep-Linking:** Switches tabs, filters categories, opens accordion cards, and triggers an attention-grabbing glow animation on the target card.
+
+### 🏛️ 5. "Über Case Studio" (About Platform)
+- High-end corporate storytelling layout designed for C-level executives, recruiters, and engineering leads.
+- Interactive cards explaining the 3 Core Pillars.
+- Technology Radar with live performance metrics.
+- Data Sovereignty & Compliance checklist.
+
+---
+
+## 🛡️ Data Sovereignty, Security & Local-First
+
+- **Zero Cloud Database Dependencies:** Everything runs in embedded SQLite WAL mode under `./data/case_studio.db`.
+- **Physical Skill Snapshotting:** Skills imported into a project are physically cloned into the project directory and hashed via SHA-256 for audit immutability.
+- **Zero Native Popups:** Strictly adheres to the modern web design guideline—zero `window.alert`, `window.confirm`, or `window.prompt`. All dialogs are responsive glassmorphism overlays.
+- **GDPR / Privacy Compliant:** No third-party tracking, no external telemetry analytics, no cloud data harvesting.
+
+---
+
+## 🕸️ GitNexus Code Intelligence
+
+Case Studio Suite is fully indexed by [GitNexus](https://github.com/WizardofTryout/case-studio-suite):
+- **1,717 nodes | 3,316 edges | 44 clusters | 129 flows**
+- Inspect call chains, symbol relationships, and blast radii:
   ```bash
-  docker exec -it gitnexus-server gitnexus impact --repo Case-Studio <SymbolName>
+  # Start GitNexus containers
+  docker compose -f ../gitnexus/docker-compose.yaml up -d
+
+  # Re-index repository
+  docker exec gitnexus-server gitnexus analyze /workspace/Case-Studio
   ```
-- Visual graph inspection at **`http://localhost:4173`**.
+- Explore the interactive visual knowledge graph at **[http://localhost:4173](http://localhost:4173)**.
 
 ---
 
-## 📄 Documentation
-For detailed step-by-step guides, sprint history, and configuration details, refer to:
-- 📖 [how-to-case-studio.md](how-to-case-studio.md) — Comprehensive user manual & operations guide
-- 🏛️ [ARCHITECTURE.md](ARCHITECTURE.md) — Technical architecture & protocol specifications
+## 📁 Repository Structure
+
+```
+case-studio-suite/
+├── app/
+│   ├── api/                 # FastAPI routes (health, copilot, gates, skills, archify, dms)
+│   ├── core/                # GeminiKeyPool, decision gate parsers, deliberation prompts
+│   ├── db/                  # SQLite WAL connection manager and repositories
+│   ├── services/            # Copilot engine, Archify semantic passports, skill scanner
+│   └── static/              # Reactive Glassmorphism UI (HTML, CSS tokens, Vanilla JS)
+│       ├── css/style.css    # Responsive design system (dark/light themes, animations)
+│       ├── js/app.js        # SPA application controller
+│       ├── js/help_content.js # Bilingual FAQ & contextual help knowledge base
+│       └── js/i18n.js       # Internationalization dictionary (German & English)
+├── data/                    # Local persistent volume (case_studio.db, projects, skills)
+├── skills_catalog/          # Curated domain knowledge packs (OT Edge, Snowflake, Critic)
+├── services/archify-sidecar # Archify interactive canvas sidecar container
+├── Dockerfile               # Multi-stage production container build (Python 3.11-slim)
+├── docker-compose.yml       # Production Compose file with profiles & healthchecks
+├── ARCHITECTURE.md          # In-depth architectural & protocol specification
+├── how-to-case-studio.md    # 360-degree user guide and operational manual
+├── LICENSE                  # MIT License
+└── README.md                # This document
+```
 
 ---
-*Created for Matthias Köhler (M.Sc.) | Case Studio Suite 2026*
+
+## 🤝 Contributing
+
+Contributions, feedback, and feature requests are welcome!
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'feat: Add AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [`LICENSE`](LICENSE) for more information.
+
+---
+
+## 👤 Author & Architecture Lead
+
+**Matthias Köhler (M.Sc.)**  
+*Senior Strategic Project Manager & Industrial AI Architect*  
+- GitHub: [@WizardofTryout](https://github.com/WizardofTryout)  
+- Website: [oszillation-media.com](https://oszillation-media.com)  
+
+*Case Studio Suite 2026 – Engineered for Sovereign Enterprise Consulting.*
