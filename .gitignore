@@ -16,6 +16,14 @@ secrets.yaml
 id_rsa*
 id_ed25519*
 
+# Internal development plans, sprint notes & proprietary extensions
+features-add-ons/
+.claude/
+.agent/
+*-plan.md
+how-to-case-studio.md
+ARCHITECTURE.md
+
 
 # SQLite and data folder
 /data/case_studio.db

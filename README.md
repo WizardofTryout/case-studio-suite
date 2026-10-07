@@ -224,8 +224,6 @@ case-studio-suite/
 ├── services/archify-sidecar # Archify interactive canvas sidecar container
 ├── Dockerfile               # Multi-stage production container build (Python 3.11-slim)
 ├── docker-compose.yml       # Production Compose file with profiles & healthchecks
-├── ARCHITECTURE.md          # In-depth architectural & protocol specification
-├── how-to-case-studio.md    # 360-degree user guide and operational manual
 ├── LICENSE                  # MIT License
 └── README.md                # This document
 ```
