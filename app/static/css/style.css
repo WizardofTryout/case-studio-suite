@@ -329,6 +329,49 @@ html[data-theme="light"],
   border-color: #cbd5e1;
 }
 
+[data-theme="light"] .btn-gate-timeline-toggle {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+[data-theme="light"] .btn-gate-timeline-toggle:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+[data-theme="light"] .btn-gate-timeline-toggle.active {
+  background: #e0f2fe;
+  border-color: #7dd3fc;
+  color: #0369a1;
+}
+
+[data-theme="light"] .gate-history-wrapper {
+  border-top-color: #e2e8f0;
+}
+
+[data-theme="light"] .gate-timeline::before {
+  background: #cbd5e1;
+}
+
+[data-theme="light"] .gate-timeline-item {
+  background: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="light"] .gate-timeline-item::before {
+  border-color: #ffffff;
+}
+
+[data-theme="light"] .gate-timeline-details {
+  color: #1e293b;
+}
+
+[data-theme="light"] .gate-timeline-time {
+  color: #64748b;
+}
+
 [data-theme="light"] .btn-gate-dismiss {
   background: #f1f5f9;
   border-color: #cbd5e1;
@@ -1466,6 +1509,158 @@ body {
 
 .gate-answer-input:focus {
   border-color: var(--amber);
+}
+
+/* Decision Gate Audit-Trail Timeline (Sprint 8.2) */
+.btn-gate-timeline-toggle {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-dim, #94a3b8);
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.2s ease;
+}
+
+.btn-gate-timeline-toggle:hover {
+  background: rgba(255, 255, 255, 0.09);
+  color: var(--text-main, #f8fafc);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+
+.btn-gate-timeline-toggle.active {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: rgba(14, 165, 233, 0.4);
+  color: #38bdf8;
+}
+
+.gate-history-wrapper {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.1);
+  animation: fadeIn 0.2s ease;
+}
+
+.gate-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  padding-left: 22px;
+  margin-top: 8px;
+}
+
+.gate-timeline::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 7px;
+  width: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 1px;
+}
+
+.gate-timeline-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 0.77rem;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  padding: 8px 10px;
+  transition: border-color 0.2s ease;
+}
+
+.gate-timeline-item::before {
+  content: "";
+  position: absolute;
+  left: -20px;
+  top: 11px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-dim, #94a3b8);
+  border: 2px solid #0f172a;
+}
+
+.gate-timeline-item.action-created::before {
+  background: #38bdf8;
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.6);
+}
+
+.gate-timeline-item.action-resolved::before {
+  background: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+}
+
+.gate-timeline-item.action-copied::before {
+  background: #f59e0b;
+  box-shadow: 0 0 6px rgba(245, 158, 11, 0.6);
+}
+
+.gate-timeline-item.action-reopened::before {
+  background: #f97316;
+  box-shadow: 0 0 6px rgba(249, 115, 22, 0.6);
+}
+
+.gate-timeline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.gate-timeline-actor-badge {
+  font-size: 0.63rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.actor-ai {
+  background: rgba(6, 182, 212, 0.2);
+  color: #38bdf8;
+}
+
+.actor-user {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.actor-system {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.gate-timeline-time {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-dim, #94a3b8);
+}
+
+.gate-timeline-details {
+  color: var(--text-main, #e2e8f0);
+  line-height: 1.35;
+}
+
+.gate-timeline-impact {
+  font-size: 0.7rem;
+  color: var(--emerald, #10b981);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 2px;
 }
 
 /* Live Graph Container */

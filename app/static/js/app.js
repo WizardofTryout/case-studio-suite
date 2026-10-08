@@ -1566,6 +1566,9 @@ const App = {
             </span>
             <span class="gate-badge-phase" title="Erfasst in Phase ${originPhase}">Phase ${originPhase}</span>
             <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
+            <button type="button" id="btn-gate-history-toggle-${g.id}" class="btn-gate-timeline-toggle" onclick="App.toggleGateHistory('${g.id}')" title="Revisions-Chronik & Audit-Trail anzeigen">
+              🕒 Chronik
+            </button>
             <button type="button" class="btn-gate-dismiss" onclick="App.dismissDecisionGate('${g.id}', event)" title="Diese Frage verwerfen / entfernen (nicht benötigt)" aria-label="Frage löschen">
               ✕
             </button>
@@ -1576,7 +1579,7 @@ const App = {
         </div>
         <div class="gate-question-box">
           <div style="font-style:italic; font-size:0.84rem; flex:1;">💬 »${this.escapeHtml(g.recommended_question)}«</div>
-          <button class="btn btn-secondary btn-sm" onclick="App.copyToClipboard('${this.escapeHtml(g.recommended_question)}')">
+          <button class="btn btn-secondary btn-sm" onclick="App.copyToClipboard('${this.escapeHtml(g.recommended_question)}', '${g.id}')">
             📋 Frage kopieren
           </button>
         </div>
@@ -1598,6 +1601,17 @@ const App = {
             </button>
           </div>
         `}
+        <div id="gate-history-wrapper-${g.id}" class="gate-history-wrapper" style="display:none;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.75rem; font-weight:700; color:var(--text-main); display:inline-flex; align-items:center; gap:5px;">
+              <span>📜</span> <strong>Revisions-Chronik & Audit-Trail</strong>
+            </span>
+            <span style="font-size:0.67rem; color:var(--text-dim);">Unveränderliche Provenienz</span>
+          </div>
+          <div id="gate-history-content-${g.id}">
+            <div style="font-size:0.75rem; color:var(--text-dim); padding:4px 0;">Lade Chronik...</div>
+          </div>
+        </div>
       `;
       listContainer.appendChild(card);
     });
@@ -1785,9 +1799,110 @@ const App = {
     await this.runCopilotWithPrompt(prompt, false);
   },
 
-  copyToClipboard(text) {
-    navigator.clipboard.writeText(text);
+  async copyToClipboard(text, gateId = null) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text).catch(() => {});
+    }
     window.showToast("Frage in die Zwischenablage kopiert!", "info");
+
+    if (gateId) {
+      try {
+        await API.recordDecisionGateHistoryEvent(gateId, {
+          action: "copied",
+          details: "Frage in Zwischenablage kopiert (für Kundencall)",
+          actor: "user",
+          impact_note: "Kunden-Interview vorbereitet"
+        });
+        const historyWrapper = document.getElementById(`gate-history-wrapper-${gateId}`);
+        if (historyWrapper && historyWrapper.style.display !== "none") {
+          await this.loadGateHistory(gateId);
+        }
+      } catch (e) {
+        console.warn("Could not log copy event to history:", e);
+      }
+    }
+  },
+
+  async toggleGateHistory(gateId) {
+    const wrapper = document.getElementById(`gate-history-wrapper-${gateId}`);
+    const toggleBtn = document.getElementById(`btn-gate-history-toggle-${gateId}`);
+    if (!wrapper) return;
+
+    const isOpen = wrapper.style.display !== "none";
+    wrapper.style.display = isOpen ? "none" : "block";
+    if (toggleBtn) {
+      toggleBtn.classList.toggle("active", !isOpen);
+    }
+
+    if (!isOpen) {
+      await this.loadGateHistory(gateId);
+    }
+  },
+
+  async loadGateHistory(gateId) {
+    const content = document.getElementById(`gate-history-content-${gateId}`);
+    if (!content) return;
+
+    try {
+      const history = await API.getDecisionGateHistory(gateId);
+      this.renderGateHistoryTimeline(gateId, history);
+    } catch (err) {
+      console.error("Fehler beim Laden der Gate-History:", err);
+      content.innerHTML = `<div style="font-size:0.75rem; color:var(--text-dim); padding:4px 0;">Chronik konnte nicht geladen werden.</div>`;
+    }
+  },
+
+  renderGateHistoryTimeline(gateId, history) {
+    const content = document.getElementById(`gate-history-content-${gateId}`);
+    if (!content) return;
+
+    if (!history || history.length === 0) {
+      content.innerHTML = `<div style="font-size:0.75rem; color:var(--text-dim); padding:4px 0;">Keine Revisions-Einträge vorhanden.</div>`;
+      return;
+    }
+
+    const actionMeta = {
+      created: { title: "ERSTELLUNG", icon: "🚀", class: "action-created" },
+      resolved: { title: "KUNDENFAKT BESTÄTIGT", icon: "✅", class: "action-resolved" },
+      copied: { title: "INTERAKTION (KOPIERT)", icon: "📋", class: "action-copied" },
+      reopened: { title: "REVISION (WIEDERERÖFFNET)", icon: "✏️", class: "action-reopened" },
+      edited: { title: "EDITIERT", icon: "🔄", class: "action-edited" },
+      dismissed: { title: "VERWORFEN", icon: "🗑️", class: "action-dismissed" }
+    };
+
+    let html = `<div class="gate-timeline">`;
+    history.forEach(item => {
+      const meta = actionMeta[item.action] || { title: item.action.toUpperCase(), icon: "●", class: "" };
+      const actorClass = item.actor === "user" ? "actor-user" : (item.actor === "ai" ? "actor-ai" : "actor-system");
+      const actorLabel = item.actor === "user" ? "👤 Berater" : (item.actor === "ai" ? "🤖 Deliberation-KI" : "⚙️ System");
+
+      let timeStr = item.created_at || "";
+      if (timeStr && timeStr.includes(" ")) {
+        const parts = timeStr.split(" ");
+        timeStr = parts[1]; // HH:MM:SS
+      }
+
+      html += `
+        <div class="gate-timeline-item ${meta.class}">
+          <div class="gate-timeline-header">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span>${meta.icon}</span>
+              <span style="letter-spacing:0.02em;">${meta.title}</span>
+              <span class="gate-timeline-actor-badge ${actorClass}">${actorLabel}</span>
+            </div>
+            <span class="gate-timeline-time">${timeStr}</span>
+          </div>
+          <div class="gate-timeline-details">${this.escapeHtml(item.details || "")}</div>
+          ${item.impact_note ? `
+            <div class="gate-timeline-impact">
+              <span>⚡</span> <span>${this.escapeHtml(item.impact_note)}</span>
+            </div>
+          ` : ""}
+        </div>
+      `;
+    });
+    html += `</div>`;
+    content.innerHTML = html;
   },
 
   // --- Node Inspector & Sub-Graph Refinement ---

@@ -344,6 +344,28 @@ async def create_decision_gate(
             (g_id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, source, origin_phase, context_snippet)
         )
         await db.commit()
+
+    # Sprint 8.2: Automatic Audit-Trail Logging
+    actor = "user" if source == "user" else "ai"
+    created_detail = f"Manuell im Workshop erfasst: {detected_missing_fact}" if source == "user" else f"Logische Architekturlücke erkannt: {detected_missing_fact}"
+    await create_decision_gate_history_entry(
+        gate_id=g_id,
+        session_id=session_id,
+        action="created",
+        details=created_detail,
+        actor=actor,
+        impact_note=f"Erfasst in Phase {origin_phase}"
+    )
+    if customer_answer:
+        await create_decision_gate_history_entry(
+            gate_id=g_id,
+            session_id=session_id,
+            action="resolved",
+            details=f"Antwort erfasst: »{customer_answer}«",
+            actor="user",
+            impact_note="Als verifizierter Constraint verankert & Graph aktualisiert"
+        )
+
     res = await get_decision_gate(g_id)
     return res  # type: ignore
 
@@ -353,12 +375,37 @@ async def update_decision_gate_answer(
     customer_answer: str,
     status: str = "resolved"
 ) -> Optional[Dict[str, Any]]:
+    gate_before = await get_decision_gate(gate_id)
+    session_id = gate_before.get("session_id") if gate_before else ""
+
     async with get_db() as db:
         await db.execute(
             "UPDATE decision_gates SET customer_answer = ?, status = ? WHERE id = ?",
             (customer_answer, status, gate_id)
         )
         await db.commit()
+
+    # Sprint 8.2: Audit logging for state transitions
+    if session_id:
+        if status == "resolved":
+            await create_decision_gate_history_entry(
+                gate_id=gate_id,
+                session_id=session_id,
+                action="resolved",
+                details=f"Antwort des Kunden bestätigt: »{customer_answer}«",
+                actor="user",
+                impact_note="Als verifizierter Constraint verankert & Graph-Branching ausgelöst"
+            )
+        elif status == "pending":
+            await create_decision_gate_history_entry(
+                gate_id=gate_id,
+                session_id=session_id,
+                action="reopened",
+                details="Frage zur Revision wiedereröffnet (Antwort freigegeben zur Neuklärung)",
+                actor="user",
+                impact_note="Status auf Pending zurückgesetzt"
+            )
+
     return await get_decision_gate(gate_id)
 
 
@@ -374,6 +421,75 @@ async def clear_session_decision_gates(session_id: str) -> int:
         res = await db.execute("DELETE FROM decision_gates WHERE session_id = ?", (session_id,))
         await db.commit()
         return res.rowcount
+
+
+# --- Decision Gate Audit-Trail History (Sprint 8.2) ---
+
+async def create_decision_gate_history_entry(
+    gate_id: str,
+    session_id: str,
+    action: str,
+    details: str,
+    actor: str = "system",
+    impact_note: str = ""
+) -> Dict[str, Any]:
+    hist_id = str(uuid.uuid4())
+    async with get_db() as db:
+        await db.execute(
+            """
+            INSERT INTO decision_gate_history (id, gate_id, session_id, action, details, actor, impact_note)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            """,
+            (hist_id, gate_id, session_id, action, details, actor, impact_note)
+        )
+        await db.commit()
+        async with db.execute(
+            "SELECT id, gate_id, session_id, action, details, actor, impact_note, created_at FROM decision_gate_history WHERE id = ?",
+            (hist_id,)
+        ) as cursor:
+            row = await cursor.fetchone()
+            return dict(row) if row else {}
+
+
+async def list_decision_gate_history(gate_id: str) -> List[Dict[str, Any]]:
+    async with get_db() as db:
+        async with db.execute(
+            "SELECT id, gate_id, session_id, action, details, actor, impact_note, created_at FROM decision_gate_history WHERE gate_id = ? ORDER BY created_at ASC",
+            (gate_id,)
+        ) as cursor:
+            rows = await cursor.fetchall()
+            history = [dict(r) for r in rows]
+
+    # Fallback synthesizer: if gate exists but has no history records yet (e.g. legacy gates), synthesize initial entries
+    if not history:
+        gate = await get_decision_gate(gate_id)
+        if gate:
+            source = gate.get("source") or "ai"
+            phase = gate.get("origin_phase") or 1
+            actor = "user" if source == "user" else "ai"
+            created_label = "Manuell im Workshop erfasst" if source == "user" else "Logische Architekturlücke im Dialog erkannt"
+            history.append({
+                "id": f"syn-created-{gate_id}",
+                "gate_id": gate_id,
+                "session_id": gate.get("session_id", ""),
+                "action": "created",
+                "details": f"{created_label}: {gate.get('detected_missing_fact', '')}",
+                "actor": actor,
+                "impact_note": f"Erfasst in Phase {phase}",
+                "created_at": gate.get("created_at")
+            })
+            if gate.get("status") == "resolved" and gate.get("customer_answer"):
+                history.append({
+                    "id": f"syn-resolved-{gate_id}",
+                    "gate_id": gate_id,
+                    "session_id": gate.get("session_id", ""),
+                    "action": "resolved",
+                    "details": f"Antwort des Kunden bestätigt: »{gate.get('customer_answer')}«",
+                    "actor": "user",
+                    "impact_note": "Als verifizierter Constraint verankert & Graph aktualisiert",
+                    "created_at": gate.get("created_at")
+                })
+    return history
 
 
 # --- Deliberation Messages ---

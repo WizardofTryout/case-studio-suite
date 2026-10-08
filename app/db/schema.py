@@ -208,6 +208,21 @@ CREATE TABLE IF NOT EXISTS archify_artifacts (
 CREATE INDEX IF NOT EXISTS idx_archify_project ON archify_artifacts(project_id);
 CREATE INDEX IF NOT EXISTS idx_archify_session ON archify_artifacts(session_id);
 CREATE INDEX IF NOT EXISTS idx_archify_node ON archify_artifacts(project_id, node_id);
+
+-- 16. REVISIONSSICHERE FRAGE-ANTWORT-CHRONIK (AUDIT-TRAIL DER DECISION GATES)
+CREATE TABLE IF NOT EXISTS decision_gate_history (
+    id TEXT PRIMARY KEY,
+    gate_id TEXT NOT NULL REFERENCES decision_gates(id) ON DELETE CASCADE,
+    session_id TEXT NOT NULL REFERENCES case_sessions(id) ON DELETE CASCADE,
+    action TEXT NOT NULL,              -- 'created', 'copied', 'resolved', 'reopened', 'edited', 'dismissed'
+    details TEXT,                      -- Beschreibender Audit-Text
+    actor TEXT DEFAULT 'system',       -- 'ai', 'user', 'system'
+    impact_note TEXT DEFAULT '',       -- z. B. 'Architektur-Graph & Blueprint aktualisiert'
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_gate_history_gate ON decision_gate_history(gate_id);
+CREATE INDEX IF NOT EXISTS idx_gate_history_session ON decision_gate_history(session_id);
 """
 
 

@@ -383,6 +383,21 @@ const API = {
     return await res.json();
   },
 
+  async getDecisionGateHistory(gateId) {
+    const res = await fetch(`/api/decision_gates/${gateId}/history`);
+    if (!res.ok) throw new Error("Fehler beim Abrufen der Revisions-Chronik");
+    return await res.json();
+  },
+
+  async recordDecisionGateHistoryEvent(gateId, data) {
+    const res = await fetch(`/api/decision_gates/${gateId}/history`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    return await res.json();
+  },
+
   async deleteDecisionGate(gateId) {
     const res = await fetch(`/api/decision_gates/${gateId}`, {
       method: "DELETE"

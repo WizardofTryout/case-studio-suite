@@ -22,6 +22,13 @@ class DecisionGateResolveRequest(BaseModel):
     status: Optional[str] = "resolved"
 
 
+class DecisionGateHistoryEventRequest(BaseModel):
+    action: str = Field(..., min_length=2)  # 'copied', 'edited', 'note_added', etc.
+    details: Optional[str] = None
+    actor: Optional[str] = "user"
+    impact_note: Optional[str] = None
+
+
 @router.get("/sessions/{session_id}/decision_gates")
 async def get_session_decision_gates(session_id: str):
     """Retrieve all decision gates associated with a session."""
@@ -113,3 +120,36 @@ async def clear_session_gates(session_id: str):
     
     deleted_count = await repositories.clear_session_decision_gates(session_id)
     return {"status": "cleared", "session_id": session_id, "deleted_count": deleted_count}
+
+
+@router.get("/decision_gates/{gate_id}/history")
+async def get_gate_history(gate_id: str):
+    """
+    Retrieves the chronological audit-trail (history events) of a decision gate.
+    Demonstrates answer provenance, origin phase, and timeline of modifications.
+    """
+    gate = await repositories.get_decision_gate(gate_id)
+    if not gate:
+        raise HTTPException(status_code=404, detail="Decision gate not found")
+    
+    return await repositories.list_decision_gate_history(gate_id)
+
+
+@router.post("/decision_gates/{gate_id}/history", status_code=201)
+async def record_gate_history_event(gate_id: str, payload: DecisionGateHistoryEventRequest):
+    """
+    Logs an explicit audit-trail interaction event (e.g. copied to clipboard for client call).
+    """
+    gate = await repositories.get_decision_gate(gate_id)
+    if not gate:
+        raise HTTPException(status_code=404, detail="Decision gate not found")
+    
+    entry = await repositories.create_decision_gate_history_entry(
+        gate_id=gate_id,
+        session_id=gate.get("session_id", ""),
+        action=payload.action,
+        details=payload.details or "Interaktion erfasst",
+        actor=payload.actor or "user",
+        impact_note=payload.impact_note or ""
+    )
+    return entry

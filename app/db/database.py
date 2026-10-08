@@ -44,6 +44,23 @@ async def init_db() -> None:
             except Exception:
                 pass  # Column already exists
 
+        # Safe migration for decision_gate_history table (Sprint 8.2 Audit-Trail)
+        await db.execute("""
+            CREATE TABLE IF NOT EXISTS decision_gate_history (
+                id TEXT PRIMARY KEY,
+                gate_id TEXT NOT NULL REFERENCES decision_gates(id) ON DELETE CASCADE,
+                session_id TEXT NOT NULL REFERENCES case_sessions(id) ON DELETE CASCADE,
+                action TEXT NOT NULL,
+                details TEXT,
+                actor TEXT DEFAULT 'system',
+                impact_note TEXT DEFAULT '',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """)
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_gate_history_gate ON decision_gate_history(gate_id);")
+        await db.execute("CREATE INDEX IF NOT EXISTS idx_gate_history_session ON decision_gate_history(session_id);")
+        await db.commit()
+
         # Verify WAL mode
         async with db.execute("PRAGMA journal_mode;") as cursor:
             row = await cursor.fetchone()
