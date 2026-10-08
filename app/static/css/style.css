@@ -1645,8 +1645,22 @@ body {
 
 .gate-timeline-time {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.69rem;
   color: var(--text-dim, #94a3b8);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.gate-timeline-date {
+  color: var(--text-main, #f1f5f9);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+[data-theme="light"] .gate-timeline-date {
+  color: #1e293b;
 }
 
 .gate-timeline-details {

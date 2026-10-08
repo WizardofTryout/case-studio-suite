@@ -1876,10 +1876,32 @@ const App = {
       const actorClass = item.actor === "user" ? "actor-user" : (item.actor === "ai" ? "actor-ai" : "actor-system");
       const actorLabel = item.actor === "user" ? "👤 Berater" : (item.actor === "ai" ? "🤖 Deliberation-KI" : "⚙️ System");
 
-      let timeStr = item.created_at || "";
-      if (timeStr && timeStr.includes(" ")) {
-        const parts = timeStr.split(" ");
-        timeStr = parts[1]; // HH:MM:SS
+      let dateStr = "";
+      let timeStr = "";
+      if (item.created_at) {
+        if (item.created_at.includes(" ")) {
+          const parts = item.created_at.split(" ");
+          const dPart = parts[0];
+          timeStr = parts[1] || "";
+          if (dPart && dPart.includes("-")) {
+            const [y, m, d] = dPart.split("-");
+            dateStr = `${d}.${m}.${y}`;
+          } else {
+            dateStr = dPart;
+          }
+        } else if (item.created_at.includes("T")) {
+          const parts = item.created_at.split("T");
+          const dPart = parts[0];
+          timeStr = (parts[1] || "").split(".")[0];
+          if (dPart && dPart.includes("-")) {
+            const [y, m, d] = dPart.split("-");
+            dateStr = `${d}.${m}.${y}`;
+          } else {
+            dateStr = dPart;
+          }
+        } else {
+          timeStr = item.created_at;
+        }
       }
 
       html += `
@@ -1890,7 +1912,10 @@ const App = {
               <span style="letter-spacing:0.02em;">${meta.title}</span>
               <span class="gate-timeline-actor-badge ${actorClass}">${actorLabel}</span>
             </div>
-            <span class="gate-timeline-time">${timeStr}</span>
+            <div class="gate-timeline-time" title="${dateStr ? dateStr + ' ' + timeStr : timeStr}">
+              ${dateStr ? `<span class="gate-timeline-date">${dateStr}</span><span style="opacity:0.4;">·</span>` : ""}
+              <span>${timeStr}</span>
+            </div>
           </div>
           <div class="gate-timeline-details">${this.escapeHtml(item.details || "")}</div>
           ${item.impact_note ? `
