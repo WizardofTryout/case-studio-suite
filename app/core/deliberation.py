@@ -200,6 +200,24 @@ async def run_multi_agent_deliberation(
             if skill_text:
                 agent_instruction += f"\n\n--- SKILL-SPEZIFIKATION DER LEITUNG:\n{skill_text[:1200]}"
 
+            # Lead Architect Methodology & Governance Directives (Sprint 8.4)
+            methodology_preset = agent.get("methodology_preset", "purdue_ot")
+            active_guidelines = agent.get("active_guidelines") or agent.get("guidelines") or []
+
+            methodology_descriptions = {
+                "purdue_ot": "ARCHITEKTUR-DENKSCHULE: Purdue OT & Industrial Security (ISA-95). Priorisiere strikte Hierarchie (Level 0-4), DMZ mit Protokoll-Proxies und On-Premises deterministische Steuerung. Cloud ist rein asynchroner Konsument.",
+                "cloud_native": "ARCHITEKTUR-DENKSCHULE: Cloud-Native & Event-Driven. Priorisiere lose Kopplung, Message-Backbone (Kafka/PubSub/Kinesis), Managed Services, Serverless Microservices und Cloud Lakehouses.",
+                "minimal_tco": "ARCHITEKTUR-DENKSCHULE: Minimal-TCO & Lean Open-Source. Vermeide teure Enterprise-Lizenzen, priorisiere schlanke Open-Source Stacks (MQTT, PostgreSQL/Timescale, Docker-Compose) und minimale Cloud-Egress-Kosten.",
+                "zero_trust": "ARCHITEKTUR-DENKSCHULE: Zero-Trust & Regulated Compliance (NIS-2 / FDA / BaFin). Priorisiere gegenseitige mTLS-Authentifizierung, unveränderliche Audit-Logs mit Checksums und Air-Gapped Notbetriebsfähigkeit."
+            }
+
+            methodology_text = methodology_descriptions.get(methodology_preset, methodology_descriptions["purdue_ot"])
+            agent_instruction += f"\n\n--- GEWÄHLTE ARCHITEKTUR-METHODIK:\n{methodology_text}"
+
+            if active_guidelines:
+                guidelines_block = "\n".join([f"- {g}" for g in active_guidelines])
+                agent_instruction += f"\n\n--- VERBINDLICHE KUNDEN-LEITLINIEN & ARCHITEKTUR-VORGABEN (Zwingend im Entwurf einzuhalten):\n{guidelines_block}"
+
             if is_en:
                 agent_prompt = (
                     f"{agent_instruction}\n\n"
@@ -207,10 +225,10 @@ async def run_multi_agent_deliberation(
                     f"--- DEBATE TRANSCRIPT:\n{debate_transcript}\n\n"
                     f"--- SYNTHESIS TASK:\n"
                     f"Consolidate the debate of all previous experts:\n"
-                    f"1. Summarize the final, hardened architecture blueprint addressing previous critique.\n"
+                    f"1. Summarize the final, hardened architecture blueprint addressing previous critique under strict observance of your chosen methodology and customer guidelines.\n"
                     f"2. Generate a valid, clean Mermaid graph inside ```mermaid ... ``` block.\n"
                     f"3. Formulate unresolved Decision Gates in [DECISION_GATE] ... [/DECISION_GATE] format if client facts are missing.\n"
-                    f"4. Conclude with clear immediate next architecture steps."
+                    f"4. Conclude with clear immediate next architecture steps and business value estimation (ROI, CAPEX/OPEX)."
                 )
             else:
                 agent_prompt = (
@@ -219,10 +237,10 @@ async def run_multi_agent_deliberation(
                     f"--- DEBATTEN-VERLAUF:\n{debate_transcript}\n\n"
                     f"--- SYNTHESE-AUFTRAG:\n"
                     f"Führe die Debatte aller vorangegangenen Experten zusammen:\n"
-                    f"1. Fasse den finalen, gehärteten Architekturentwurf zusammen und adressiere die geäußerte Kritik.\n"
+                    f"1. Fasse den finalen, gehärteten Architekturentwurf zusammen und adressiere die geäußerte Kritik unter strikter Berücksichtigung deiner Denkschule und aller aktiven Kunden-Leitlinien.\n"
                     f"2. Erstelle einen vollständigen, syntaktisch einwandfreien Mermaid-Graphen im Block ```mermaid ... ```.\n"
                     f"3. Falls entscheidende Kundenfakten fehlen, formuliere die Decision Gates im Block [DECISION_GATE] ... [/DECISION_GATE].\n"
-                    f"4. Beende mit klaren nächsten Architektur-Schritten."
+                    f"4. Beende mit klaren nächsten Architektur-Schritten und beziffere den geschäftlichen Mehrwert (ROI, CAPEX/OPEX)."
                 )
             is_critique = 0
 

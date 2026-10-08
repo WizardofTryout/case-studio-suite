@@ -695,7 +695,18 @@ const App = {
         skill_key: "base_master_consultant",
         is_fixed: true,
         category: "master_consultant",
-        description: "Führt die Synthese, trifft Architekturentscheidungen und baut den Mermaid-Graph."
+        description: "Führt die Synthese, fällt Richtungsentscheidungen und baut den Mermaid-Graph.",
+        methodology_preset: "purdue_ot",
+        guidelines: [
+          "Architektur-Hierarchie: Strikte Trennung von Feldebene und IT",
+          "Latenz-Garantie: Geschlossene Regelkreise verbleiben On-Premises",
+          "Visualisierung: Vollständiger Mermaid-Graph mit Komponenten"
+        ],
+        active_guidelines: [
+          "Architektur-Hierarchie: Strikte Trennung von Feldebene und IT",
+          "Latenz-Garantie: Geschlossene Regelkreise verbleiben On-Premises",
+          "Visualisierung: Vollständiger Mermaid-Graph mit Komponenten"
+        ]
       },
       {
         role: "critic",
@@ -2375,6 +2386,35 @@ const App = {
       });
     }
 
+    // Lead Architect Guideline Modal events (Sprint 8.4)
+    const closeLeadGuidelineBtn = document.getElementById("btn-close-lead-guideline-modal");
+    if (closeLeadGuidelineBtn) {
+      closeLeadGuidelineBtn.addEventListener("click", () => this.closeAddGuidelineModal());
+    }
+    const cancelLeadGuidelineBtn = document.getElementById("btn-cancel-lead-guideline");
+    if (cancelLeadGuidelineBtn) {
+      cancelLeadGuidelineBtn.addEventListener("click", () => this.closeAddGuidelineModal());
+    }
+    const submitLeadGuidelineBtn = document.getElementById("btn-submit-lead-guideline");
+    if (submitLeadGuidelineBtn) {
+      submitLeadGuidelineBtn.addEventListener("click", () => this.submitCustomGuideline());
+    }
+    const leadGuidelineOverlay = document.getElementById("lead-guideline-modal-overlay");
+    if (leadGuidelineOverlay) {
+      leadGuidelineOverlay.addEventListener("click", (e) => {
+        if (e.target === leadGuidelineOverlay) this.closeAddGuidelineModal();
+      });
+    }
+    const leadGuidelineInput = document.getElementById("lead-guideline-input");
+    if (leadGuidelineInput) {
+      leadGuidelineInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          this.submitCustomGuideline();
+        }
+      });
+    }
+
     // Deliberation input shortcut: Cmd/Ctrl + Enter
     const delibInput = document.getElementById("deliberation-input");
     if (delibInput) {
@@ -2446,9 +2486,23 @@ const App = {
       const team = await API.getDeliberationTeam(this.state.currentSessionId);
       if (team && Array.isArray(team.configured_agents) && team.configured_agents.length > 0) {
         this.deliberationState.teamSlots = team.configured_agents;
-        // Ensure critic slot has critic_skills initialized
+        // Ensure slots have initialized presets and guidelines
         this.deliberationState.teamSlots.forEach(s => {
-          if (s.role === "critic") {
+          if (s.role === "master_consultant") {
+            if (!s.methodology_preset) {
+              s.methodology_preset = "purdue_ot";
+            }
+            if (!Array.isArray(s.guidelines) || s.guidelines.length === 0) {
+              s.guidelines = [
+                "Architektur-Hierarchie: Strikte Trennung von Feldebene und IT",
+                "Latenz-Garantie: Geschlossene Regelkreise verbleiben On-Premises",
+                "Visualisierung: Vollständiger Mermaid-Graph mit Komponenten"
+              ];
+            }
+            if (!Array.isArray(s.active_guidelines)) {
+              s.active_guidelines = [...s.guidelines];
+            }
+          } else if (s.role === "critic") {
             if (!Array.isArray(s.critic_skills) || s.critic_skills.length === 0) {
               s.critic_skills = [
                 "physics---latency-validator",
@@ -2527,12 +2581,67 @@ const App = {
 
         let badgeHtml = "";
         let icon = "⚡";
+        let leadBoardHtml = "";
         let criticBoardHtml = "";
 
         if (slot.role === "master_consultant") {
           icon = "👑";
           card.classList.add("slot-lead");
           badgeHtml = `<span class="team-slot-badge slot-lead">👑 Lead-Architekt</span>`;
+
+          const currentPreset = slot.methodology_preset || "purdue_ot";
+          const guidelines = Array.isArray(slot.guidelines) ? slot.guidelines : [];
+          const activeGuidelines = Array.isArray(slot.active_guidelines) ? slot.active_guidelines : guidelines;
+
+          let chipsHtml = "";
+          guidelines.forEach((gText, gIdx) => {
+            const isActive = activeGuidelines.includes(gText);
+            chipsHtml += `
+              <div class="lead-guideline-chip ${isActive ? 'active' : 'inactive'}" title="${this.escapeHtml(gText)}">
+                <label class="lead-chip-checkbox-label" onclick="event.stopPropagation();">
+                  <input type="checkbox" ${isActive ? 'checked' : ''} onchange="App.toggleLeadGuideline(${idx}, ${gIdx})" />
+                  <span class="chip-name">${this.escapeHtml(gText)}</span>
+                </label>
+                <button type="button" class="chip-remove-btn" onclick="event.stopPropagation(); App.removeLeadGuideline(${idx}, ${gIdx})" title="Vorgabe entfernen">✕</button>
+              </div>
+            `;
+          });
+
+          leadBoardHtml = `
+            <div class="lead-methodology-board">
+              <div class="lead-presets-row">
+                <span class="lead-presets-label">⚡ Denkschule:</span>
+                <div class="lead-presets-btns">
+                  <button type="button" class="btn-lead-preset ${currentPreset === 'purdue_ot' ? 'active' : ''}" onclick="App.applyLeadMethodology(${idx}, 'purdue_ot')" title="Purdue Level 0-4, DMZ & deterministische Feldbusse">
+                    🏭 Purdue OT
+                  </button>
+                  <button type="button" class="btn-lead-preset ${currentPreset === 'cloud_native' ? 'active' : ''}" onclick="App.applyLeadMethodology(${idx}, 'cloud_native')" title="Event-Driven Microservices, Kafka & Managed Cloud Services">
+                    ☁️ Cloud-Native
+                  </button>
+                  <button type="button" class="btn-lead-preset ${currentPreset === 'minimal_tco' ? 'active' : ''}" onclick="App.applyLeadMethodology(${idx}, 'minimal_tco')" title="Lean Open-Source, niedrige Lizenzen & schlanker Footprint">
+                    💰 Minimal-TCO
+                  </button>
+                  <button type="button" class="btn-lead-preset ${currentPreset === 'zero_trust' ? 'active' : ''}" onclick="App.applyLeadMethodology(${idx}, 'zero_trust')" title="mTLS, Revisionssicherheit, FDA/BaFin & Air-Gapped Notbetrieb">
+                    🛡️ Zero-Trust
+                  </button>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                <span style="font-size:0.7rem; font-weight:600; color:var(--text-muted);">
+                  Architektur-Leitlinien (${activeGuidelines.length}/${guidelines.length} aktiv):
+                </span>
+              </div>
+              <div class="lead-chips-container">
+                ${chipsHtml}
+                <button type="button" class="btn-lead-add-guideline" onclick="App.openAddGuidelineModal(${idx})" title="Eigene Vorgabe oder Richtlinie formulieren">
+                  ➕ Vorgabe hinzufügen
+                </button>
+                <button type="button" class="btn-lead-add-skill" onclick="App.openAgentTileModal('lead_policy', ${idx})" title="Architektur-Standard aus Library als Leitlinie verknüpfen">
+                  📜 Aus Library verknüpfen
+                </button>
+              </div>
+            </div>
+          `;
         } else if (slot.role === "critic") {
           icon = "🛡️";
           card.classList.add("slot-critic");
@@ -2620,6 +2729,7 @@ const App = {
             ${badgeHtml}
           </div>
           <div class="team-slot-desc">${this.escapeHtml(slot.description || "Bringt tiefgreifendes Domänenwissen in die Debatte ein.")}</div>
+          ${leadBoardHtml}
           ${criticBoardHtml}
           ${actionsHtml}
         `;
@@ -2790,6 +2900,143 @@ const App = {
     window.showToast(`Skill "${skillKey}" vom Critic entfernt.`, "info");
   },
 
+  // Lead Architect Governance & Methodology Studio (Sprint 8.4)
+  async applyLeadMethodology(slotIdx, presetKey) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "master_consultant") return;
+
+    slot.methodology_preset = presetKey;
+
+    const presetGuidelines = {
+      purdue_ot: [
+        "Hierarchie: Strikte Trennung von Feldebene und IT (Level 0-4)",
+        "Latenz: Geschlossene Regelkreise verbleiben On-Premises",
+        "DMZ: Keine direkten Schnittstellen zwischen Shopfloor und Cloud"
+      ],
+      cloud_native: [
+        "Event-Driven: Zentraler Streaming-Backbone (Kafka/PubSub)",
+        "Microservices: Lose Kopplung via REST/gRPC APIs",
+        "Managed Services: Bevorzuge Serverless & Skalierbarkeit"
+      ],
+      minimal_tco: [
+        "Open-Source First: Bevorzuge lizenzfreie Stacks (PostgreSQL, MQTT)",
+        "Kostengrenze: Minimaler Cloud-Egress und schlanker Compute-Footprint",
+        "Einfachheit: Docker-Compose oder Single-Node vor komplexem Cluster"
+      ],
+      zero_trust: [
+        "Security: Gegenseitige mTLS-Authentifizierung aller Endpunkte",
+        "Compliance: Immutable Audit-Logs mit kryptographischen Hashes",
+        "Resilienz: Autarker Air-Gapped Betrieb bei Netzausfall"
+      ]
+    };
+
+    const targetList = presetGuidelines[presetKey] || presetGuidelines["purdue_ot"];
+
+    if (!Array.isArray(slot.guidelines)) slot.guidelines = [];
+    if (!Array.isArray(slot.active_guidelines)) slot.active_guidelines = [];
+
+    // Filter out previous default preset guidelines to keep user's custom additions intact
+    const allPresets = Object.values(presetGuidelines).flat();
+    const customExisting = slot.guidelines.filter(g => !allPresets.includes(g));
+
+    slot.guidelines = [...targetList, ...customExisting];
+    slot.active_guidelines = [...targetList, ...slot.active_guidelines.filter(g => !allPresets.includes(g))];
+
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+
+    const titles = {
+      purdue_ot: "🏭 Purdue OT (ISA-95)",
+      cloud_native: "☁️ Cloud-Native & Event-Driven",
+      minimal_tco: "💰 Minimal-TCO & Lean Open-Source",
+      zero_trust: "🛡️ Zero-Trust & Regulated Compliance"
+    };
+    window.showToast(`👑 Denkschule "${titles[presetKey] || presetKey}" aktiviert!`, "info");
+  },
+
+  async toggleLeadGuideline(slotIdx, gIdx) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "master_consultant") return;
+
+    if (!Array.isArray(slot.guidelines) || !slot.guidelines[gIdx]) return;
+    const gText = slot.guidelines[gIdx];
+
+    if (!Array.isArray(slot.active_guidelines)) {
+      slot.active_guidelines = [...slot.guidelines];
+    }
+
+    const pos = slot.active_guidelines.indexOf(gText);
+    if (pos >= 0) {
+      slot.active_guidelines.splice(pos, 1);
+    } else {
+      slot.active_guidelines.push(gText);
+    }
+
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+  },
+
+  async removeLeadGuideline(slotIdx, gIdx) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "master_consultant") return;
+
+    if (!Array.isArray(slot.guidelines) || !slot.guidelines[gIdx]) return;
+    const gText = slot.guidelines[gIdx];
+
+    slot.guidelines = slot.guidelines.filter((_, idx) => idx !== gIdx);
+    if (Array.isArray(slot.active_guidelines)) {
+      slot.active_guidelines = slot.active_guidelines.filter(g => g !== gText);
+    }
+
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+    window.showToast("Leitlinie entfernt.", "info");
+  },
+
+  openAddGuidelineModal(slotIdx = 0) {
+    this.deliberationState.leadGuidelineSlotIndex = slotIdx;
+    const input = document.getElementById("lead-guideline-input");
+    if (input) input.value = "";
+    const overlay = document.getElementById("lead-guideline-modal-overlay");
+    if (overlay) {
+      overlay.classList.add("active");
+      setTimeout(() => input?.focus(), 100);
+    }
+  },
+
+  closeAddGuidelineModal() {
+    const overlay = document.getElementById("lead-guideline-modal-overlay");
+    if (overlay) overlay.classList.remove("active");
+  },
+
+  async submitCustomGuideline() {
+    const input = document.getElementById("lead-guideline-input");
+    const val = input ? input.value.trim() : "";
+    if (!val) {
+      window.showToast("Bitte gib eine Leitlinie oder Randbedingung ein!", "warning");
+      return;
+    }
+
+    const slotIdx = this.deliberationState.leadGuidelineSlotIndex !== null ? this.deliberationState.leadGuidelineSlotIndex : 0;
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "master_consultant") return;
+
+    if (!Array.isArray(slot.guidelines)) slot.guidelines = [];
+    if (!Array.isArray(slot.active_guidelines)) slot.active_guidelines = [];
+
+    if (!slot.guidelines.includes(val)) {
+      slot.guidelines.push(val);
+    }
+    if (!slot.active_guidelines.includes(val)) {
+      slot.active_guidelines.push(val);
+    }
+
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+    this.closeAddGuidelineModal();
+    window.showToast(`👑 Leitlinie "${val.length > 35 ? val.substring(0, 32) + '...' : val}" hinzugefügt!`, "success");
+  },
+
   async openCustomAgentModal() {
     const overlay = document.getElementById("custom-agent-modal-overlay");
     if (!overlay) return;
@@ -2880,6 +3127,8 @@ const App = {
     if (badge) {
       if (mode === "critic_skill") {
         badge.textContent = "🛡️ Ziel: Zusätzliche Prüf-Dimension für Hallucination Critic zuweisen";
+      } else if (mode === "lead_policy") {
+        badge.textContent = "👑 Ziel: Architektur-Standard als Leitlinie für den Lead-Architekten verknüpfen";
       } else if (mode === "refiner") {
         badge.textContent = "✨ Ziel: Prompt-Veredelung (Reichert Rohentwurf vorab technisch an)";
       } else {
@@ -3012,6 +3261,12 @@ const App = {
         const criticSkills = targetSlot && Array.isArray(targetSlot.critic_skills) ? targetSlot.critic_skills : [];
         isSelected = criticSkills.includes(skillKey);
         selectBtnText = isSelected ? "✓ Zugewiesen" : "Prüf-Skill zuweisen ➔";
+      } else if (this.deliberationState.tileModalMode === "lead_policy") {
+        const targetSlot = currentSlots[this.deliberationState.targetSlotIndex !== null ? this.deliberationState.targetSlotIndex : 0];
+        const guidelines = targetSlot && Array.isArray(targetSlot.guidelines) ? targetSlot.guidelines : [];
+        const policyPrefix = `Standard [${displayName}]`;
+        isSelected = guidelines.some(g => g.startsWith(policyPrefix) || g.includes(displayName));
+        selectBtnText = isSelected ? "✓ Verknüpft" : "Als Leitlinie verknüpfen ➔";
       } else if (this.deliberationState.tileModalMode === "slot") {
         isSelected = isAlreadyInTeam;
         selectBtnText = isSelected ? "✓ Ausgewählt" : "Wählen ➔";
@@ -3069,6 +3324,27 @@ const App = {
         this.renderDeliberationTeamGrid();
         this.closeAgentTileModal();
         window.showToast(`🛡️ Prüf-Skill "${name}" dem Critic zugewiesen!`, "success");
+      }
+      return;
+    }
+
+    if (this.deliberationState.tileModalMode === "lead_policy") {
+      const slotIdx = this.deliberationState.targetSlotIndex !== null ? this.deliberationState.targetSlotIndex : 0;
+      const slot = this.deliberationState.teamSlots[slotIdx];
+      if (slot && slot.role === "master_consultant") {
+        if (!Array.isArray(slot.guidelines)) slot.guidelines = [];
+        if (!Array.isArray(slot.active_guidelines)) slot.active_guidelines = [];
+        const policyText = `Standard [${name}]: ${desc.length > 90 ? desc.substring(0, 87) + '...' : desc}`;
+        if (!slot.guidelines.includes(policyText)) {
+          slot.guidelines.push(policyText);
+        }
+        if (!slot.active_guidelines.includes(policyText)) {
+          slot.active_guidelines.push(policyText);
+        }
+        await this.saveDeliberationTeam();
+        this.renderDeliberationTeamGrid();
+        this.closeAgentTileModal();
+        window.showToast(`👑 Standard "${name}" als Leitlinie für den Lead-Architekten verknüpft!`, "success");
       }
       return;
     }

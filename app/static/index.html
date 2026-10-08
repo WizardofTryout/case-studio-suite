@@ -1505,6 +1505,44 @@
     </div>
   </div>
 
+  <!-- Lead Architect Guideline Modal (Sprint 8.4) -->
+  <div id="lead-guideline-modal-overlay" class="modal-overlay">
+    <div class="modal-card custom-agent-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title">👑 Architektur-Leitlinie oder Vorgabe definieren</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+            Ergänze eine verbindliche Kunden-Randbedingung oder Governance-Regel für die Synthese des Lead-Architekten.
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-lead-guideline-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+        <div class="form-group">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Leitlinie / Randbedingung *</label>
+          <input type="text" id="lead-guideline-input" class="gate-answer-input" placeholder="z. B. Target Cloud: Strikte AWS-Architektur (kein Azure erlaubt) oder OPEX-Cap: < 3.000 €/Monat" style="width:100%;" />
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-muted); margin-bottom:4px; display:block;">💡 Häufige Praxis-Beispiele:</label>
+          <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            <button type="button" class="tag-pill" onclick="document.getElementById('lead-guideline-input').value = 'Target Cloud: Strikte AWS-Architektur (kein Azure/GCP)';">AWS Only</button>
+            <button type="button" class="tag-pill" onclick="document.getElementById('lead-guideline-input').value = 'Target Cloud: Strikte Microsoft Azure-Architektur';">Azure Only</button>
+            <button type="button" class="tag-pill" onclick="document.getElementById('lead-guideline-input').value = 'Security: Keine direkten öffentlichen IP-Adressen an Edge-Geräten';">Edge Non-Public</button>
+            <button type="button" class="tag-pill" onclick="document.getElementById('lead-guideline-input').value = 'Budget: Minimal-TCO & schlanker Open-Source-Stack';">Lean Open-Source</button>
+            <button type="button" class="tag-pill" onclick="document.getElementById('lead-guideline-input').value = 'Resilienz: 72h autarker Notbetrieb bei Verbindungsverlust';">72h Offline</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+        <button id="btn-cancel-lead-guideline" class="btn btn-secondary btn-sm" type="button">Abbrechen</button>
+        <button id="btn-submit-lead-guideline" class="btn btn-primary btn-sm" type="button">➕ Als Leitlinie hinzufügen</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Node Inspector Modal / Drawer -->
   <div id="node-inspector-overlay" class="modal-overlay">
     <div class="modal-card node-inspector-card">

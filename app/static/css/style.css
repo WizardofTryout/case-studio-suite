@@ -2157,6 +2157,198 @@ svg .edgeLabel span {
   border-color: rgba(244, 63, 94, 0.3);
 }
 
+/* Lead Architect Methodology & Governance Board (Sprint 8.4) */
+.team-slot-card.slot-lead {
+  grid-column: span 1;
+  border-left: 3px solid var(--violet);
+}
+
+@media (min-width: 1200px) {
+  .team-slot-card.slot-lead {
+    grid-column: span 2;
+  }
+}
+
+.lead-methodology-board {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .lead-methodology-board {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.lead-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.lead-presets-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #a855f7;
+}
+
+.lead-presets-btns {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-lead-preset {
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: #c084fc;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-lead-preset:hover {
+  background: rgba(168, 85, 247, 0.22);
+  border-color: #a855f7;
+  transform: translateY(-1px);
+}
+
+.btn-lead-preset.active {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: #a855f7;
+  color: #f3e8ff;
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.25);
+}
+
+[data-theme="light"] .btn-lead-preset {
+  background: #f5f3ff;
+  border-color: #ddd6fe;
+  color: #7c3aed;
+}
+
+[data-theme="light"] .btn-lead-preset.active {
+  background: #ede9fe;
+  border-color: #8b5cf6;
+  color: #6d28d9;
+}
+
+.lead-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.lead-guideline-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.lead-guideline-chip:hover {
+  border-color: rgba(168, 85, 247, 0.4);
+}
+
+.lead-guideline-chip.active {
+  background: rgba(168, 85, 247, 0.12);
+  border-color: rgba(168, 85, 247, 0.5);
+  color: var(--text-main);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.15);
+}
+
+[data-theme="light"] .lead-guideline-chip.active {
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+  color: #6d28d9;
+}
+
+.lead-chip-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.lead-chip-checkbox-label input[type="checkbox"] {
+  accent-color: #a855f7;
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
+.lead-guideline-chip .chip-name {
+  font-weight: 500;
+}
+
+.lead-guideline-chip .chip-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0 2px;
+  margin-left: 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.lead-guideline-chip .chip-remove-btn:hover {
+  color: var(--rose);
+}
+
+.btn-lead-add-guideline,
+.btn-lead-add-skill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-lead-add-guideline:hover,
+.btn-lead-add-skill:hover {
+  background: rgba(168, 85, 247, 0.15);
+  border-color: #a855f7;
+  color: #c084fc;
+}
+
+[data-theme="light"] .btn-lead-add-guideline,
+[data-theme="light"] .btn-lead-add-skill {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+[data-theme="light"] .btn-lead-add-guideline:hover,
+[data-theme="light"] .btn-lead-add-skill:hover {
+  background: #f5f3ff;
+  border-color: #8b5cf6;
+  color: #6d28d9;
+}
+
 /* Multi-Skill Critic Board & Presets (Sprint 8.3) */
 .team-slot-card.slot-critic {
   grid-column: span 1;
