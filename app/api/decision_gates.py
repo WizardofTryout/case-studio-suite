@@ -12,6 +12,9 @@ class DecisionGateCreateRequest(BaseModel):
     recommended_question: str = Field(...)
     customer_answer: Optional[str] = None
     status: Optional[str] = "pending"
+    source: Optional[str] = "user"
+    origin_phase: Optional[int] = 1
+    context_snippet: Optional[str] = ""
 
 
 class DecisionGateResolveRequest(BaseModel):
@@ -41,7 +44,10 @@ async def create_gate(session_id: str, payload: DecisionGateCreateRequest):
         detected_missing_fact=payload.detected_missing_fact,
         recommended_question=payload.recommended_question,
         customer_answer=payload.customer_answer,
-        status=payload.status or "pending"
+        status=payload.status or "pending",
+        source=payload.source or "user",
+        origin_phase=payload.origin_phase or 1,
+        context_snippet=payload.context_snippet or ""
     )
     return gate
 

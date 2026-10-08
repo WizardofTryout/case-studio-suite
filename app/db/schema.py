@@ -57,6 +57,9 @@ CREATE TABLE IF NOT EXISTS decision_gates (
     recommended_question TEXT NOT NULL, -- Die Frage, die Matthias stellen soll
     customer_answer TEXT,             -- Was der Kunde geantwortet hat
     status TEXT DEFAULT 'pending',    -- 'pending', 'resolved'
+    source TEXT DEFAULT 'ai',         -- 'ai' (vom Copiloten erkannt) oder 'user' (manuell erfasst)
+    origin_phase INTEGER DEFAULT 1,   -- Phase 1-4, in der das Gate entstand
+    context_snippet TEXT DEFAULT '',  -- Zitat oder Kontext des Briefings
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -261,7 +261,7 @@ async def run_multi_agent_deliberation(
                 )
                 yield f"data: {json.dumps({'type': 'graph', 'mermaid': mermaid})}\n\n"
 
-            await record_detected_gates(session_id, agent_output)
+            await record_detected_gates(session_id, agent_output, phase=phase)
             all_gates = await repositories.list_decision_gates(session_id)
             yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 

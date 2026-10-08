@@ -32,6 +32,18 @@ async def init_db() -> None:
             except Exception:
                 pass  # Column already exists
 
+        # Safe migration for decision_gates columns (Sprint 8.1 Provenance)
+        for col_name, col_type in [
+            ("source", "TEXT DEFAULT 'ai'"),
+            ("origin_phase", "INTEGER DEFAULT 1"),
+            ("context_snippet", "TEXT DEFAULT ''")
+        ]:
+            try:
+                await db.execute(f"ALTER TABLE decision_gates ADD COLUMN {col_name} {col_type};")
+                await db.commit()
+            except Exception:
+                pass  # Column already exists
+
         # Verify WAL mode
         async with db.execute("PRAGMA journal_mode;") as cursor:
             row = await cursor.fetchone()

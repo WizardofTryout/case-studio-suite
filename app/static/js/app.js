@@ -1547,16 +1547,24 @@ const App = {
     listContainer.innerHTML = "";
     gates.forEach(g => {
       const isResolved = g.status === "resolved";
+      const isUser = (g.source || "ai").toLowerCase() === "user";
+      const sourceClass = isUser ? "source-user" : "source-ai";
+      const originPhase = g.origin_phase || 1;
+
       const card = document.createElement("div");
       card.id = `decision-gate-card-${g.id}`;
-      card.className = `decision-gate-card ${isResolved ? 'resolved' : ''}`;
+      card.className = `decision-gate-card ${sourceClass} ${isResolved ? 'resolved' : ''}`;
       
       card.innerHTML = `
         <div class="gate-header">
           <div class="gate-title">
-            <span>${isResolved ? '✅' : '🚨'}</span> <strong>${this.escapeHtml(g.topic)}</strong>
+            <span>${isResolved ? '✅' : (isUser ? '👤' : '🤖')}</span> <strong>${this.escapeHtml(g.topic)}</strong>
           </div>
-          <div class="gate-header-actions" style="display:flex; align-items:center; gap:8px;">
+          <div class="gate-header-actions" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <span class="gate-badge-provenance ${isUser ? 'badge-user' : 'badge-ai'}" title="${isUser ? 'Vom Berater manuell im Workshop erfasst' : 'Automatisch von Deliberation-KI erkannt'}">
+              ${isUser ? '👤 Manuell' : '🤖 KI-Erkannt'}
+            </span>
+            <span class="gate-badge-phase" title="Erfasst in Phase ${originPhase}">Phase ${originPhase}</span>
             <span class="gate-badge ${g.status}">${isResolved ? 'Geklärt' : 'Fakt fehlt'}</span>
             <button type="button" class="btn-gate-dismiss" onclick="App.dismissDecisionGate('${g.id}', event)" title="Diese Frage verwerfen / entfernen (nicht benötigt)" aria-label="Frage löschen">
               ✕
@@ -1564,7 +1572,7 @@ const App = {
           </div>
         </div>
         <div class="gate-missing-fact" style="font-size:0.8rem; color:var(--text-main); line-height:1.4;">
-          <strong style="color:var(--amber);">Fehlender Fakt:</strong> <span class="missing-fact-text" style="color:var(--text-muted);">${this.escapeHtml(g.detected_missing_fact)}</span>
+          <strong style="color:${isUser ? '#c084fc' : '#38bdf8'};">${isUser ? 'Erfasster Kontext:' : 'Fehlender Fakt:'}</strong> <span class="missing-fact-text" style="color:var(--text-muted);">${this.escapeHtml(g.detected_missing_fact)}</span>
         </div>
         <div class="gate-question-box">
           <div style="font-style:italic; font-size:0.84rem; flex:1;">💬 »${this.escapeHtml(g.recommended_question)}«</div>
@@ -1656,7 +1664,10 @@ const App = {
         detected_missing_fact: fact,
         recommended_question: question,
         customer_answer: isDirectlyResolved ? answer : null,
-        status: status
+        status: status,
+        source: "user",
+        origin_phase: this.state.currentPhase || 1,
+        context_snippet: fact.length > 180 ? fact.slice(0, 177) + "..." : fact
       };
 
       await API.createDecisionGate(this.state.currentSessionId, payload);

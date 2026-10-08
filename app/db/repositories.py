@@ -305,7 +305,7 @@ async def update_session(
 async def list_decision_gates(session_id: str) -> List[Dict[str, Any]]:
     async with get_db() as db:
         async with db.execute(
-            "SELECT id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, created_at FROM decision_gates WHERE session_id = ? ORDER BY created_at DESC",
+            "SELECT id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, source, origin_phase, context_snippet, created_at FROM decision_gates WHERE session_id = ? ORDER BY created_at DESC",
             (session_id,)
         ) as cursor:
             rows = await cursor.fetchall()
@@ -315,7 +315,7 @@ async def list_decision_gates(session_id: str) -> List[Dict[str, Any]]:
 async def get_decision_gate(gate_id: str) -> Optional[Dict[str, Any]]:
     async with get_db() as db:
         async with db.execute(
-            "SELECT id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, created_at FROM decision_gates WHERE id = ?",
+            "SELECT id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, source, origin_phase, context_snippet, created_at FROM decision_gates WHERE id = ?",
             (gate_id,)
         ) as cursor:
             row = await cursor.fetchone()
@@ -329,16 +329,19 @@ async def create_decision_gate(
     recommended_question: str,
     customer_answer: Optional[str] = None,
     status: str = "pending",
-    gate_id: Optional[str] = None
+    gate_id: Optional[str] = None,
+    source: str = "ai",
+    origin_phase: int = 1,
+    context_snippet: str = ""
 ) -> Dict[str, Any]:
     g_id = gate_id or str(uuid.uuid4())
     async with get_db() as db:
         await db.execute(
             """
-            INSERT INTO decision_gates (id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO decision_gates (id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, source, origin_phase, context_snippet)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (g_id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status)
+            (g_id, session_id, topic, detected_missing_fact, recommended_question, customer_answer, status, source, origin_phase, context_snippet)
         )
         await db.commit()
     res = await get_decision_gate(g_id)

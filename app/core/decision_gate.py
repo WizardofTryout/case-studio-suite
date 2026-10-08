@@ -79,7 +79,7 @@ def extract_decision_gates_from_text(text: str) -> List[Dict[str, str]]:
     return gates
 
 
-async def record_detected_gates(session_id: str, text: str) -> List[Dict[str, Any]]:
+async def record_detected_gates(session_id: str, text: str, phase: int = 1) -> List[Dict[str, Any]]:
     """Finds decision gates in response and persists them into SQLite decision_gates table."""
     detected = extract_decision_gates_from_text(text)
     saved_gates = []
@@ -94,16 +94,23 @@ async def record_detected_gates(session_id: str, text: str) -> List[Dict[str, An
         if topic_key in existing_topics:
             continue
             
+        snippet = g.get("detected_missing_fact", "")
+        if len(snippet) > 180:
+            snippet = snippet[:177] + "..."
+
         gate = await repositories.create_decision_gate(
             session_id=session_id,
             topic=g["topic"],
             detected_missing_fact=g["detected_missing_fact"],
             recommended_question=g["recommended_question"],
-            status="pending"
+            status="pending",
+            source="ai",
+            origin_phase=phase,
+            context_snippet=snippet
         )
         saved_gates.append(gate)
         existing_topics.add(topic_key)
-        logger.info(f"Recorded new Decision Gate for session {session_id}: {g['topic']}")
+        logger.info(f"Recorded new AI Decision Gate (Phase {phase}) for session {session_id}: {g['topic']}")
 
     return saved_gates
 

@@ -135,7 +135,7 @@ async def execute_copilot_stream(
         yield f"data: {json.dumps({'type': 'graph', 'mermaid': mermaid_code})}\n\n"
 
     # 5. Post-processing: Extract Decision Gates
-    await record_detected_gates(session_id, full_response_text)
+    await record_detected_gates(session_id, full_response_text, phase=phase)
     all_gates = await repositories.list_decision_gates(session_id)
     yield f"data: {json.dumps({'type': 'gates', 'gates': all_gates})}\n\n"
 
