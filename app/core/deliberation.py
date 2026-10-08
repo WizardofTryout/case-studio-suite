@@ -188,7 +188,7 @@ async def run_multi_agent_deliberation(
                     f"Führe eine strenge mehrdimensionale Prüfung der folgenden These anhand deiner aktiven Audit-Dimensionen ({dimensions_list_str}) durch.\n"
                     f"Gliedere deine Antwort zwingend in folgende Abschnitte:\n"
                     f"1. [PRÜFUNG DER DIMENSIONEN]: Untersuche jede gewählte Dimension separat (z. B. [PRÜFUNG: LATENZ], [PRÜFUNG: KOSTEN], etc.).\n"
-                    f"2. [SCHONUNGSLOSE KRITIK & RISIKEN]: Decke unausgesprochene Annahmen, physikalische Grenzen und Kostenfallen auf.\n"
+                    f"2. [RISIKOPRÜFUNG & GRENZBETRACHTUNG]: Decke unausgesprochene Annahmen, physikalische Grenzen und Kostenfallen auf.\n"
                     f"3. [KONSTRUKTIVE KORREKTURVORSCHLÄGE]: Konkrete architektonische Gegenmaßnahmen und Guardrails.\n\n"
                     f"ZU PRÜFENDE THESE:\n{topic_or_proposal}"
                 )

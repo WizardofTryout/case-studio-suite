@@ -22,7 +22,7 @@ window.HelpContent = {
         en: "Displays health status for local SQLite WAL database and Gemini API Key Pool."
       },
       details: {
-        de: "Case Studio läuft 100% lokal. Die SQLite-Datenbank befindet sich im hochperformanten WAL-Modus (Write-Ahead Logging), der parallele Lese- und Schreiboperationen ohne Sperrungen erlaubt. Der Key-Pool rotiert automatisch über hinterlegte Gemini-Keys, aktiviert bei HTTP 429 einen 60-Sekunden-Cooldown und schaltet nahtlos in den Simulations-Modus, falls keine Keys aktiv sind.",
+        de: "Case Studio läuft 100% lokal. Die SQLite-Datenbank befindet sich im hochperformanten WAL-Modus (Write-Ahead Logging), der parallele Lese- und Schreiboperationen ohne Sperrungen erlaubt. Der Key-Pool rotiert automatisch über hinterlegte Gemini-Keys, aktiviert bei HTTP 429 einen 60-Sekunden-Cooldown und wechselt unterbrechungsfrei in den Simulations-Modus, falls keine Keys aktiv sind.",
         en: "Case Studio runs 100% local-first. The embedded SQLite database operates in high-performance WAL mode (Write-Ahead Logging), allowing concurrent reads/writes without lock contention. The key pool rotates across configured Gemini keys, handles 60s cooldowns on rate limits, and safely falls back to offline simulation if no keys are active."
       },
       faqRef: "faq-data-sovereignty"
@@ -526,7 +526,7 @@ window.HelpContent = {
         name: "Gemini Multi-Key Pool",
         role: { de: "Ausfallsicherer API-Verbund", en: "Fault-Tolerant API Key Mesh" },
         metric: "Sub-50ms Failover",
-        desc: { de: "Automatischer 60s-Cooldown bei HTTP 429 und nahtloser Simulations-Fallback.", en: "Automated 60s cooldown on HTTP 429 and transparent simulation fallback." }
+        desc: { de: "Automatischer 60s-Cooldown bei HTTP 429 und unterbrechungsfreier Simulations-Fallback.", en: "Automated 60s cooldown on HTTP 429 and transparent simulation fallback." }
       },
       {
         name: "Archify Sidecar Engine",
