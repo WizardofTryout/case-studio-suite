@@ -2581,6 +2581,7 @@ const App = {
 
         let badgeHtml = "";
         let icon = "⚡";
+        let infoBtnHtml = "";
         let leadBoardHtml = "";
         let criticBoardHtml = "";
 
@@ -2588,6 +2589,7 @@ const App = {
           icon = "👑";
           card.classList.add("slot-lead");
           badgeHtml = `<span class="team-slot-badge slot-lead">👑 Lead-Architekt</span>`;
+          infoBtnHtml = `<button class="info-badge-btn" type="button" onclick="event.stopPropagation(); App.openContextualHelp('master_consultant')" title="Info zu Master Consultant &amp; Governance">ℹ️</button>`;
 
           const currentPreset = slot.methodology_preset || "purdue_ot";
           const guidelines = Array.isArray(slot.guidelines) ? slot.guidelines : [];
@@ -2646,6 +2648,7 @@ const App = {
           icon = "🛡️";
           card.classList.add("slot-critic");
           badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Multi-Skill Critic</span>`;
+          infoBtnHtml = `<button class="info-badge-btn" type="button" onclick="event.stopPropagation(); App.openContextualHelp('pragmatic_critic')" title="Info zu Pragmatic Critic &amp; Prüfmatrix">ℹ️</button>`;
 
           const criticSkills = Array.isArray(slot.critic_skills) ? slot.critic_skills : [];
           const activeSkills = Array.isArray(slot.active_critic_skills) ? slot.active_critic_skills : criticSkills;
@@ -2725,6 +2728,7 @@ const App = {
             <div style="display:flex; align-items:center; gap:8px;">
               <span style="font-size:1.15rem;">${icon}</span>
               <strong style="font-size:0.88rem; color:var(--text);">${this.escapeHtml(slot.name)}</strong>
+              ${infoBtnHtml}
             </div>
             ${badgeHtml}
           </div>

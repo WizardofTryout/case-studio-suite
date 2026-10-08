@@ -203,18 +203,60 @@ window.HelpContent = {
         en: "Multi-Agent Deliberation Studio"
       },
       badge: {
-        de: "Vier-Augen-Prinzip",
-        en: "Four-Eyes Audit"
+        de: "Souveränes Vier-Augen-Gremium",
+        en: "Sovereign Four-Eyes Board"
       },
       summary: {
-        de: "Drei spezialisierte Agenten prüfen kontroverse Thesen in einer moderierten Echtzeit-Debatte.",
-        en: "Three specialized agents audit controversial architecture hypotheses in real time."
+        de: "Moderierte Echtzeit-Debatte: Lead-Architekt mit Denkschulen, Multi-Skill Critic, Auto-Pilot & Custom Agents.",
+        en: "Moderated real-time debate: Lead Architect with methodologies, Multi-Skill Critic, Auto-Pilot & custom agents."
       },
       details: {
-        de: "Ein Lead Consultant, ein OT/Cloud-Fachexperte und der unbestechliche 'Hallucination Critic' nehmen deine These auseinander. Der Critic deckt unbegründete Kosten, Latenzfallen und physikalische Grenzen auf, bevor der Master-Consultant einen belastbaren Konsens formuliert.",
-        en: "A Lead Consultant, an OT/Cloud Domain Specialist, and an incorruptible 'Hallucination Critic' debate your hypothesis. The Critic challenges unverified costs, latency traps, and physics limits before the Lead synthesizes a hardened consensus."
+        de: "Das Deliberation Studio simuliert ein hochkarätiges C-Level-Review-Board:\n\n• Master Consultant (Lead): Souveräne Synthese, alleiniger Mermaid-Blueprint, schaltbare Denkschulen (Purdue OT, Cloud-Native, Minimal-TCO, Zero-Trust) und verbindliche Kunden-Leitlinien.\n• Pragmatic Critic: Unerbittliche Härtung über modulare Prüfdimensionen (Physik/Latenz, FinOps/Egress, IEC 62443, 48h Puffer) mit freier Skill-Zuweisung.\n• Fachexperten & Custom Agents: Domänenspezialisten (SPS, Kafka, Snowflake) und frei konfigurierbare Agenten mit individueller Persona.\n• Auto-Pilot: Erkennt automatisch das Thema deines Cases und bindet passende Spezialisten dynamisch zu.",
+        en: "The Deliberation Studio simulates an executive C-level engineering review board:\n\n• Master Consultant (Lead): Sovereign synthesis, authoritative Mermaid blueprints, toggleable methodology presets (Purdue OT, Cloud-Native, Minimal-TCO, Zero-Trust), and binding client directives.\n• Pragmatic Critic: Relentless hardening across modular audit dimensions (physics/latency, FinOps/egress, IEC 62443, 48h buffer) with universal skill assignment.\n• Specialists & Custom Agents: Domain experts (PLC, Kafka, Snowflake) and custom agents with tailored personas.\n• Auto-Pilot: Dynamically scans your case topic and automatically activates suitable specialists."
       },
       faqRef: "faq-deliberation"
+    },
+
+    "master_consultant": {
+      id: "master_consultant",
+      title: {
+        de: "Master Consultant (Lead Strategist) & Governance",
+        en: "Master Consultant (Lead Strategist) & Governance"
+      },
+      badge: {
+        de: "3-Ebenen-Architektur & Führung",
+        en: "3-Tier Architecture & Leadership"
+      },
+      summary: {
+        de: "Führt die Synthese, fällt verbindliche Architekturentscheidungen und steuert strategische Denkschulen & Leitlinien.",
+        en: "Directs synthesis, makes binding architectural rulings, and governs methodology presets & client guidelines."
+      },
+      details: {
+        de: "Der Master Consultant agiert als souveräner Chefarchitekt und neutraler Schiedsrichter des Gremiums:\n\n• Ebene 1 (System-Hoheit): Er allein zeichnet den verbindlichen Mermaid-Blueprint, erzwingt Decision Gates bei Spekulation und quantifiziert den Business Case (OEE, CAPEX/OPEX, ROI).\n• Ebene 2 (Denkschulen): Wähle per Klick zwischen 🏭 Purdue OT (Level 0-4 / ISA-95), ☁️ Cloud-Native (Event-Driven / Kafka), 💰 Minimal-TCO (Lean Open-Source / Low-CAPEX) und 🛡️ Zero-Trust (mTLS, Revisionssicherheit & Air-Gapped Notbetrieb).\n• Ebene 3 (Governance-Leitlinien): Schalte Richtlinien per Chip ein/aus, ergänze kundenspezifische Randbedingungen (z. B. 'AWS Only', '72h Offline') oder verknüpfe Standards direkt aus der Skill-Library.",
+        en: "The Master Consultant serves as the authoritative chief architect and impartial arbiter of the review board:\n\n• Tier 1 (System Primacy): Exclusively creates the definitive Mermaid blueprint, halts speculation via Decision Gates, and quantifies executive business metrics (OEE, CAPEX/OPEX, ROI).\n• Tier 2 (Methodology Presets): Toggle seamlessly between 🏭 Purdue OT (Level 0-4 / ISA-95), ☁️ Cloud-Native (Event-Driven / Kafka), 💰 Minimal-TCO (Lean Open-Source / Low-CAPEX), and 🛡️ Zero-Trust (mTLS, audit trails & air-gapped resilience).\n• Tier 3 (Governance Directives): Toggle guideline chips on/off, inject custom client constraints (e.g. 'AWS Only', '72h Offline'), or link architectural standards directly from the skill library."
+      },
+      faqRef: "faq-master-consultant"
+    },
+
+    "pragmatic_critic": {
+      id: "pragmatic_critic",
+      title: {
+        de: "Pragmatic Critic & Multi-Skill Prüfmatrix",
+        en: "Pragmatic Critic & Multi-Skill Audit Matrix"
+      },
+      badge: {
+        de: "Multi-Skill Härtung & Risk Audit",
+        en: "Multi-Skill Hardening & Risk Audit"
+      },
+      summary: {
+        de: "Hinterfragt Latenzen, Kosten, Vendor-Lock-in und Industrie-Security gnadenlos über frei konfigurierbare Prüfdimensionen.",
+        en: "Relentlessly challenges latency, cloud egress costs, vendor lock-in, and industrial security across configurable audit dimensions."
+      },
+      details: {
+        de: "Der Critic schützt vor kostspieligen Fehlplanungen und naiven KI-Architekturentwürfen:\n\n• Vorkonfigurierte Presets: Ein Klick aktiviert zielgerichtete Prüfpakete – 🏭 'Industrial OT' (Physik, Latenz, IEC 62443, 48h Ausfallpuffer), 💰 'Cloud & FinOps' (Cloud-Egress, Speicher-TCO) oder 🛡️ 'Full Hardening' (inkl. SIL Safety).\n• Freie Prüfdimensionen: Jede Dimension lässt sich per Checkbox flexibel aktivieren/deaktivieren oder entfernen.\n• Universelle Skill-Zuweisung: Über '➕ Skill zuweisen' kann JEDER beliebige Skill aus der Enterprise-Library (z. B. IEC 62443, SIL Safety, Cyber Defense) als zusätzliche Audit-Dimension eingehängt werden.",
+        en: "The Critic prevents expensive architectural mistakes and naive AI recommendations:\n\n• One-Click Presets: Instantly activate tailored audit suites – 🏭 'Industrial OT' (Physics, latency, IEC 62443, 48h offline buffer), 💰 'Cloud & FinOps' (Cloud egress, storage TCO), or 🛡️ 'Full Hardening' (including SIL safety).\n• Modular Audit Dimensions: Check/uncheck individual dimension chips or remove them as needed.\n• Universal Skill Assignment: Use '➕ Assign Skill' to attach ANY domain skill from the enterprise catalog (e.g. IEC 62443, SIL safety, cyber defense) as an active audit lens."
+      },
+      faqRef: "faq-critic-skills"
     }
   },
 
@@ -343,8 +385,34 @@ window.HelpContent = {
         en: "What roles do agents play in the Deliberation Studio?"
       },
       answer: {
-        de: "Im Deliberation Studio simulieren wir ein hochkarätiges Fachgremium:\n• **Hallucination Critic (Rot)**: Hinterfragt Annahmen unerbittlich, rechnet Bandbreitenkosten nach und deckt physikalische Unmöglichkeiten auf.\n• **Domain Specialist (Cyan)**: Bringt praxiserprobte OT- und Cloud-Architekturmuster (Pufferung, Feldbus, Ingest) ein.\n• **Master-Consultant Lead (Violett)**: Führt den Vorsitz, formuliert den tragfähigen Konsens und erzeugt den finalen Entwurf.",
-        en: "The Deliberation Studio simulates an executive engineering review board:\n• **Hallucination Critic (Red)**: Rigorously challenges assumptions, calculates bandwidth expenses, and surfaces physical bottlenecks.\n• **Domain Specialist (Cyan)**: Contributes robust OT and cloud patterns (edge buffers, industrial protocols, streaming).\n• **Master-Consultant Lead (Purple)**: Moderates the debate, synthesizes consensus, and formulates final blueprints."
+        de: "Im Deliberation Studio simulieren wir ein hochkarätiges Fachgremium für Enterprise-Architekturen:\n\n• **Master Consultant (Lead Strategist)**: Moderiert die Debatte, fällt Richtungsentscheidungen anhand gewählter Denkschulen und Kunden-Vorgaben, formuliert Decision Gates bei fehlenden Fakten und erzeugt als Einziger den verbindlichen Mermaid-Blueprint.\n• **Pragmatic Critic & Risk Assessor**: Hinterfragt Latenzen, Egress-Kosten, Single Points of Failure und OT-Security gnadenlos über konfigurierbare Prüfdimensionen.\n• **Fachspezialisten (Domain Experts)**: Bringen praxiserprobtes Spezialwissen (z. B. SPS/OPC UA, Kafka Streaming, Snowflake Lakehouse, Industrial AI) ein.\n• **Custom Agents & Auto-Pilot**: Du kannst eigene Agenten mit freier Persona einbinden oder den Auto-Pilot aktivieren, der anhand deines Cases passende Spezialisten dynamisch zuschaltet.",
+        en: "The Deliberation Studio simulates an executive engineering review board:\n\n• **Master Consultant (Lead Strategist)**: Moderates debate, enforces methodology presets and binding client guidelines, halts speculation via Decision Gates, and exclusively authors the definitive Mermaid blueprint.\n• **Pragmatic Critic & Risk Assessor**: Relentlessly challenges latency bottlenecks, cloud egress expenses, single points of failure, and industrial security across modular audit dimensions.\n• **Domain Specialists**: Deliver battle-tested field expertise (e.g. PLC/OPC UA, Kafka streaming, Snowflake lakehouse, Industrial AI).\n• **Custom Agents & Auto-Pilot**: Attach custom agents with tailored personas, or enable Auto-Pilot to dynamically detect and assign specialists matching your case topic."
+      }
+    },
+    {
+      id: "faq-master-consultant",
+      category: "deliberation",
+      badge: { de: "Architektur-Governance", en: "Architecture Governance" },
+      question: {
+        de: "Wie steuere ich die Denkschulen & Governance-Vorgaben des Master Consultants?",
+        en: "How do I configure methodology presets and governance rules for the Master Consultant?"
+      },
+      answer: {
+        de: "Der Master Consultant folgt einer strikten 3-Ebenen-Architektur, um maximale Anpassbarkeit ohne Rollenverlust zu garantieren:\n\n• **1. System-Hoheit (Non-Negotiable Core):** Unabhängig von Einstellungen behält er stets das Schlusswort, formuliert Decision Gates bei unvollständigen Kundenfakten und zeichnet den verbindlichen Mermaid-Blueprint mit C-Level ROI/TCO-Bewertung.\n• **2. Strategische Denkschulen (Presets):** Mit einem Klick wählst du die Entwurfsphilosophie:\n  - **🏭 Purdue OT:** Strikte Hierarchie (Level 0–4 / ISA-95), DMZ, deterministische Echtzeitsteuerung On-Premises.\n  - **☁️ Cloud-Native:** Event-Driven Streaming Backbone (Kafka), Microservices, Serverless, Cloud Lakehouse.\n  - **💰 Minimal-TCO:** Schlanker Open-Source Stack (MQTT, PostgreSQL, Docker-Compose), minimale Cloud-Kosten.\n  - **🛡️ Zero-Trust:** Gegenseitiges mTLS, lückenlose Audit-Logs, NIS-2 / FDA Compliance & 72h Air-Gapped Notbetrieb.\n• **3. Verbindliche Kunden-Leitlinien:** Über die interaktiven Chips kannst du Vorgaben einzeln aktivieren/deaktivieren, per Modal eigene Randbedingungen (z. B. 'Target Cloud: AWS Only', 'Keine Public IPs am Edge') formulieren oder Standards aus der Library verknüpfen. Diese fließen als zwingende Synthese-Vorgaben in den Blueprint ein.",
+        en: "The Master Consultant follows a strict 3-tier architecture:\n\n• **1. System Primacy (Non-Negotiable Core):** Regardless of settings, he retains final synthesis authority, enforces Decision Gates on missing facts, and authors the definitive Mermaid blueprint with C-level ROI/TCO calculations.\n• **2. Strategic Methodology Presets:** Select design philosophy with one click:\n  - **🏭 Purdue OT:** Strict hierarchy (Level 0–4 / ISA-95), DMZ, on-prem deterministic real-time control.\n  - **☁️ Cloud-Native:** Event-driven streaming backbone (Kafka), microservices, serverless, cloud lakehouse.\n  - **💰 Minimal-TCO:** Lean open-source stack (MQTT, PostgreSQL, Docker Compose), minimal cloud costs.\n  - **🛡️ Zero-Trust:** Mutual mTLS, immutable audit trails, NIS-2 / FDA compliance & 72h air-gapped resilience.\n• **3. Binding Client Guidelines:** Toggle guidelines via interactive chips, inject custom constraints (e.g. 'Target Cloud: AWS Only', 'No Public IPs on Edge') via modal, or link catalog standards. These become mandatory synthesis requirements."
+      }
+    },
+    {
+      id: "faq-critic-skills",
+      category: "deliberation",
+      badge: { de: "Multi-Skill Audit", en: "Multi-Skill Audit" },
+      question: {
+        de: "Wie funktioniert der Multi-Skill Critic und wie weise ich Prüfdimensionen zu?",
+        en: "How does the Multi-Skill Critic work and how do I assign audit dimensions?"
+      },
+      answer: {
+        de: "Der **Pragmatic Critic & Risk Assessor** prüft Entwürfe nicht pauschal, sondern anhand strukturierter Prüfdimensionen:\n\n• **Schnellwahl über Presets:**\n  - **🏭 Industrial OT:** Prüft Physik & Latenz (<20ms), IEC 62443 Security-Zonen und 48h Ausfallpufferung.\n  - **💰 Cloud & FinOps:** Prüft Netzwerk-Egress, Cloud-Storage Kosten und Vendor-Lock-in.\n  - **🛡️ Full Hardening:** Kombiniert alle Schutzdimensionen inklusive SIL Safety Compliance.\n• **Granulare Steuerung:** Jede Dimension kann über die Checkboxen der Chips einzeln zu- oder abgeschaltet oder über das '✕'-Symbol entfernt werden.\n• **Beliebige Library-Skills zuweisen:** Über den Button **'➕ Skill zuweisen'** öffnet sich der Katalog. Jeder globale oder projektbezogene Skill kann ausgewählt und dem Critic als neue, verbindliche Prüfdimension zugewiesen werden.",
+        en: "The **Pragmatic Critic & Risk Assessor** audits blueprints across structured dimensions:\n\n• **Preset Quick Selection:**\n  - **🏭 Industrial OT:** Audits physics & latency (<20ms), IEC 62443 security zones, and 48h offline buffers.\n  - **💰 Cloud & FinOps:** Audits network egress, storage TCO, and vendor lock-in risks.\n  - **🛡️ Full Hardening:** Combines all hardening dimensions including SIL safety compliance.\n• **Granular Control:** Check or uncheck individual chips or remove them with '✕'.\n• **Attach Any Library Skill:** Clicking **'➕ Assign Skill'** opens the catalog, allowing any enterprise or domain skill to be assigned as a formal audit lens."
       }
     },
     {
