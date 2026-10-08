@@ -2157,6 +2157,184 @@ svg .edgeLabel span {
   border-color: rgba(244, 63, 94, 0.3);
 }
 
+/* Multi-Skill Critic Board & Presets (Sprint 8.3) */
+.team-slot-card.slot-critic {
+  grid-column: span 1;
+  border-left: 3px solid var(--rose);
+}
+
+@media (min-width: 1200px) {
+  .team-slot-card.slot-critic {
+    grid-column: span 2;
+  }
+}
+
+.team-slot-card.slot-custom {
+  border-left: 3px solid var(--amber, #f59e0b);
+}
+
+.critic-multi-skill-board {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .critic-multi-skill-board {
+  border-top-color: rgba(0, 0, 0, 0.08);
+}
+
+.critic-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.critic-presets-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--rose);
+}
+
+.critic-presets-btns {
+  display: flex;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.btn-critic-preset {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  color: var(--rose);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-critic-preset:hover {
+  background: rgba(244, 63, 94, 0.22);
+  border-color: var(--rose);
+  transform: translateY(-1px);
+}
+
+.critic-chips-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.critic-skill-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.72rem;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+}
+
+.critic-skill-chip:hover {
+  border-color: rgba(244, 63, 94, 0.4);
+}
+
+.critic-skill-chip.active {
+  background: rgba(244, 63, 94, 0.12);
+  border-color: rgba(244, 63, 94, 0.5);
+  color: var(--text-main);
+  box-shadow: 0 0 10px rgba(244, 63, 94, 0.15);
+}
+
+[data-theme="light"] .critic-skill-chip.active {
+  background: #ffe4e6;
+  border-color: #f43f5e;
+  color: #9f1239;
+}
+
+.critic-chip-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.critic-chip-checkbox-label input[type="checkbox"] {
+  accent-color: var(--rose);
+  cursor: pointer;
+  width: 12px;
+  height: 12px;
+  margin: 0;
+}
+
+.critic-skill-chip .chip-name {
+  font-weight: 600;
+}
+
+.critic-skill-chip .chip-remove-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0 2px;
+  margin-left: 2px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.critic-skill-chip .chip-remove-btn:hover {
+  color: var(--rose);
+}
+
+.btn-critic-add-skill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px dashed rgba(255, 255, 255, 0.2);
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-critic-add-skill:hover {
+  background: rgba(244, 63, 94, 0.15);
+  border-color: var(--rose);
+  color: var(--rose);
+}
+
+[data-theme="light"] .btn-critic-add-skill {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #64748b;
+}
+
+[data-theme="light"] .btn-critic-add-skill:hover {
+  background: #ffe4e6;
+  border-color: #f43f5e;
+  color: #e11d48;
+}
+
+.custom-agent-modal-card {
+  max-width: 520px;
+  width: 90vw;
+}
+
 /* Chat Thread */
 .chat-thread {
   flex: 1;

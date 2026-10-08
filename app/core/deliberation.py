@@ -143,26 +143,54 @@ async def run_multi_agent_deliberation(
         # Assemble prompt according to agent role and debate transcript
         if role == "critic":
             agent_instruction = f"{HALLUCINATION_CRITIC_SYSTEM_PROMPT}\n\n{lang_directive}\n\n{abbrev_rule}"
-            if skill_text:
-                agent_instruction += f"\n\n--- SKILL-SPEZIFIKATION DES KRITIKERS:\n{skill_text[:1200]}"
+            
+            # Multi-Skill Critic Assembly (Sprint 8.3)
+            critic_skills = agent.get("active_critic_skills") or agent.get("critic_skills") or []
+            if not critic_skills and skill_key:
+                critic_skills = [skill_key]
+
+            combined_skill_texts = []
+            dimension_names = []
+            for c_key in critic_skills:
+                try:
+                    c_data = await get_skill_content(c_key, project_id=project_id)
+                    c_content = c_data.get("content", "").strip()
+                    c_meta = c_data.get("metadata") or {}
+                    c_name = c_meta.get("display_name") or c_data.get("display_name") or c_key.replace("-", " ").title()
+                    dimension_names.append(c_name)
+                    if c_content:
+                        combined_skill_texts.append(f"### AKTIVE AUDIT-DIMENSION: {c_name}\n{c_content[:1500]}")
+                except Exception as e:
+                    logger.warning(f"Could not load critic skill {c_key}: {e}")
+
+            if combined_skill_texts:
+                agent_instruction += "\n\n--- KONFIGURIERTE PRÜF-SKILLS DES AUDIT-BOARDS:\n" + "\n\n".join(combined_skill_texts)
+
+            dimensions_list_str = ", ".join(dimension_names) if dimension_names else "Physik & Latenz, Kosten, Security, Ausfallsicherheit"
 
             if is_en:
                 agent_prompt = (
                     f"{agent_instruction}\n\n"
                     f"--- PROJECT CONTEXT:\n{context_str}\n\n"
-                    f"--- AUDIT TASK:\n"
-                    f"Critically analyze the following proposal for unrealistic assumptions, cloud latencies (<20ms), "
-                    f"bandwidth surges, single points of failure, security zone gaps (IEC 62443) and unspoken assumptions. "
-                    f"Provide uncompromising critique and constructive corrective guidance:\n\n{topic_or_proposal}"
+                    f"--- STRUCTURED MULTI-SKILL AUDIT TASK:\n"
+                    f"Perform a strict multi-dimensional audit of the following proposal based on your active dimensions ({dimensions_list_str}).\n"
+                    f"Structure your response clearly with markdown sections:\n"
+                    f"1. [AUDIT DIMENSIONS]: Assess each active dimension specifically (e.g. [AUDIT: LATENCY], [AUDIT: COSTS]).\n"
+                    f"2. [CRITIQUE & REALITY GAPS]: Pinpoint violations of physics, cost traps, single points of failure, or unverified assumptions.\n"
+                    f"3. [CORRECTION RECOMMENDATIONS]: Concrete architectural adjustments.\n\n"
+                    f"PROPOSAL TO AUDIT:\n{topic_or_proposal}"
                 )
             else:
                 agent_prompt = (
                     f"{agent_instruction}\n\n"
                     f"--- PROJEKT-KONTEXT:\n{context_str}\n\n"
-                    f"--- PRÜFUNGSAUFTRAG:\n"
-                    f"Analysiere die folgende These kritisch auf Realitätsferne, unrealistische Latenzen (<20ms in Cloud), "
-                    f"Bandbreiten-Explosionen, Single Points of Failure, Sicherheitslücken (IEC 62443 Zonen) und unausgesprochene Annahmen. "
-                    f"Liefere konkrete, schonungslose Kritik und konstruktive Korrekturvorschläge:\n\n{topic_or_proposal}"
+                    f"--- STRUKTURIERTER MULTI-SKILL PRÜFUNGSAUFTRAG:\n"
+                    f"Führe eine strenge mehrdimensionale Prüfung der folgenden These anhand deiner aktiven Audit-Dimensionen ({dimensions_list_str}) durch.\n"
+                    f"Gliedere deine Antwort zwingend in folgende Abschnitte:\n"
+                    f"1. [PRÜFUNG DER DIMENSIONEN]: Untersuche jede gewählte Dimension separat (z. B. [PRÜFUNG: LATENZ], [PRÜFUNG: KOSTEN], etc.).\n"
+                    f"2. [SCHONUNGSLOSE KRITIK & RISIKEN]: Decke unausgesprochene Annahmen, physikalische Grenzen und Kostenfallen auf.\n"
+                    f"3. [KONSTRUKTIVE KORREKTURVORSCHLÄGE]: Konkrete architektonische Gegenmaßnahmen und Guardrails.\n\n"
+                    f"ZU PRÜFENDE THESE:\n{topic_or_proposal}"
                 )
             is_critique = 1
 

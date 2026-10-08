@@ -100,6 +100,9 @@
                 <button id="btn-add-agent-slot-copilot" class="btn btn-secondary btn-sm" type="button" data-i18n="team_add_expert">
                   ＋ Experte hinzufügen
                 </button>
+                <button id="btn-add-custom-agent-copilot" class="btn btn-secondary btn-sm" type="button" title="Vollständig eigenen Fachagenten mit Persona konfigurieren">
+                  ➕ Add your Agent
+                </button>
                 <button id="btn-sync-catalog-copilot" class="btn btn-secondary btn-sm" type="button" title="Aus 35+ Fachdomänen wählen" data-i18n="team_select_catalog">
                   🏛️ Aus Katalog wählen ▾
                 </button>
@@ -534,6 +537,9 @@
               </button>
               <button id="btn-add-agent-slot" class="btn btn-secondary btn-sm" type="button" data-i18n="team_add_expert">
                 ＋ Experte hinzufügen
+              </button>
+              <button id="btn-add-custom-agent" class="btn btn-secondary btn-sm" type="button" title="Vollständig eigenen Fachagenten mit Persona konfigurieren">
+                ➕ Add your Agent
               </button>
               <button id="btn-clear-chat" class="btn btn-secondary btn-sm" type="button" title="Chatverlauf leeren" data-i18n="delib_clear_chat">
                 🗑️ Chat leeren
@@ -1427,6 +1433,74 @@
 
       <div class="modal-actions" style="margin-top:8px;">
         <button id="btn-cancel-agent-tile" class="btn btn-secondary btn-sm">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Agent Slot Modal (Sprint 8.3) -->
+  <div id="custom-agent-modal-overlay" class="modal-overlay">
+    <div class="modal-card custom-agent-modal-card">
+      <div class="modal-header-row">
+        <div>
+          <div class="modal-title">➕ Eigenen Fachagenten konfigurieren</div>
+          <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+            Erstelle eine individuelle Persona mit spezifischer Rolle, Fachfokus und Leitplanken für die Debatte.
+          </div>
+        </div>
+        <button class="btn-close-modal" id="btn-close-custom-agent-modal">&times;</button>
+      </div>
+
+      <div class="modal-body" style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+        <div class="form-group">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Agenten-Name & Persona *</label>
+          <input type="text" id="custom-agent-name" class="gate-answer-input" placeholder="z. B. Dr. Weber (CISO & OT Compliance) oder BaFin-Prüfer" style="width:100%;" />
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Rolle & Fachfokus *</label>
+          <textarea id="custom-agent-desc" class="gate-answer-input" rows="2" placeholder="z. B. Bewertet Cloud- und Edge-Architekturen streng nach regulatorischen Vorgaben und deckt Compliance-Lücken auf." style="width:100%; resize:vertical;"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Zugeordneter Skill aus der Library (Optional)</label>
+          <select id="custom-agent-skill-select" class="gate-answer-input" style="width:100%; cursor:pointer;">
+            <option value="">-- Kein spezifischer Skill (Generischer Spezialist) --</option>
+          </select>
+        </div>
+
+        <div style="display:flex; gap:16px; flex-wrap:wrap;">
+          <div class="form-group" style="flex:1; min-width:140px;">
+            <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Icon</label>
+            <select id="custom-agent-icon" class="gate-answer-input" style="width:100%; cursor:pointer;">
+              <option value="⚡">⚡ Blitz (Technik / Performance)</option>
+              <option value="🛡️">🛡️ Schild (Security / Compliance)</option>
+              <option value="⚙️">⚙️ Zahnrad (Maschinenbau / SPS)</option>
+              <option value="⚖️">⚖️ Waage (Recht / Governance)</option>
+              <option value="💰">💰 Währung (FinOps / Kosten)</option>
+              <option value="🏭">🏭 Fabrik (Industrial OT / SCADA)</option>
+              <option value="☁️">☁️ Wolke (Cloud & Streaming)</option>
+              <option value="🧬">🧬 DNA (Science & Biotech)</option>
+              <option value="🤖">🤖 Roboter (AI & Automation)</option>
+              <option value="📊">📊 Diagramm (Analytics & BI)</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="flex:1; min-width:140px;">
+            <label style="font-size:0.8rem; font-weight:600; color:var(--text-main); margin-bottom:4px; display:block;">Akzentfarbe</label>
+            <select id="custom-agent-color" class="gate-answer-input" style="width:100%; cursor:pointer;">
+              <option value="var(--amber)">Amber / Gold (Führung & Audit)</option>
+              <option value="var(--violet)">Violett (Strategie & Deep Dive)</option>
+              <option value="var(--cyan)">Cyan (Technologie & Edge)</option>
+              <option value="var(--emerald)">Smaragdgrün (Science & Data)</option>
+              <option value="var(--rose)">Rose / Rot (Risiko & Security)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions" style="margin-top:14px; display:flex; justify-content:flex-end; gap:8px;">
+        <button id="btn-cancel-custom-agent" class="btn btn-secondary btn-sm" type="button">Abbrechen</button>
+        <button id="btn-submit-custom-agent" class="btn btn-primary btn-sm" type="button">➕ Agent ins Team aufnehmen</button>
       </div>
     </div>
   </div>

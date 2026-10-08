@@ -703,7 +703,19 @@ const App = {
         skill_key: "base_critic",
         is_fixed: true,
         category: "critic",
-        description: "Hinterfragt Latenzen, Kosten, Vendor-Lock-in und Ausfallsicherheit gnadenlos."
+        description: "Hinterfragt Latenzen, Kosten, Vendor-Lock-in und Ausfallsicherheit gnadenlos.",
+        critic_skills: [
+          "physics---latency-validator",
+          "cloud-cost---egress-auditor",
+          "iec-62443---ot-cybersecurity-inspector",
+          "high-availability---48h-buffer-auditor"
+        ],
+        active_critic_skills: [
+          "physics---latency-validator",
+          "cloud-cost---egress-auditor",
+          "iec-62443---ot-cybersecurity-inspector",
+          "high-availability---48h-buffer-auditor"
+        ]
       }
     ];
   },
@@ -2335,6 +2347,34 @@ const App = {
       syncCatalogBtnCopilot.addEventListener("click", () => this.openAgentTileModal("slot", null));
     }
 
+    // Custom Agent Slot buttons & modal (Sprint 8.3)
+    const customAgentBtn = document.getElementById("btn-add-custom-agent");
+    if (customAgentBtn) {
+      customAgentBtn.addEventListener("click", () => this.openCustomAgentModal());
+    }
+    const customAgentBtnCopilot = document.getElementById("btn-add-custom-agent-copilot");
+    if (customAgentBtnCopilot) {
+      customAgentBtnCopilot.addEventListener("click", () => this.openCustomAgentModal());
+    }
+    const closeCustomAgentBtn = document.getElementById("btn-close-custom-agent-modal");
+    if (closeCustomAgentBtn) {
+      closeCustomAgentBtn.addEventListener("click", () => this.closeCustomAgentModal());
+    }
+    const cancelCustomAgentBtn = document.getElementById("btn-cancel-custom-agent");
+    if (cancelCustomAgentBtn) {
+      cancelCustomAgentBtn.addEventListener("click", () => this.closeCustomAgentModal());
+    }
+    const submitCustomAgentBtn = document.getElementById("btn-submit-custom-agent");
+    if (submitCustomAgentBtn) {
+      submitCustomAgentBtn.addEventListener("click", () => this.submitCustomAgent());
+    }
+    const customAgentOverlay = document.getElementById("custom-agent-modal-overlay");
+    if (customAgentOverlay) {
+      customAgentOverlay.addEventListener("click", (e) => {
+        if (e.target === customAgentOverlay) this.closeCustomAgentModal();
+      });
+    }
+
     // Deliberation input shortcut: Cmd/Ctrl + Enter
     const delibInput = document.getElementById("deliberation-input");
     if (delibInput) {
@@ -2406,6 +2446,22 @@ const App = {
       const team = await API.getDeliberationTeam(this.state.currentSessionId);
       if (team && Array.isArray(team.configured_agents) && team.configured_agents.length > 0) {
         this.deliberationState.teamSlots = team.configured_agents;
+        // Ensure critic slot has critic_skills initialized
+        this.deliberationState.teamSlots.forEach(s => {
+          if (s.role === "critic") {
+            if (!Array.isArray(s.critic_skills) || s.critic_skills.length === 0) {
+              s.critic_skills = [
+                "physics---latency-validator",
+                "cloud-cost---egress-auditor",
+                "iec-62443---ot-cybersecurity-inspector",
+                "high-availability---48h-buffer-auditor"
+              ];
+            }
+            if (!Array.isArray(s.active_critic_skills)) {
+              s.active_critic_skills = [...s.critic_skills];
+            }
+          }
+        });
         if (team.auto_pilot !== undefined) {
           this.deliberationState.autoPilot = !!team.auto_pilot;
         }
@@ -2471,6 +2527,8 @@ const App = {
 
         let badgeHtml = "";
         let icon = "⚡";
+        let criticBoardHtml = "";
+
         if (slot.role === "master_consultant") {
           icon = "👑";
           card.classList.add("slot-lead");
@@ -2478,7 +2536,61 @@ const App = {
         } else if (slot.role === "critic") {
           icon = "🛡️";
           card.classList.add("slot-critic");
-          badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Qualitätswächter</span>`;
+          badgeHtml = `<span class="team-slot-badge slot-critic">🛡️ Multi-Skill Critic</span>`;
+
+          const criticSkills = Array.isArray(slot.critic_skills) ? slot.critic_skills : [];
+          const activeSkills = Array.isArray(slot.active_critic_skills) ? slot.active_critic_skills : criticSkills;
+
+          let chipsHtml = "";
+          criticSkills.forEach(cKey => {
+            const meta = this.getCriticSkillMeta(cKey);
+            const isActive = activeSkills.includes(cKey);
+            chipsHtml += `
+              <div class="critic-skill-chip ${isActive ? 'active' : 'inactive'}" title="${this.escapeHtml(meta.desc)}">
+                <label class="critic-chip-checkbox-label" onclick="event.stopPropagation();">
+                  <input type="checkbox" ${isActive ? 'checked' : ''} onchange="App.toggleCriticSkill(${idx}, '${this.escapeHtml(cKey)}')" />
+                  <span>${meta.icon}</span>
+                  <span class="chip-name">${this.escapeHtml(meta.name)}</span>
+                </label>
+                <button type="button" class="chip-remove-btn" onclick="event.stopPropagation(); App.removeCriticSkill(${idx}, '${this.escapeHtml(cKey)}')" title="Dimension entfernen">✕</button>
+              </div>
+            `;
+          });
+
+          criticBoardHtml = `
+            <div class="critic-multi-skill-board">
+              <div class="critic-presets-row">
+                <span class="critic-presets-label">⚡ Presets:</span>
+                <div class="critic-presets-btns">
+                  <button type="button" class="btn-critic-preset" onclick="App.applyCriticPreset(${idx}, 'industrial')" title="Aktiviert Physik, IEC 62443 Security & 48h Ausfallpuffer">
+                    🏭 Industrial OT
+                  </button>
+                  <button type="button" class="btn-critic-preset" onclick="App.applyCriticPreset(${idx}, 'cloud')" title="Aktiviert Cloud-Kosten & Latenz">
+                    💰 Cloud & FinOps
+                  </button>
+                  <button type="button" class="btn-critic-preset" onclick="App.applyCriticPreset(${idx}, 'full')" title="Aktiviert alle Härtungs-Dimensionen">
+                    🛡️ Full Hardening
+                  </button>
+                </div>
+              </div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+                <span style="font-size:0.7rem; font-weight:600; color:var(--text-muted);">
+                  Aktive Prüf-Dimensionen (${activeSkills.length}/${criticSkills.length}):
+                </span>
+              </div>
+              <div class="critic-chips-container">
+                ${chipsHtml}
+                <button type="button" class="btn-critic-add-skill" onclick="App.openAgentTileModal('critic_skill', ${idx})" title="Beliebigen Skill aus Library als Prüfdimension zuweisen">
+                  ➕ Skill zuweisen
+                </button>
+              </div>
+            </div>
+          `;
+        } else if (slot.is_custom) {
+          icon = slot.icon || "⭐";
+          card.classList.add("slot-custom");
+          const customColor = slot.color || "var(--amber)";
+          badgeHtml = `<span class="team-slot-badge slot-custom" style="border:1px solid ${customColor}; color:${customColor}; background:rgba(255,255,255,0.05);">⭐ Custom Agent</span>`;
         } else {
           icon = "⚡";
           card.classList.add("slot-expert");
@@ -2508,6 +2620,7 @@ const App = {
             ${badgeHtml}
           </div>
           <div class="team-slot-desc">${this.escapeHtml(slot.description || "Bringt tiefgreifendes Domänenwissen in die Debatte ein.")}</div>
+          ${criticBoardHtml}
           ${actionsHtml}
         `;
         grid.appendChild(card);
@@ -2545,15 +2658,233 @@ const App = {
     }
   },
 
+  getCriticSkillMeta(key) {
+    const metaMap = {
+      "physics---latency-validator": {
+        name: "Physik & Latenz",
+        icon: "⚡",
+        desc: "Prüft Signal-Laufzeiten, Zero-Latency Verbot & Edge-Notwendigkeit",
+        isCore: true
+      },
+      "cloud-cost---egress-auditor": {
+        name: "Cloud-Kosten & Egress",
+        icon: "💰",
+        desc: "Berechnet Bandbreiten- & Snowflake/AWS-Kostenfallen",
+        isCore: true
+      },
+      "iec-62443---ot-cybersecurity-inspector": {
+        name: "IEC 62443 Security",
+        icon: "🔒",
+        desc: "Zonen, Conduits, Purdue-Level DMZ & mTLS",
+        isCore: true
+      },
+      "high-availability---48h-buffer-auditor": {
+        name: "48h Ausfallpuffer",
+        icon: "📦",
+        desc: "Store-and-Forward Pufferung bei Uplink-Verlust",
+        isCore: true
+      },
+      "sil---safety-compliance-auditor": {
+        name: "SIL & Safety Compliance",
+        icon: "⚠️",
+        desc: "Maschinensicherheit, Not-Aus & SIL 2/3 Richtlinien",
+        isCore: true
+      }
+    };
+    if (metaMap[key]) return metaMap[key];
+    if (this.skillsState && Array.isArray(this.skillsState.library)) {
+      const found = this.skillsState.library.find(s => (s.skill_key || s.id) === key);
+      if (found) {
+        return {
+          name: found.display_name || found.name || key,
+          icon: "🛡️",
+          desc: found.description || "Individuelle Audit-Dimension aus der Library",
+          isCore: false
+        };
+      }
+    }
+    const cleanName = key.replace(/---/g, " ").replace(/-/g, " ").replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+    return {
+      name: cleanName,
+      icon: "🛡️",
+      desc: "Audit-Dimension",
+      isCore: false
+    };
+  },
+
+  async applyCriticPreset(slotIdx, presetKey) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "critic") return;
+
+    if (!Array.isArray(slot.critic_skills)) {
+      slot.critic_skills = [];
+    }
+
+    if (presetKey === "industrial") {
+      const target = [
+        "physics---latency-validator",
+        "iec-62443---ot-cybersecurity-inspector",
+        "high-availability---48h-buffer-auditor"
+      ];
+      target.forEach(k => {
+        if (!slot.critic_skills.includes(k)) slot.critic_skills.push(k);
+      });
+      slot.active_critic_skills = [...target];
+      window.showToast("⚡ Preset 'Industrial OT Audit' aktiviert!", "info");
+    } else if (presetKey === "cloud") {
+      const target = [
+        "physics---latency-validator",
+        "cloud-cost---egress-auditor"
+      ];
+      target.forEach(k => {
+        if (!slot.critic_skills.includes(k)) slot.critic_skills.push(k);
+      });
+      slot.active_critic_skills = [...target];
+      window.showToast("💰 Preset 'Cloud & FinOps Audit' aktiviert!", "info");
+    } else if (presetKey === "full") {
+      const target = [
+        "physics---latency-validator",
+        "cloud-cost---egress-auditor",
+        "iec-62443---ot-cybersecurity-inspector",
+        "high-availability---48h-buffer-auditor",
+        "sil---safety-compliance-auditor"
+      ];
+      target.forEach(k => {
+        if (!slot.critic_skills.includes(k)) slot.critic_skills.push(k);
+      });
+      slot.active_critic_skills = Array.from(new Set([...slot.critic_skills, ...target]));
+      window.showToast("🛡️ Preset 'Full Hardening Audit' aktiviert!", "info");
+    }
+
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+  },
+
+  async toggleCriticSkill(slotIdx, skillKey) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "critic") return;
+    if (!Array.isArray(slot.active_critic_skills)) {
+      slot.active_critic_skills = Array.isArray(slot.critic_skills) ? [...slot.critic_skills] : [];
+    }
+    const pos = slot.active_critic_skills.indexOf(skillKey);
+    if (pos >= 0) {
+      slot.active_critic_skills.splice(pos, 1);
+    } else {
+      slot.active_critic_skills.push(skillKey);
+    }
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+  },
+
+  async removeCriticSkill(slotIdx, skillKey) {
+    const slot = this.deliberationState.teamSlots[slotIdx];
+    if (!slot || slot.role !== "critic") return;
+    if (Array.isArray(slot.critic_skills)) {
+      slot.critic_skills = slot.critic_skills.filter(k => k !== skillKey);
+    }
+    if (Array.isArray(slot.active_critic_skills)) {
+      slot.active_critic_skills = slot.active_critic_skills.filter(k => k !== skillKey);
+    }
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+    window.showToast(`Skill "${skillKey}" vom Critic entfernt.`, "info");
+  },
+
+  async openCustomAgentModal() {
+    const overlay = document.getElementById("custom-agent-modal-overlay");
+    if (!overlay) return;
+
+    // Reset inputs
+    const nameInput = document.getElementById("custom-agent-name");
+    if (nameInput) nameInput.value = "";
+    const descInput = document.getElementById("custom-agent-desc");
+    if (descInput) descInput.value = "";
+    const iconInput = document.getElementById("custom-agent-icon");
+    if (iconInput) iconInput.value = "⚡";
+    const colorInput = document.getElementById("custom-agent-color");
+    if (colorInput) colorInput.value = "var(--amber)";
+
+    // Preload skills library if needed
+    if (!Array.isArray(this.skillsState.library) || this.skillsState.library.length === 0) {
+      try {
+        const skills = await API.getSkillsLibrary();
+        this.skillsState.library = Array.isArray(skills) ? skills : [];
+      } catch (e) {
+        console.warn("Could not preload skills library:", e);
+      }
+    }
+
+    // Populate skill select
+    const select = document.getElementById("custom-agent-skill-select");
+    if (select) {
+      select.innerHTML = `<option value="">-- Kein spezifischer Skill (Generischer Spezialist) --</option>`;
+      if (Array.isArray(this.skillsState.library) && this.skillsState.library.length > 0) {
+        this.skillsState.library.forEach(s => {
+          const opt = document.createElement("option");
+          opt.value = s.skill_key || s.id;
+          opt.textContent = `${s.display_name || s.name || s.skill_key} (${s.skill_category || s.category || 'Specialist'})`;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    overlay.classList.add("active");
+  },
+
+  closeCustomAgentModal() {
+    const overlay = document.getElementById("custom-agent-modal-overlay");
+    if (overlay) overlay.classList.remove("active");
+  },
+
+  async submitCustomAgent() {
+    const nameInput = document.getElementById("custom-agent-name");
+    const name = nameInput ? nameInput.value.trim() : "";
+    if (!name) {
+      window.showToast("Bitte gib einen Namen oder eine Persona für den Agenten ein!", "warning");
+      return;
+    }
+
+    const descInput = document.getElementById("custom-agent-desc");
+    const desc = descInput ? descInput.value.trim() : "";
+    const skillSelect = document.getElementById("custom-agent-skill-select");
+    const skillKey = skillSelect ? skillSelect.value : "";
+    const iconSelect = document.getElementById("custom-agent-icon");
+    const icon = iconSelect ? iconSelect.value : "⚡";
+    const colorSelect = document.getElementById("custom-agent-color");
+    const color = colorSelect ? colorSelect.value : "var(--amber)";
+
+    const newSlot = {
+      role: "domain_expert",
+      name: name,
+      skill_key: skillKey || "base_specialist",
+      is_fixed: false,
+      is_custom: true,
+      icon: icon,
+      color: color,
+      category: "custom_agent",
+      description: desc || "Individuell konfigurierter Fachagent."
+    };
+
+    this.deliberationState.teamSlots.push(newSlot);
+    await this.saveDeliberationTeam();
+    this.renderDeliberationTeamGrid();
+    this.closeCustomAgentModal();
+    window.showToast(`🏛️ Fachagent "${name}" zum Team hinzugefügt!`, "success");
+  },
+
   async openAgentTileModal(mode = "refiner", slotIndex = null) {
     this.deliberationState.tileModalMode = mode;
     this.deliberationState.targetSlotIndex = slotIndex;
 
     const badge = document.getElementById("agent-tile-purpose-badge");
     if (badge) {
-      badge.textContent = mode === "refiner"
-        ? "✨ Ziel: Prompt-Veredelung (Reichert Rohentwurf vorab technisch an)"
-        : (slotIndex !== null ? `🏛️ Ziel: Team-Slot #${slotIndex + 1} austauschen` : "🏛️ Ziel: Neuer Fachagent im Team");
+      if (mode === "critic_skill") {
+        badge.textContent = "🛡️ Ziel: Zusätzliche Prüf-Dimension für Hallucination Critic zuweisen";
+      } else if (mode === "refiner") {
+        badge.textContent = "✨ Ziel: Prompt-Veredelung (Reichert Rohentwurf vorab technisch an)";
+      } else {
+        badge.textContent = (slotIndex !== null ? `🏛️ Ziel: Team-Slot #${slotIndex + 1} austauschen` : "🏛️ Ziel: Neuer Fachagent im Team");
+      }
     }
 
     const searchInput = document.getElementById("agent-tile-search");
@@ -2673,8 +3004,21 @@ const App = {
 
       const isAlreadyInTeam = currentSlots.some(s => s.skill_key === skillKey);
       const isCurrentRefiner = this.deliberationState.selectedRefinerSkillKey === skillKey;
-      const isModeSlot = this.deliberationState.tileModalMode === "slot";
-      const isSelected = isModeSlot ? isAlreadyInTeam : isCurrentRefiner;
+      let isSelected = false;
+      let selectBtnText = "Wählen ➔";
+
+      if (this.deliberationState.tileModalMode === "critic_skill") {
+        const targetSlot = currentSlots[this.deliberationState.targetSlotIndex];
+        const criticSkills = targetSlot && Array.isArray(targetSlot.critic_skills) ? targetSlot.critic_skills : [];
+        isSelected = criticSkills.includes(skillKey);
+        selectBtnText = isSelected ? "✓ Zugewiesen" : "Prüf-Skill zuweisen ➔";
+      } else if (this.deliberationState.tileModalMode === "slot") {
+        isSelected = isAlreadyInTeam;
+        selectBtnText = isSelected ? "✓ Ausgewählt" : "Wählen ➔";
+      } else {
+        isSelected = isCurrentRefiner;
+        selectBtnText = isSelected ? "✓ Ausgewählt" : "Wählen ➔";
+      }
 
       tile.innerHTML = `
         <div class="tile-header">
@@ -2690,7 +3034,7 @@ const App = {
         <div class="tile-desc" style="margin-top:6px; font-size:0.75rem; color:var(--text-muted); line-height:1.4;">${this.escapeHtml(desc)}</div>
         <div class="tile-footer" style="margin-top:8px;">
           <button class="btn ${isSelected ? 'btn-secondary' : 'btn-primary'} btn-sm btn-tile-select" style="width:100%; justify-content:center; padding:6px 10px;">
-            ${isSelected ? '✓ Ausgewählt' : 'Wählen ➔'}
+            ${selectBtnText}
           </button>
         </div>
       `;
@@ -2708,6 +3052,26 @@ const App = {
     const name = skill.display_name || skill.name || skillKey;
     const desc = skill.description || "Hochspezialisierter Fachagent.";
     const category = skill.skill_category || skill.category || "domain_specialist";
+
+    if (this.deliberationState.tileModalMode === "critic_skill") {
+      const slotIdx = this.deliberationState.targetSlotIndex;
+      const slot = this.deliberationState.teamSlots[slotIdx];
+      if (slot && slot.role === "critic") {
+        if (!Array.isArray(slot.critic_skills)) slot.critic_skills = [];
+        if (!Array.isArray(slot.active_critic_skills)) slot.active_critic_skills = [];
+        if (!slot.critic_skills.includes(skillKey)) {
+          slot.critic_skills.push(skillKey);
+        }
+        if (!slot.active_critic_skills.includes(skillKey)) {
+          slot.active_critic_skills.push(skillKey);
+        }
+        await this.saveDeliberationTeam();
+        this.renderDeliberationTeamGrid();
+        this.closeAgentTileModal();
+        window.showToast(`🛡️ Prüf-Skill "${name}" dem Critic zugewiesen!`, "success");
+      }
+      return;
+    }
 
     if (this.deliberationState.tileModalMode === "refiner") {
       this.deliberationState.selectedRefinerSkillKey = skillKey;
