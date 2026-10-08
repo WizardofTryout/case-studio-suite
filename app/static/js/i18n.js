@@ -29,7 +29,7 @@
       "faq_subtitle": "Praxisleitfaden und Antworten zur Consulting-Methodik, Decision Gates, Archify und Technologie.",
       "faq_search_placeholder": "Suche nach Begriffen (z. B. Decision Gate, Latenz, Archify, SQLite, Critic)...",
       "faq_no_results": "Keine passenden Fragen gefunden. Probiere einen anderen Suchbegriff.",
-      "about_title": "🏛️ Über die Case Studio Suite",
+      "about_title": "Über die Case Studio Suite",
       "about_subtitle": "Enterprise Industrial AI Suite 2026 – Souveräne Architektur-Entscheidungen ohne Spekulation.",
       "btn_open_in_faq": "Ausführlich im FAQ-Center lesen ➔",
       "help_modal_title": "💡 Funktions-Erklärung",
@@ -70,7 +70,7 @@
       "team_autopilot_active": "Auto-Pilot: AKTIV",
       "team_autopilot_inactive": "Auto-Pilot: MANUELL",
       "team_add_expert": "＋ Experte hinzufügen",
-      "team_select_catalog": "🏛️ Aus Katalog wählen ▾",
+      "team_select_catalog": "Aus Katalog wählen ▾",
 
       // Copilot Toolbar & Actions
       "prompt_label": "Eingabe der Problemstellung / Kunden-Anforderung:",
@@ -161,7 +161,7 @@
       // Deliberation View
       "delib_clear_chat": "🗑️ Chat leeren",
       "delib_empty_thread": "💬 Noch keine Diskussionsbeiträge. Wähle oben Dein Team oder nutze unten die Fachagenten-Veredelung, um die Debatte zu starten!",
-      "delib_refiner_label": "🏛️ FACHAGENT FÜR PROMPT-VEREDELUNG:",
+      "delib_refiner_label": "FACHAGENT FÜR PROMPT-VEREDELUNG:",
       "delib_btn_autoscan": "🔍 Autoscan (Top Fachagent)",
       "delib_btn_catalog": "🔍 Katalog durchsuchen ▾",
       "delib_proposal_label": "Diskussionsthese / Auszuarbeitendes Architektur-Thema:",
@@ -205,7 +205,7 @@
       "faq_subtitle": "Practical guide and answers regarding consulting methodology, decision gates, Archify, and technology.",
       "faq_search_placeholder": "Search topics or keywords (e.g., decision gate, latency, Archify, SQLite, critic)...",
       "faq_no_results": "No matching questions found. Try a different search query.",
-      "about_title": "🏛️ About Case Studio Suite",
+      "about_title": "About Case Studio Suite",
       "about_subtitle": "Enterprise Industrial AI Suite 2026 – Hardened architecture decisions without speculation.",
       "btn_open_in_faq": "Read full details in FAQ Center ➔",
       "help_modal_title": "💡 Feature Explanation",
@@ -246,7 +246,7 @@
       "team_autopilot_active": "Auto-Pilot: ACTIVE",
       "team_autopilot_inactive": "Auto-Pilot: MANUAL",
       "team_add_expert": "＋ Add Specialist",
-      "team_select_catalog": "🏛️ Select from Catalog ▾",
+      "team_select_catalog": "Select from Catalog ▾",
 
       // Copilot Toolbar & Actions
       "prompt_label": "Problem Statement / Client Requirements Input:",
@@ -337,7 +337,7 @@
       // Deliberation View
       "delib_clear_chat": "🗑️ Clear Chat",
       "delib_empty_thread": "💬 No discussion entries yet. Configure your team above or refine a thesis below to start the debate!",
-      "delib_refiner_label": "🏛️ SPECIALIST FOR PROMPT REFINEMENT:",
+      "delib_refiner_label": "SPECIALIST FOR PROMPT REFINEMENT:",
       "delib_btn_autoscan": "🔍 Autoscan (Top Specialist)",
       "delib_btn_catalog": "🔍 Search Catalog ▾",
       "delib_proposal_label": "Discussion Thesis / Architectural Proposal to Elaborate:",

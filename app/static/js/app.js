@@ -3120,7 +3120,7 @@ const App = {
     await this.saveDeliberationTeam();
     this.renderDeliberationTeamGrid();
     this.closeCustomAgentModal();
-    window.showToast(`🏛️ Fachagent "${name}" zum Team hinzugefügt!`, "success");
+    window.showToast(`Fachagent "${name}" zum Team hinzugefügt!`, "success");
   },
 
   async openAgentTileModal(mode = "refiner", slotIndex = null) {
@@ -3136,7 +3136,7 @@ const App = {
       } else if (mode === "refiner") {
         badge.textContent = "✨ Ziel: Prompt-Veredelung (Reichert Rohentwurf vorab technisch an)";
       } else {
-        badge.textContent = (slotIndex !== null ? `🏛️ Ziel: Team-Slot #${slotIndex + 1} austauschen` : "🏛️ Ziel: Neuer Fachagent im Team");
+        badge.textContent = (slotIndex !== null ? `Ziel: Team-Slot #${slotIndex + 1} austauschen` : "Ziel: Neuer Fachagent im Team");
       }
     }
 
@@ -3391,7 +3391,7 @@ const App = {
       await this.saveDeliberationTeam();
       this.renderDeliberationTeamGrid();
       this.closeAgentTileModal();
-      window.showToast(`🏛️ "${name}" zum Debattenteam hinzugefügt!`, "success");
+      window.showToast(`"${name}" zum Debattenteam hinzugefügt!`, "success");
     }
   },
 
