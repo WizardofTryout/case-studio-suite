@@ -1838,35 +1838,151 @@
             </div>
           </div>
 
-          <!-- STEP 3: Dokumente DMS (Vorbereitung für Sprint 3) -->
+          <!-- STEP 3: Dokumente DMS (Sprint 3) -->
           <div id="ew-step-view-3" class="ew-step-view" style="display:none;">
             <div class="ew-step-header">
               <span class="ew-step-title">📎 Schritt 3: Spezifikationen &amp; Unterlagen (Optional)</span>
-              <span class="ew-step-subtitle">Laden Sie Pflichtenhefte, Lastenhefte oder Protokolle hoch. Kann jederzeit übersprungen werden.</span>
+              <span class="ew-step-subtitle">Laden Sie Pflichtenhefte, Lastenhefte oder Protokolle hoch. Sie können diesen Schritt jederzeit überspringen.</span>
             </div>
-            <div class="ew-upload-placeholder" style="margin-top:20px; padding:32px; border:2px dashed var(--border-subtle); text-align:center; background:rgba(255,255,255,0.02); border-radius:4px;">
-              <div style="font-size:2rem; margin-bottom:8px;">📁</div>
-              <div style="font-weight:600; color:var(--text-main); font-size:0.9rem;">Dokumente hier ablegen oder durchsuchen</div>
-              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; font-family:var(--font-mono);">PDF, Markdown, TXT oder DOCX (Optional)</div>
+
+            <!-- Drag & Drop Upload Zone -->
+            <input type="file" id="ew-file-input" multiple accept=".pdf,.md,.txt,.docx" style="display:none;">
+            <div id="ew-drop-zone" class="ew-drop-zone" style="margin-top:16px; padding:28px 20px; border:2px dashed var(--border-subtle); text-align:center; background:rgba(255,255,255,0.02); border-radius:4px; cursor:pointer; transition:all 0.2s ease;">
+              <div style="font-size:2rem; margin-bottom:6px;">📁</div>
+              <div style="font-weight:700; color:var(--text-main); font-size:0.92rem;">
+                Dateien hier ablegen oder <span style="color:var(--cyan); text-decoration:underline;">durchsuchen</span>
+              </div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; font-family:var(--font-mono);">
+                Unterstützte Formate: PDF, Markdown, TXT, DOCX • Vollständig optional
+              </div>
+            </div>
+
+            <!-- File List Container -->
+            <div id="ew-file-list-section" style="margin-top:16px;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                <span class="ew-form-label" style="margin:0;">AUSGEWÄHLTE DATEIEN (<span id="ew-file-count-badge">0</span>)</span>
+                <button type="button" id="btn-ew-clear-files" class="btn-text-subtle" style="display:none; color:#ef4444; font-size:0.73rem;">
+                  🗑️ Alle entfernen
+                </button>
+              </div>
+              <div id="ew-file-list" class="ew-file-list" style="display:flex; flex-direction:column; gap:6px; max-height:160px; overflow-y:auto;">
+                <div class="ew-empty-files-hint" style="padding:12px; text-align:center; font-size:0.78rem; color:var(--text-muted); background:rgba(0,0,0,0.1); border-radius:3px;">
+                  Noch keine Dokumente ausgewählt. Sie können direkt auf <strong>Weiter ➔</strong> klicken.
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- STEP 4: Agenten-Team (Vorbereitung für Sprint 3) -->
+          <!-- STEP 4: Agenten-Team & Denkschulen (Sprint 3) -->
           <div id="ew-step-view-4" class="ew-step-view" style="display:none;">
             <div class="ew-step-header">
-              <span class="ew-step-title">🤖 Schritt 4: Ihr Multi-Agenten-Team</span>
-              <span class="ew-step-subtitle">Die Suite hat automatisch das optimale Team für Ihre Branche vorkonfiguriert.</span>
+              <span class="ew-step-title">🤖 Schritt 4: Ihr Multi-Agenten-Team &amp; Architektur-Governance</span>
+              <span class="ew-step-subtitle">Die Suite hat automatisch die empfohlene Denkschule und Fachspezialisten passend zu Ihrer Branche vorkonfiguriert.</span>
             </div>
-            <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-              <div style="padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:4px;">
-                <div style="font-weight:700; font-size:0.85rem; color:var(--cyan);">🏛️ Lead Architect</div>
-                <div style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Denkschule passend zur Branche vorselektiert.</div>
-              </div>
-              <div style="padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:4px;">
-                <div style="font-weight:700; font-size:0.85rem; color:#f59e0b;">🛡️ Hallucination Critic</div>
-                <div style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Prüft Fakten und stoppt Spekulationen.</div>
+
+            <!-- Section 1: Lead Architect Denkschule -->
+            <div style="margin-top:14px;">
+              <label class="ew-form-label">1. LEAD ARCHITECT: STRATEGISCHE DENKSCHULE (SYNTHESE-PARADIGMA)</label>
+              <div class="ew-schools-grid" id="ew-schools-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:8px;">
+                <div class="ew-school-card active" data-school="purdue_strict" tabindex="0" role="button">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2rem;">🏭</span>
+                    <span style="font-weight:700; font-size:0.82rem; color:var(--text-main);">Purdue Strict (ISA-95)</span>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Deterministische Feldbusse, DMZ, strikte Level 0-4 Trennung.</div>
+                </div>
+                <div class="ew-school-card" data-school="cloud_native" tabindex="0" role="button">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2rem;">☁️</span>
+                    <span style="font-weight:700; font-size:0.82rem; color:var(--text-main);">Cloud-Native &amp; Serverless</span>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Event-Driven, Kafka, Managed Microservices, globale APIs.</div>
+                </div>
+                <div class="ew-school-card" data-school="minimal_tco" tabindex="0" role="button">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2rem;">💰</span>
+                    <span style="font-weight:700; font-size:0.82rem; color:var(--text-main);">Minimal-TCO &amp; Lean</span>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Open-Source, niedriger CAPEX, kein teurer Vendor-Lock-in.</div>
+                </div>
+                <div class="ew-school-card" data-school="zero_trust" tabindex="0" role="button">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2rem;">🛡️</span>
+                    <span style="font-weight:700; font-size:0.82rem; color:var(--text-main);">Zero-Trust &amp; Compliance</span>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">KRITIS, NIS-2, GxP Audit-Trail, Air-Gapped Zonen.</div>
+                </div>
+                <div class="ew-school-card" data-school="balanced_pragmatic" tabindex="0" role="button">
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span style="font-size:1.2rem;">🌐</span>
+                    <span style="font-weight:700; font-size:0.82rem; color:var(--text-main);">Balanced Pragmatic</span>
+                  </div>
+                  <div style="font-size:0.7rem; color:var(--text-muted); margin-top:4px;">Ausgewogene Synthese ohne dogmatische Vorfestlegung.</div>
+                </div>
               </div>
             </div>
+
+            <!-- Section 2: Hallucination Critic Striktheit -->
+            <div style="margin-top:16px;">
+              <label class="ew-form-label">2. HALLUCINATION CRITIC: STRIKTHEITSGRAD DER KRITIK</label>
+              <div class="ew-critic-toggle-row" id="ew-critic-toggle-row" style="display:flex; gap:8px;">
+                <div class="ew-critic-option" data-strictness="pragmatic" tabindex="0" role="button" style="flex:1;">
+                  <span style="font-weight:700; font-size:0.8rem; color:#10b981;">🟢 Pragmatisch</span>
+                  <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Fokus auf Alternativen &amp; Machbarkeit.</div>
+                </div>
+                <div class="ew-critic-option active" data-strictness="balanced" tabindex="0" role="button" style="flex:1;">
+                  <span style="font-weight:700; font-size:0.8rem; color:#f59e0b;">🟡 Ausgewogen (Standard)</span>
+                  <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Prüft Latenzgrenzen, Puffer &amp; Kosten.</div>
+                </div>
+                <div class="ew-critic-option" data-strictness="strict" tabindex="0" role="button" style="flex:1;">
+                  <span style="font-weight:700; font-size:0.8rem; color:#ef4444;">🔴 Strict C-Level</span>
+                  <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Zero Toleranz bei Spekulation, harte Gates.</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section 3: Fachagenten-Roster -->
+            <div style="margin-top:16px;">
+              <label class="ew-form-label">3. FACHSPEZIALISTEN FÜR DIE DELIBERATION (ROSTER)</label>
+              <div class="ew-specialists-grid" id="ew-specialists-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:8px;">
+                <label class="ew-specialist-card active">
+                  <input type="checkbox" value="ot_security" class="ew-specialist-checkbox" checked>
+                  <div>
+                    <div style="font-weight:700; font-size:0.8rem; color:var(--text-main);">🛡️ OT Security Specialist</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">IEC 62443, DMZ, Firewalls &amp; Härtung</div>
+                  </div>
+                </label>
+                <label class="ew-specialist-card active">
+                  <input type="checkbox" value="tco_analyst" class="ew-specialist-checkbox" checked>
+                  <div>
+                    <div style="font-weight:700; font-size:0.8rem; color:var(--text-main);">💰 TCO &amp; CAPEX Analyst</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Wirtschaftlichkeit, ROI, Break-Even</div>
+                  </div>
+                </label>
+                <label class="ew-specialist-card">
+                  <input type="checkbox" value="cloud_integration" class="ew-specialist-checkbox">
+                  <div>
+                    <div style="font-weight:700; font-size:0.8rem; color:var(--text-main);">☁️ Cloud &amp; Streaming Architect</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Kafka, Cloud APIs, Hybride Datenflüsse</div>
+                  </div>
+                </label>
+                <label class="ew-specialist-card">
+                  <input type="checkbox" value="compliance_auditor" class="ew-specialist-checkbox">
+                  <div>
+                    <div style="font-weight:700; font-size:0.8rem; color:var(--text-main);">📜 Compliance &amp; Regulatory</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">NIS-2, BSI IT-Sicherheit, Audit-Trails</div>
+                  </div>
+                </label>
+                <label class="ew-specialist-card">
+                  <input type="checkbox" value="latency_engineer" class="ew-specialist-checkbox">
+                  <div>
+                    <div style="font-weight:700; font-size:0.8rem; color:var(--text-main);">⏱️ Latency &amp; Real-Time</div>
+                    <div style="font-size:0.68rem; color:var(--text-muted); margin-top:2px;">Echtzeit-Feldbusse, &lt;20ms SLA Puffer</div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
           </div>
 
           <!-- STEP 5: Start & Kickoff (Vorbereitung für Sprint 4) -->

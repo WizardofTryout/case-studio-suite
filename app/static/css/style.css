@@ -6625,6 +6625,191 @@ body.light-theme #ew-preview-school {
   color: #4338CA !important;
 }
 
+/* ==========================================================================
+   Sprint 3: DMS Upload & Agent Team Styles
+   ========================================================================== */
+
+.ew-drop-zone:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: var(--border-medium) !important;
+}
+
+.ew-drop-zone.dragover {
+  border-color: var(--cyan) !important;
+  background: rgba(6, 182, 212, 0.08) !important;
+  box-shadow: 0 0 12px var(--cyan-glow) !important;
+}
+
+.ew-file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 0.8rem;
+  transition: all 0.15s ease;
+}
+
+.ew-file-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.ew-file-remove-btn {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 3px 6px;
+  border-radius: 3px;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.ew-file-remove-btn:hover {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+/* School Cards */
+.ew-school-card {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ew-school-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-medium);
+  transform: translateY(-1px);
+}
+
+.ew-school-card.active {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+
+.ew-school-card:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Critic Options */
+.ew-critic-option {
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ew-critic-option:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-medium);
+}
+
+.ew-critic-option.active {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan-glow);
+}
+
+.ew-critic-option:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+/* Specialist Cards */
+.ew-specialist-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.ew-specialist-card:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-medium);
+}
+
+.ew-specialist-card.active {
+  border-color: var(--cyan);
+  background: rgba(6, 182, 212, 0.05);
+}
+
+.ew-specialist-checkbox {
+  margin-top: 2px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+}
+
+/* Light Theme Overrides for Sprint 3 */
+[data-theme="light"] .ew-file-item,
+body.light-theme .ew-file-item {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #0F172A;
+}
+
+[data-theme="light"] .ew-school-card,
+body.light-theme .ew-school-card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .ew-school-card:hover,
+body.light-theme .ew-school-card:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+[data-theme="light"] .ew-school-card.active,
+body.light-theme .ew-school-card.active {
+  background: #EEF2FF;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 1px #4F46E5;
+}
+
+[data-theme="light"] .ew-critic-option,
+body.light-theme .ew-critic-option {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .ew-critic-option.active,
+body.light-theme .ew-critic-option.active {
+  background: #EEF2FF;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 1px #4F46E5;
+}
+
+[data-theme="light"] .ew-specialist-card,
+body.light-theme .ew-specialist-card {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .ew-specialist-card.active,
+body.light-theme .ew-specialist-card.active {
+  background: #EEF2FF;
+  border-color: #4F46E5;
+}
+
+
 
 
 

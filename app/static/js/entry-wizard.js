@@ -201,7 +201,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
     },
 
     bindEvents() {
-      // Backdrop click
       const overlay = document.getElementById("entry-wizard-modal-overlay");
       if (overlay) {
         overlay.addEventListener("click", (e) => {
@@ -328,6 +327,98 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
         });
       });
 
+      // ================= SPRINT 3: Step 3 (DMS Upload) Events =================
+      const dropZone = document.getElementById("ew-drop-zone");
+      const fileInput = document.getElementById("ew-file-input");
+
+      if (dropZone && fileInput) {
+        dropZone.addEventListener("click", () => fileInput.click());
+
+        fileInput.addEventListener("change", (e) => {
+          if (e.target.files && e.target.files.length > 0) {
+            this.addFiles(Array.from(e.target.files));
+            fileInput.value = ""; // Reset to allow re-uploading same file
+          }
+        });
+
+        // Drag & Drop
+        dropZone.addEventListener("dragover", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add("dragover");
+        });
+
+        dropZone.addEventListener("dragleave", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove("dragover");
+        });
+
+        dropZone.addEventListener("drop", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove("dragover");
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            this.addFiles(Array.from(e.dataTransfer.files));
+          }
+        });
+      }
+
+      document.getElementById("btn-ew-clear-files")?.addEventListener("click", () => {
+        this.clearAllFiles();
+      });
+
+      // ================= SPRINT 3: Step 4 (Agenten & Governance) Events =================
+      // School Cards Selection
+      document.getElementById("ew-schools-grid")?.addEventListener("click", (e) => {
+        const card = e.target.closest(".ew-school-card");
+        if (card) {
+          const school = card.getAttribute("data-school");
+          if (school) this.selectSchool(school);
+        }
+      });
+
+      document.querySelectorAll(".ew-school-card").forEach((card) => {
+        card.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const school = card.getAttribute("data-school");
+            if (school) this.selectSchool(school);
+          }
+        });
+      });
+
+      // Critic Strictness Selection
+      document.getElementById("ew-critic-toggle-row")?.addEventListener("click", (e) => {
+        const opt = e.target.closest(".ew-critic-option");
+        if (opt) {
+          const strictness = opt.getAttribute("data-strictness");
+          if (strictness) this.selectCriticStrictness(strictness);
+        }
+      });
+
+      document.querySelectorAll(".ew-critic-option").forEach((opt) => {
+        opt.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const strictness = opt.getAttribute("data-strictness");
+            if (strictness) this.selectCriticStrictness(strictness);
+          }
+        });
+      });
+
+      // Specialists Checkboxes
+      document.getElementById("ew-specialists-grid")?.addEventListener("change", (e) => {
+        if (e.target && e.target.classList.contains("ew-specialist-checkbox")) {
+          const card = e.target.closest(".ew-specialist-card");
+          if (card) {
+            if (e.target.checked) card.classList.add("active");
+            else card.classList.remove("active");
+          }
+          this.syncSpecialistsFromUI();
+        }
+      });
+
       // Escape key to close
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && overlay && overlay.classList.contains("active")) {
@@ -344,7 +435,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       this.setMode(initialMode);
       overlay.classList.add("active");
 
-      // Auto-focus appropriate input
       setTimeout(() => {
         if (this.state.mode === "express") {
           const inp = document.getElementById("ew-express-project-name");
@@ -385,6 +475,7 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       this.clearGuidedNameError();
       this.selectIndustry("industrial_ot", true);
       this.selectIndustry("industrial_ot", false);
+      this.renderFileList();
       this.updateCharCounter();
       this.goToStep(1);
     },
@@ -402,7 +493,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
         toggleGuided?.classList.remove("active");
         toggleExpress?.classList.add("active");
 
-        // Sync name from guided if user typed there
         const guiVal = document.getElementById("ew-guided-project-name")?.value || "";
         const expInp = document.getElementById("ew-express-project-name");
         if (expInp && guiVal) expInp.value = guiVal;
@@ -413,7 +503,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
         toggleExpress?.classList.remove("active");
         toggleGuided?.classList.add("active");
 
-        // Sync name from express if user typed there
         const expVal = document.getElementById("ew-express-project-name")?.value || "";
         const guiInp = document.getElementById("ew-guided-project-name");
         if (guiInp && expVal) guiInp.value = expVal;
@@ -455,7 +544,152 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
         tplBtn.textContent = `ğŸ“‹ Vorlage fÃ¼r ${preset.name.split(' ')[0]} laden`;
       }
 
+      // Update Step 4 selections
+      this.selectSchool(preset.school, false);
+      this.updateSpecialistsUI(preset.specialists);
+
       this.saveDraftToStorage();
+    },
+
+    // Sprint 3: School Selection in Step 4
+    selectSchool(schoolKey, save = true) {
+      this.state.data.leadSchoolPreset = schoolKey;
+      document.querySelectorAll(".ew-school-card").forEach((card) => {
+        const s = card.getAttribute("data-school");
+        if (s === schoolKey) card.classList.add("active");
+        else card.classList.remove("active");
+      });
+      if (save) this.saveDraftToStorage();
+    },
+
+    // Sprint 3: Critic Strictness Selection in Step 4
+    selectCriticStrictness(strictness, save = true) {
+      this.state.data.criticStrictness = strictness;
+      document.querySelectorAll(".ew-critic-option").forEach((opt) => {
+        const s = opt.getAttribute("data-strictness");
+        if (s === strictness) opt.classList.add("active");
+        else opt.classList.remove("active");
+      });
+      if (save) this.saveDraftToStorage();
+    },
+
+    // Sprint 3: Specialists Checkboxes Sync in Step 4
+    updateSpecialistsUI(specialistsList) {
+      const set = new Set(specialistsList);
+      document.querySelectorAll(".ew-specialist-checkbox").forEach((cb) => {
+        const val = cb.value;
+        const checked = set.has(val);
+        cb.checked = checked;
+        const card = cb.closest(".ew-specialist-card");
+        if (card) {
+          if (checked) card.classList.add("active");
+          else card.classList.remove("active");
+        }
+      });
+    },
+
+    syncSpecialistsFromUI() {
+      const selected = [];
+      document.querySelectorAll(".ew-specialist-checkbox:checked").forEach((cb) => {
+        selected.push(cb.value);
+      });
+      this.state.data.selectedSpecialists = selected;
+      this.saveDraftToStorage();
+    },
+
+    // ================= SPRINT 3: DMS Files Management =================
+    addFiles(newFiles) {
+      const allowedExts = [".pdf", ".md", ".txt", ".docx"];
+      const maxSizeBytes = 15 * 1024 * 1024; // 15 MB
+      let addedCount = 0;
+
+      for (const file of newFiles) {
+        const ext = "." + (file.name.split(".").pop() || "").toLowerCase();
+        if (!allowedExts.includes(ext)) {
+          window.showToast?.(`Format von '${file.name}' nicht unterstÃ¼tzt. Erlaubt: PDF, MD, TXT, DOCX`, "warning");
+          continue;
+        }
+        if (file.size > maxSizeBytes) {
+          window.showToast?.(`Datei '${file.name}' ist zu groÃŸ (max. 15 MB).`, "warning");
+          continue;
+        }
+
+        // Prevent duplicate
+        const exists = this.state.data.files.some(f => f.name === file.name && f.size === file.size);
+        if (!exists) {
+          this.state.data.files.push(file);
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        this.renderFileList();
+        window.showToast?.(`${addedCount} Datei(en) hinzugefÃ¼gt.`, "info");
+      }
+    },
+
+    removeFile(index) {
+      if (index >= 0 && index < this.state.data.files.length) {
+        this.state.data.files.splice(index, 1);
+        this.renderFileList();
+      }
+    },
+
+    clearAllFiles() {
+      this.state.data.files = [];
+      this.renderFileList();
+    },
+
+    formatBytes(bytes) {
+      if (bytes === 0) return "0 B";
+      const k = 1024;
+      const sizes = ["B", "KB", "MB"];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+    },
+
+    renderFileList() {
+      const listContainer = document.getElementById("ew-file-list");
+      const countBadge = document.getElementById("ew-file-count-badge");
+      const clearBtn = document.getElementById("btn-ew-clear-files");
+      if (!listContainer) return;
+
+      const files = this.state.data.files;
+      if (countBadge) countBadge.textContent = files.length;
+      if (clearBtn) clearBtn.style.display = files.length > 0 ? "inline-block" : "none";
+
+      if (files.length === 0) {
+        listContainer.innerHTML = `
+          <div class="ew-empty-files-hint" style="padding:12px; text-align:center; font-size:0.78rem; color:var(--text-muted); background:rgba(0,0,0,0.1); border-radius:3px;">
+            Noch keine Dokumente ausgewÃ¤hlt. Sie kÃ¶nnen direkt auf <strong>Weiter â”</strong> klicken.
+          </div>
+        `;
+        return;
+      }
+
+      let html = "";
+      files.forEach((file, idx) => {
+        const ext = (file.name.split(".").pop() || "").toLowerCase();
+        let icon = "ğŸ“„";
+        if (ext === "pdf") icon = "ğŸ“•";
+        else if (ext === "md" || ext === "txt") icon = "ğŸ“";
+        else if (ext === "docx") icon = "ğŸ“˜";
+
+        html += `
+          <div class="ew-file-item">
+            <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+              <span style="font-size:1.1rem;">${icon}</span>
+              <div style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                <div style="font-weight:600; font-size:0.82rem; color:var(--text-main); text-overflow:ellipsis; overflow:hidden;">${file.name}</div>
+                <div style="font-size:0.68rem; color:var(--text-muted); font-family:var(--font-mono);">${this.formatBytes(file.size)}</div>
+              </div>
+            </div>
+            <button type="button" class="ew-file-remove-btn" onclick="window.EntryWizard.removeFile(${idx})" title="Datei entfernen">&times;</button>
+          </div>
+        `;
+      });
+
+      listContainer.innerHTML = html;
     },
 
     goToStep(stepNumber) {
@@ -578,7 +812,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       const end = textarea.selectionEnd || textarea.value.length;
       const existing = textarea.value;
 
-      // Insert snippet at cursor or append
       const prefix = existing.substring(0, start);
       const suffix = existing.substring(end);
       const needsLeadingNewline = prefix.length > 0 && !prefix.endsWith("\n\n");
@@ -587,7 +820,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       textarea.value = prefix + glue + textToInsert + suffix;
       textarea.focus();
 
-      // Position cursor inside the bracketed placeholder if any
       const newCursor = (prefix + glue + textToInsert).length;
       textarea.setSelectionRange(newCursor, newCursor);
 
@@ -644,7 +876,7 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       counter.innerHTML = `${chars} Zeichen â€¢ ${words} WÃ¶rter â€¢ ${qualityBadge}`;
     },
 
-    // Sprint 2: Draft Auto-Save to LocalStorage
+    // Draft Auto-Save to LocalStorage
     saveDraftToStorage() {
       try {
         const guiName = document.getElementById("ew-guided-project-name")?.value || "";
@@ -655,12 +887,13 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
           projectName: guiName || expName || this.state.data.projectName,
           industry: this.state.data.industry,
           problemDescription: probDesc,
+          leadSchoolPreset: this.state.data.leadSchoolPreset,
+          criticStrictness: this.state.data.criticStrictness,
+          selectedSpecialists: this.state.data.selectedSpecialists,
           timestamp: Date.now()
         };
         localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
-      } catch (e) {
-        // LocalStorage quota or access error ignore
-      }
+      } catch (e) {}
     },
 
     loadDraftFromStorage() {
@@ -684,11 +917,19 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
             const probDesc = document.getElementById("ew-guided-problem-description");
             if (probDesc && !probDesc.value) probDesc.value = draft.problemDescription;
           }
+          if (draft.leadSchoolPreset) {
+            this.selectSchool(draft.leadSchoolPreset, false);
+          }
+          if (draft.criticStrictness) {
+            this.selectCriticStrictness(draft.criticStrictness, false);
+          }
+          if (Array.isArray(draft.selectedSpecialists)) {
+            this.state.data.selectedSpecialists = draft.selectedSpecialists;
+            this.updateSpecialistsUI(draft.selectedSpecialists);
+          }
           this.updateCharCounter();
         }
-      } catch (e) {
-        // Corrupted draft ignore
-      }
+      } catch (e) {}
     },
 
     clearDraftFromStorage() {
@@ -720,7 +961,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
         this.clearDraftFromStorage();
         this.close();
 
-        // Refresh project list and switch to the newly created project
         if (window.App && typeof window.App.loadProjects === "function") {
           await window.App.loadProjects();
           await window.App.selectProject(created.id);
@@ -745,6 +985,7 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
 
       const industry = this.state.data.industry || "cross_domain";
       const problemDesc = (document.getElementById("ew-guided-problem-description")?.value || "").trim();
+      const filesToUpload = [...this.state.data.files];
 
       const submitBtn = document.getElementById("btn-ew-next-step");
       if (submitBtn) {
@@ -753,11 +994,32 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
       }
 
       try {
+        // 1. Create Project in DB
         const created = await window.API.createProject(name, industry, "Lead Evaluator");
         window.showToast?.(`Projekt '${name}' erfolgreich initialisiert!`, "success");
+
+        // 2. Sprint 3: Upload files sequentially to DMS
+        if (filesToUpload.length > 0) {
+          if (submitBtn) submitBtn.innerText = `Lade ${filesToUpload.length} Datei(en) hoch...`;
+          let uploadedCount = 0;
+          for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            try {
+              await window.API.uploadDocument(created.id, file);
+              uploadedCount++;
+            } catch (fileErr) {
+              console.warn(`Fehler beim Upload von ${file.name}:`, fileErr);
+            }
+          }
+          if (uploadedCount > 0) {
+            window.showToast?.(`${uploadedCount} Dokument(e) indexiert!`, "success");
+          }
+        }
+
         this.clearDraftFromStorage();
         this.close();
 
+        // 3. Load Project in Workspace
         if (window.App && typeof window.App.loadProjects === "function") {
           await window.App.loadProjects();
           await window.App.selectProject(created.id);
@@ -785,7 +1047,6 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen fÃ
 
   window.EntryWizard = EntryWizard;
 
-  // Initialize on DOMContentLoaded
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => EntryWizard.init());
   } else {
