@@ -29,8 +29,11 @@
         <select id="project-selector">
           <option value="">Lade Projekte...</option>
         </select>
+        <button id="btn-delete-current-project" class="btn btn-secondary btn-sm" title="Aktiven Case löschen" style="color:var(--rose); padding:0 8px; font-weight:700;" type="button">
+          <span>🗑️</span>
+        </button>
         <button id="btn-new-project" class="btn btn-secondary btn-sm" title="Neues Projekt anlegen" data-i18n="nav_new_project">＋ Neu</button>
-        <button id="btn-open-projects-manager" class="btn btn-secondary btn-sm" title="Alle Projekte verwalten & löschen" style="gap:5px; font-weight:600;">
+        <button id="btn-open-projects-manager" class="btn btn-primary btn-sm" title="Alle Projekte anzeigen, verwalten &amp; löschen" style="gap:5px; font-weight:700;">
           <span>🗂️</span> <span data-i18n="nav_overview">Übersicht</span>
         </button>
       </div>
@@ -2099,15 +2102,15 @@
 
   <!-- Projects Overview & Management Modal -->
   <div id="projects-manager-modal-overlay" class="modal-overlay">
-    <div class="modal-card projects-manager-modal-card" style="max-width:860px; width:92%;">
+    <div class="modal-card projects-manager-modal-card" style="max-width:960px; width:94%;">
       <div class="modal-header-row">
         <div>
           <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
-            <span>🗂️ Fallstudien- & Projekt-Management</span>
+            <span>🗂️ Fallstudien- &amp; Projekt-Übersicht</span>
             <span id="pm-total-count-badge" class="brand-badge" style="font-size:0.7rem;">0 Projekte</span>
           </div>
           <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">
-            Verwalte alle gespeicherten Kunden-Cases, erstelle neue Projekte oder lösche nicht mehr benötigte Fallstudien.
+            Verwalten Sie alle gespeicherten Kunden-Cases, wechseln Sie schnell zwischen Projekten oder löschen Sie nicht mehr benötigte Fallstudien.
           </div>
         </div>
         <button class="btn-close-modal" id="btn-close-projects-manager">&times;</button>
@@ -2117,19 +2120,19 @@
         <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
           <input type="text" id="pm-search-input" class="gate-answer-input" placeholder="🔍 Projekt suchen (Name, Industrie, Persona)..." style="flex:1; min-width:240px;" />
           <button id="btn-pm-create-new" class="btn btn-primary btn-sm" style="display:flex; align-items:center; gap:6px; white-space:nowrap;">
-            ➕ Neues Projekt anlegen
+            ➕ Neues Projekt anlegen (Wizard)
           </button>
         </div>
 
-        <div class="pm-table-wrapper" style="overflow-x:auto; border:1px solid var(--border-subtle); border-radius:var(--radius-md);">
+        <div class="pm-table-wrapper" style="overflow-x:auto;">
           <table class="pm-projects-table" style="width:100%; border-collapse:collapse; font-size:0.84rem;">
             <thead>
-              <tr style="background:rgba(0,0,0,0.15); border-bottom:1px solid var(--border-subtle); text-align:left;">
-                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Projektname & Kunde</th>
-                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Domäne / Industrie</th>
-                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Angelegt am</th>
-                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted);">Zuletzt bearbeitet</th>
-                <th style="padding:10px 12px; font-weight:600; color:var(--text-muted); text-align:right;">Aktionen</th>
+              <tr>
+                <th style="padding:10px 14px; font-weight:600; color:var(--text-muted);">Projekt &amp; Case-Titel</th>
+                <th style="padding:10px 14px; font-weight:600; color:var(--text-muted);">Domäne / Industrie</th>
+                <th style="padding:10px 14px; font-weight:600; color:var(--text-muted);">Angelegt am</th>
+                <th style="padding:10px 14px; font-weight:600; color:var(--text-muted);">Zuletzt bearbeitet</th>
+                <th style="padding:10px 14px; font-weight:600; color:var(--text-muted); text-align:right;">Aktionen</th>
               </tr>
             </thead>
             <tbody id="pm-projects-tbody">
@@ -2139,7 +2142,10 @@
         </div>
       </div>
 
-      <div class="modal-actions" style="margin-top:14px;">
+      <div class="modal-actions" style="margin-top:14px; display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:0.75rem; color:var(--text-muted);">
+          💡 Klicken Sie auf <strong>🎯 Öffnen</strong>, um einen Case zu aktivieren, oder <strong>🗑️ Löschen</strong>, um einen Case zu entfernen.
+        </span>
         <button id="btn-close-projects-manager-footer" class="btn btn-secondary btn-sm">Schließen</button>
       </div>
     </div>

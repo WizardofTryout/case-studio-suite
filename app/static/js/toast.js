@@ -52,12 +52,35 @@ window.showConfirmModal = function(title, message, onConfirm, confirmText = "Bes
   confirmBtn.innerText = confirmText;
   cancelBtn.innerText = cancelText;
 
+  const isDestructive = /löschen|delete|entfernen/i.test(confirmText);
+  if (isDestructive) {
+    confirmBtn.className = "btn btn-danger btn-sm";
+    confirmBtn.style.background = "#e11d48";
+    confirmBtn.style.borderColor = "#be123c";
+    confirmBtn.style.color = "#ffffff";
+  } else {
+    confirmBtn.className = "btn btn-primary btn-sm";
+    confirmBtn.style.background = "";
+    confirmBtn.style.borderColor = "";
+    confirmBtn.style.color = "";
+  }
+
   overlay.classList.add("active");
+
+  const onKeydown = (e) => {
+    if (e.key === "Escape") cleanup();
+  };
+
+  const onOverlayClick = (e) => {
+    if (e.target === overlay) cleanup();
+  };
 
   const cleanup = () => {
     overlay.classList.remove("active");
     confirmBtn.onclick = null;
     cancelBtn.onclick = null;
+    overlay.removeEventListener("click", onOverlayClick);
+    document.removeEventListener("keydown", onKeydown);
   };
 
   confirmBtn.onclick = () => {
@@ -68,6 +91,9 @@ window.showConfirmModal = function(title, message, onConfirm, confirmText = "Bes
   cancelBtn.onclick = () => {
     cleanup();
   };
+
+  overlay.addEventListener("click", onOverlayClick);
+  document.addEventListener("keydown", onKeydown);
 };
 
 window.showPromptModal = function(title, label, defaultValue, onSubmit) {

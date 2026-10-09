@@ -85,7 +85,17 @@ async def delete_project(project_id: str) -> bool:
     async with get_db() as db:
         res = await db.execute("DELETE FROM projects WHERE id = ?", (project_id,))
         await db.commit()
-        return res.rowcount > 0
+    # Physical files cleanup on disk
+    try:
+        import shutil
+        from pathlib import Path
+        for base in ["/app/data/projects", "data/projects"]:
+            p = Path(base) / project_id
+            if p.exists():
+                shutil.rmtree(p)
+    except Exception:
+        pass
+    return res.rowcount > 0
 
 
 # --- Project Documents ---

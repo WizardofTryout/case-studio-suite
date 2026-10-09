@@ -215,7 +215,25 @@ const App = {
     const projSelect = document.getElementById("project-selector");
     if (projSelect) {
       projSelect.addEventListener("change", (e) => {
+        if (e.target.value === "__manage__") {
+          e.target.value = this.state.currentProjectId || "";
+          this.showProjectsModal();
+          return;
+        }
         this.selectProject(e.target.value);
+      });
+    }
+
+    // Quick Delete Current Project Button in header
+    const delCurrentBtn = document.getElementById("btn-delete-current-project");
+    if (delCurrentBtn) {
+      delCurrentBtn.addEventListener("click", () => {
+        const current = this.state.projects?.find(p => p.id === this.state.currentProjectId);
+        if (!current) {
+          window.showToast("Kein aktives Projekt zum Löschen ausgewählt.", "warning");
+          return;
+        }
+        this.confirmDeleteProject(current.id, current.name);
       });
     }
 
@@ -672,19 +690,41 @@ const App = {
       await this.selectProject(created.id);
     } else {
       this.populateProjectSelect(projects);
-      await this.selectProject(projects[0].id);
+      const exists = projects.some(p => p.id === this.state.currentProjectId);
+      if (exists && this.state.currentProjectId) {
+        select.value = this.state.currentProjectId;
+      } else {
+        await this.selectProject(projects[0].id);
+      }
     }
   },
 
   populateProjectSelect(projects) {
     const select = document.getElementById("project-selector");
+    if (!select) return;
     select.innerHTML = "";
+
+    const grp = document.createElement("optgroup");
+    grp.label = "Gespeicherte Fälle";
     projects.forEach(p => {
       const opt = document.createElement("option");
       opt.value = p.id;
-      opt.innerText = `${p.name} (${p.industry})`;
-      select.appendChild(opt);
+      const indLabel = p.industry ? ` (${p.industry})` : "";
+      opt.innerText = `${p.name}${indLabel}`;
+      if (p.id === this.state.currentProjectId) {
+        opt.selected = true;
+      }
+      grp.appendChild(opt);
     });
+    select.appendChild(grp);
+
+    const actionGrp = document.createElement("optgroup");
+    actionGrp.label = "Verwaltung";
+    const manageOpt = document.createElement("option");
+    manageOpt.value = "__manage__";
+    manageOpt.innerText = "🗂️ Alle Projekte verwalten & löschen...";
+    actionGrp.appendChild(manageOpt);
+    select.appendChild(actionGrp);
   },
 
   getDefaultTeamSlots() {
@@ -5404,6 +5444,7 @@ const App = {
 
     try {
       const projects = await API.getProjects();
+      this.state.projects = projects;
       const query = (filter || "").trim().toLowerCase();
       const filtered = projects.filter(p => {
         if (!query) return true;
@@ -5418,13 +5459,26 @@ const App = {
       if (filtered.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="5" style="text-align:center; padding:24px; color:var(--text-dim);">
-              Keine passenden Projekte gefunden.
+            <td colspan="5" style="text-align:center; padding:28px; color:var(--text-dim);">
+              <div style="font-size:1.4rem; margin-bottom:6px;">🔍</div>
+              <div>Keine passenden Projekte gefunden.</div>
+              <button class="btn btn-secondary btn-xs" style="margin-top:10px;" onclick="document.getElementById('pm-search-input').value=''; App.loadAndRenderProjectsTable();">Filter zurücksetzen</button>
             </td>
           </tr>
         `;
         return;
       }
+
+      const industryIcons = {
+        industrial_ot: "🏭 Industrie & Fertigung",
+        energy_utilities: "⚡ Energie & Netze",
+        logistics_sc: "🚛 Logistik & Supply Chain",
+        cloud_saas: "☁️ Cloud & Enterprise",
+        cloud_enterprise: "☁️ Cloud Enterprise",
+        medtech_pharma: "🏥 MedTech & Pharma",
+        smart_building: "🏢 Smart Building & IoT",
+        cross_domain: "🌐 Universell / Cross-Domain"
+      };
 
       tbody.innerHTML = "";
       filtered.forEach(p => {
@@ -5432,38 +5486,41 @@ const App = {
         const tr = document.createElement("tr");
         tr.id = `pm-row-${p.id}`;
         if (isCurrent) {
-          tr.style.background = "rgba(0, 212, 255, 0.06)";
+          tr.className = "active-project-row";
         }
 
         const createdAt = p.created_at ? new Date(p.created_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) : "–";
         const updatedAt = p.updated_at ? new Date(p.updated_at).toLocaleString("de-DE", { dateStyle: "short", timeStyle: "short" }) : "–";
+        const indDisplay = industryIcons[p.industry] || `#${p.industry || "cross_domain"}`;
 
         tr.innerHTML = `
-          <td style="padding:10px 12px;">
-            <div style="font-weight:600; color:var(--text-main); display:flex; align-items:center; gap:6px;">
+          <td style="padding:12px 14px;">
+            <div style="font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:8px;">
               <span>📁</span>
-              <span>${this.escapeHtml(p.name)}</span>
-              ${isCurrent ? `<span class="brand-badge" style="font-size:0.65rem; background:var(--cyan); color:#000;">Aktiv</span>` : ""}
+              <span style="font-size:0.92rem;">${this.escapeHtml(p.name)}</span>
+              ${isCurrent ? `<span class="brand-badge" style="font-size:0.65rem; background:rgba(6,182,212,0.18); color:var(--cyan); border-color:var(--cyan);">Aktiver Case</span>` : ""}
             </div>
-            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-              ${this.escapeHtml(p.persona_profile || "Keine Persona")}
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">
+              ${this.escapeHtml(p.persona_profile || "Lead Evaluator")}
             </div>
           </td>
-          <td style="padding:10px 12px; color:var(--text-main);">
-            <span class="tag-pill" style="font-size:0.72rem; padding:2px 8px;">#${this.escapeHtml(p.industry || "cross_domain")}</span>
+          <td style="padding:12px 14px; color:var(--text-main);">
+            <span class="tag-pill" style="font-size:0.72rem; padding:3px 10px; background:rgba(255,255,255,0.04); border:1px solid var(--border-subtle); border-radius:3px;">
+              ${this.escapeHtml(indDisplay)}
+            </span>
           </td>
-          <td style="padding:10px 12px; color:var(--text-dim); font-size:0.8rem; font-family:monospace;">
+          <td style="padding:12px 14px; color:var(--text-dim); font-size:0.78rem; font-family:var(--font-mono, monospace);">
             ${createdAt}
           </td>
-          <td style="padding:10px 12px; color:var(--text-dim); font-size:0.8rem; font-family:monospace;">
+          <td style="padding:12px 14px; color:var(--text-dim); font-size:0.78rem; font-family:var(--font-mono, monospace);">
             ${updatedAt}
           </td>
-          <td style="padding:10px 12px; text-align:right;">
-            <div style="display:flex; justify-content:flex-end; gap:6px;">
-              <button type="button" class="btn btn-secondary btn-xs" title="Dieses Projekt laden" onclick="App.selectProjectFromManager('${p.id}')">
+          <td style="padding:12px 14px; text-align:right;">
+            <div style="display:flex; justify-content:flex-end; gap:8px;">
+              <button type="button" class="btn btn-secondary btn-xs btn-pm-open" data-id="${p.id}" title="Diesen Case öffnen" style="font-weight:600;">
                 🎯 Öffnen
               </button>
-              <button type="button" class="btn btn-secondary btn-xs" style="color:var(--rose);" title="Projekt löschen" onclick="App.confirmDeleteProject('${p.id}', '${this.escapeHtml(p.name)}')">
+              <button type="button" class="btn btn-secondary btn-xs btn-pm-delete" data-id="${p.id}" data-name="${this.escapeHtml(p.name)}" style="color:var(--rose); border-color:rgba(244,63,94,0.3); font-weight:600;" title="Diesen Case unwiderruflich löschen">
                 🗑️ Löschen
               </button>
             </div>
@@ -5471,31 +5528,55 @@ const App = {
         `;
         tbody.appendChild(tr);
       });
+
+      // Bind events via delegation (avoids duplicate listeners and quoting issues)
+      if (!tbody.hasAttribute("data-bound")) {
+        tbody.setAttribute("data-bound", "true");
+        tbody.addEventListener("click", (e) => {
+          const openBtn = e.target.closest(".btn-pm-open");
+          if (openBtn) {
+            const pid = openBtn.getAttribute("data-id");
+            if (pid) this.selectProjectFromManager(pid);
+            return;
+          }
+          const delBtn = e.target.closest(".btn-pm-delete");
+          if (delBtn) {
+            const pid = delBtn.getAttribute("data-id");
+            const pname = delBtn.getAttribute("data-name");
+            if (pid) this.confirmDeleteProject(pid, pname);
+            return;
+          }
+        });
+      }
     } catch (err) {
-      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--rose); padding:16px;">Fehler: ${this.escapeHtml(err.message)}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="5" style="color:var(--rose); padding:16px;">Fehler beim Laden: ${this.escapeHtml(err.message)}</td></tr>`;
     }
   },
 
   async selectProjectFromManager(projectId) {
     await this.selectProject(projectId);
     this.closeProjectsModal();
-    window.showToast("Projekt geladen!", "success");
+    window.showToast("Case erfolgreich geöffnet!", "success");
   },
 
   confirmDeleteProject(projectId, projectName) {
     window.showConfirmModal(
       "Projekt löschen",
-      `Möchtest du das Projekt <strong>${projectName}</strong> mit allen Dokumenten, Phasen und Daten wirklich unwiderruflich löschen?`,
+      `Möchten Sie den Case <strong>${this.escapeHtml(projectName)}</strong> mit allen zugehörigen Dokumenten, Phasen, Skizzen und Versionen wirklich unwiderruflich löschen?`,
       async () => {
         try {
           await API.deleteProject(projectId);
-          window.showToast(`Projekt '${projectName}' gelöscht.`, "info");
+          window.showToast(`Projekt '${projectName}' erfolgreich gelöscht.`, "info");
+          localStorage.removeItem(`case_studio_prompt_${projectId}`);
+          localStorage.removeItem(`case_studio_ew_draft`);
           await this.loadProjects();
           await this.loadAndRenderProjectsTable();
         } catch (err) {
           window.showToast(`Fehler beim Löschen: ${err.message}`, "error");
         }
-      }
+      },
+      "Projekt endgültig löschen",
+      "Abbrechen"
     );
   },
 
