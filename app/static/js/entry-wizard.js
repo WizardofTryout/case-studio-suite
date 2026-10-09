@@ -5,6 +5,8 @@
  */
 
 (function () {
+  const STORAGE_KEY_DRAFT = "case_studio_ew_draft";
+
   const EntryWizard = {
     state: {
       mode: "guided", // 'guided' | 'express'
@@ -27,55 +29,175 @@
         name: "Industrie & Fertigung",
         icon: "🏭",
         desc: "OT/IT-Konvergenz, SPS, SCADA, Purdue-Modell (ISA-95)",
+        schoolName: "Purdue Strict (ISA-95)",
         school: "purdue_strict",
-        specialists: ["ot_security", "tco_analyst"]
+        specialists: ["ot_security", "tco_analyst"],
+        specialistsDisplay: "OT Security, TCO Analyst",
+        template: `### Kernproblem:
+Hohe Ausschussquote (>8%) an CNC-Pressenlinie 4 aufgrund unerkannter Werkzeugabnutzung und unzureichender Echtzeit-Telemetrie.
+
+### Ziel-KPIs:
+• OEE-Steigerung um +3.5%
+• Latenzgrenze für Sensor-Feedback < 20 ms
+• Autonomer Notstopp bei Vibrationsanomalien
+
+### Randbedingungen & Governance:
+• Strikte OT/IT-Trennung (Purdue-Modell / ISA-95)
+• On-Premises Edge-Puffer für mindestens 48h Netzwerkausfall
+• IEC 62443 Security-Zonierung (Keine direkten Internet-Verbindungen von SPS/Edge)
+
+### Bestandssysteme:
+• SPS: Siemens Simatic S7-1500
+• SCADA: WinCC OA
+• ERP: SAP ECC / S/4HANA`
       },
       energy_utilities: {
         name: "Energie & Netze",
         icon: "⚡",
         desc: "Smart Grids, KRITIS-Sicherheit, IEC 62443, Substation IoT",
+        schoolName: "Zero-Trust & KRITIS",
         school: "zero_trust",
-        specialists: ["ot_security", "compliance_auditor"]
+        specialists: ["ot_security", "compliance_auditor"],
+        specialistsDisplay: "OT Security, Compliance Auditor",
+        template: `### Kernproblem:
+Monitoring und Phasor-Messung in dezentralen Mittelspannungs-Umspannwerken zur Netzstabilisierung bei volatiler PV-Einspeisung.
+
+### Ziel-KPIs:
+• Erkennung von Frequenzschwankungen in < 15 ms
+• 99.999% Verfügbarkeit nach KRITIS-Vorgaben
+• Vollständige Auditierbarkeit aller Schaltbefehle
+
+### Randbedingungen & Governance:
+• BSI IT-Sicherheitsgesetz 2.0 & NIS-2 Konformität
+• Protokolle: IEC 60870-5-104 und IEC 61850
+• Streng getrennte Mandanten für Mess- und Steuerdaten
+
+### Bestandssysteme:
+• Schutzgeräte: SIPROTEC 5
+• Fernwirktechnik: SICAM PAS`
       },
       logistics_sc: {
         name: "Logistik & Supply Chain",
         icon: "🚛",
         desc: "Tracking, Flottenmanagement, RFID, Lagerautomatisierung",
+        schoolName: "Cloud-Native Event-Driven",
         school: "cloud_native",
-        specialists: ["cloud_integration", "tco_analyst"]
+        specialists: ["cloud_integration", "tco_analyst"],
+        specialistsDisplay: "Cloud Architect, TCO Analyst",
+        template: `### Kernproblem:
+Verzögerungen im Wareneingang und fehlerhafte Palettenzuordnung bei 15.000 täglichen Durchläufen im Hub.
+
+### Ziel-KPIs:
+• Durchlaufzeit pro LKW-Entladung -25%
+• Nahtlose Echtzeit-Ortung von Fahrerlosen Transportsystemen (FTS)
+• End-to-End Nachverfolgbarkeit
+
+### Randbedingungen & Governance:
+• Hybrides Setup: Lokale Gateways mit Offline-Fallback bei WAN-Störung
+• Skalierbarkeit für Spitzenlasten (Black Friday / Saison)
+
+### Bestandssysteme:
+• Lagerverwaltung: SAP EWM
+• Sensorik: RFID-Gates, Sick Laserscanner`
       },
       cloud_saas: {
         name: "Cloud & Enterprise IT",
         icon: "☁️",
         desc: "Microservices, Event Streaming (Kafka), Skalierbarkeit, APIs",
+        schoolName: "Cloud-Native Microservices",
         school: "cloud_native",
-        specialists: ["cloud_integration", "tco_analyst"]
+        specialists: ["cloud_integration", "tco_analyst"],
+        specialistsDisplay: "Cloud Architect, TCO Analyst",
+        template: `### Kernproblem:
+Monolithische ERP-Schnittstelle bricht unter Last von 50.000 gleichzeitigen API-Anfragen ein.
+
+### Ziel-KPIs:
+• Antwortzeit p99 < 120 ms
+• Zero-Downtime Deployments (Canary / Blue-Green)
+• Kosten-Transparenz pro Tenant
+
+### Randbedingungen & Governance:
+• Multi-Cloud fähig (AWS / GCP / Azure)
+• DSGVO-Konformität mit Datenspeicherung in der EU
+
+### Bestandssysteme:
+• Message Broker: Apache Kafka
+• Datenbank: PostgreSQL / CockroachDB`
       },
       medtech_pharma: {
         name: "MedTech & Healthcare",
         icon: "🏥",
         desc: "GxP, FDA 21 CFR Part 11, Patientendaten, Validierung",
+        schoolName: "Zero-Trust & Compliance",
         school: "zero_trust",
-        specialists: ["compliance_auditor", "tco_analyst"]
+        specialists: ["compliance_auditor", "tco_analyst"],
+        specialistsDisplay: "Compliance Auditor, TCO Analyst",
+        template: `### Kernproblem:
+Lückenhafte Chargen-Dokumentation in der Bioreaktor-Produktion und manuelle Freigabeprozesse.
+
+### Ziel-KPIs:
+• Automatisierte Erstellung des Electronic Batch Records (eBR)
+• 100% lückenloser Audit Trail aller Sensordaten
+• Reduktion von Freigabe-Zyklen von 5 Tagen auf 4 Stunden
+
+### Randbedingungen & Governance:
+• Strikte Einhaltung von FDA 21 CFR Part 11 und GMP Annex 11
+• Unveränderliche Speicherung (WORM-Storage)
+• Qualifizierte Infrastruktur nach GAMP 5
+
+### Bestandssysteme:
+• MES: Werum PAS-X
+• SCADA: Emerson DeltaV`
       },
       smart_building: {
         name: "Smart Building & IoT",
         icon: "🏢",
         desc: "BACnet, Facility Automation, Sensornetze, Energieeffizienz",
+        schoolName: "Minimal-TCO Lean",
         school: "minimal_tco",
-        specialists: ["tco_analyst", "cloud_integration"]
+        specialists: ["tco_analyst", "cloud_integration"],
+        specialistsDisplay: "TCO Analyst, Cloud Architect",
+        template: `### Kernproblem:
+Hohe Energiekosten und fehlende Übersicht über HLK-Verbräuche in 12 Bürogebäuden.
+
+### Ziel-KPIs:
+• 18% Energieeinsparung durch bedarfsgesteuerte Regelung
+• Erfüllung der ESG-Reporting-Kriterien nach CSRD
+• Amortisation (ROI) in unter 14 Monaten
+
+### Randbedingungen & Governance:
+• Weiternutzung bestehender Feldbus-Installation ohne teuren Hardware-Tausch
+• Offene Schnittstellen (MQTT, REST) statt proprietärem Vendor-Lock-in
+
+### Bestandssysteme:
+• Gebäudeleittechnik: BACnet/IP, Modbus TCP
+• Energiemanagement: Siemens Desigo CC`
       },
       cross_domain: {
         name: "Universell / Cross-Domain",
         icon: "🌐",
         desc: "Offene Technologieberatung ohne branchenspezifische Vorfestlegung",
+        schoolName: "Balanced Pragmatic",
         school: "balanced_pragmatic",
-        specialists: ["tco_analyst", "cloud_integration"]
+        specialists: ["tco_analyst", "cloud_integration"],
+        specialistsDisplay: "TCO Analyst, Cloud Architect",
+        template: `### Kernproblem:
+Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen für zukunftssichere Skalierung.
+
+### Ziel-KPIs:
+• Klare Kosten-Nutzen-Bewertung (TCO / CAPEX / OPEX)
+• Risikominimierung durch strukturierte Proof-of-Concept-Roadmap
+• Unabhängige Entscheidungsgrundlage für das Executive-Gremium
+
+### Randbedingungen & Governance:
+• Keine Spekulation bei fehlenden Latenz- und Mengengerüsten
+• Sicherheits- und Ausfallanalyse nach Industriestandard`
       }
     },
 
     init() {
       this.bindEvents();
+      this.loadDraftFromStorage();
     },
 
     bindEvents() {
@@ -144,9 +266,40 @@
             this.handleNextStep();
           }
         });
+        guidedInput.addEventListener("input", () => {
+          this.clearGuidedNameError();
+          this.saveDraftToStorage();
+        });
       }
 
-      // Industry selection buttons (Delegation)
+      // Problem description live counter & auto-save
+      const problemDesc = document.getElementById("ew-guided-problem-description");
+      if (problemDesc) {
+        problemDesc.addEventListener("input", () => {
+          this.updateCharCounter();
+          this.saveDraftToStorage();
+        });
+      }
+
+      // Insertion Chips for Leitfragen (Step 2)
+      document.querySelectorAll(".ew-chip-btn[data-insert]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const snippetType = btn.getAttribute("data-insert");
+          this.insertSnippet(snippetType);
+        });
+      });
+
+      // Load Template Button (Step 2)
+      document.getElementById("btn-ew-load-template")?.addEventListener("click", () => {
+        this.loadCurrentIndustryTemplate();
+      });
+
+      // Clear Description Button (Step 2)
+      document.getElementById("btn-ew-clear-description")?.addEventListener("click", () => {
+        this.clearProblemDescription();
+      });
+
+      // Industry selection (Click & Keyboard)
       document.getElementById("ew-express-industry-grid")?.addEventListener("click", (e) => {
         const tile = e.target.closest(".ew-industry-tile");
         if (tile) {
@@ -163,6 +316,18 @@
         }
       });
 
+      // Keyboard handling on industry tiles (Enter / Space)
+      document.querySelectorAll(".ew-industry-tile").forEach((tile) => {
+        tile.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const ind = tile.getAttribute("data-industry");
+            const isExpress = tile.closest("#ew-express-industry-grid") !== null;
+            if (ind) this.selectIndustry(ind, isExpress);
+          }
+        });
+      });
+
       // Escape key to close
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && overlay && overlay.classList.contains("active")) {
@@ -175,7 +340,7 @@
       const overlay = document.getElementById("entry-wizard-modal-overlay");
       if (!overlay) return;
 
-      this.resetState();
+      this.loadDraftFromStorage();
       this.setMode(initialMode);
       overlay.classList.add("active");
 
@@ -217,8 +382,10 @@
       const probDesc = document.getElementById("ew-guided-problem-description");
       if (probDesc) probDesc.value = "";
 
+      this.clearGuidedNameError();
       this.selectIndustry("industrial_ot", true);
       this.selectIndustry("industrial_ot", false);
+      this.updateCharCounter();
       this.goToStep(1);
     },
 
@@ -262,19 +429,33 @@
       this.state.data.leadSchoolPreset = preset.school;
       this.state.data.selectedSpecialists = [...preset.specialists];
 
-      // Update UI tiles
-      const containerId = isExpress ? "ew-express-industry-grid" : "ew-guided-industry-grid";
-      const container = document.getElementById(containerId);
-      if (container) {
-        container.querySelectorAll(".ew-industry-tile").forEach((tile) => {
-          const current = tile.getAttribute("data-industry");
-          if (current === indKey) {
-            tile.classList.add("active");
-          } else {
-            tile.classList.remove("active");
-          }
-        });
+      // Update UI tiles in both grids to keep sync
+      document.querySelectorAll(".ew-industry-tile").forEach((tile) => {
+        const current = tile.getAttribute("data-industry");
+        if (current === indKey) {
+          tile.classList.add("active");
+        } else {
+          tile.classList.remove("active");
+        }
+      });
+
+      // Update Dynamic Preview Box in Step 1
+      const schoolBadge = document.getElementById("ew-preview-school");
+      if (schoolBadge) {
+        schoolBadge.textContent = `🏛️ Denkschule: ${preset.schoolName}`;
       }
+      const agentsBadge = document.getElementById("ew-preview-agents");
+      if (agentsBadge) {
+        agentsBadge.textContent = `Team: ${preset.specialistsDisplay}`;
+      }
+
+      // Update Template Button label in Step 2
+      const tplBtn = document.getElementById("btn-ew-load-template");
+      if (tplBtn) {
+        tplBtn.textContent = `📋 Vorlage für ${preset.name.split(' ')[0]} laden`;
+      }
+
+      this.saveDraftToStorage();
     },
 
     goToStep(stepNumber) {
@@ -306,6 +487,14 @@
         }
       }
 
+      // Auto-focus on step change
+      if (stepNumber === 1) {
+        setTimeout(() => document.getElementById("ew-guided-project-name")?.focus(), 80);
+      } else if (stepNumber === 2) {
+        setTimeout(() => document.getElementById("ew-guided-problem-description")?.focus(), 80);
+        this.updateCharCounter();
+      }
+
       // Update Footer Buttons
       const prevBtn = document.getElementById("btn-ew-prev-step");
       const nextBtn = document.getElementById("btn-ew-next-step");
@@ -329,11 +518,18 @@
         const nameInput = document.getElementById("ew-guided-project-name");
         const val = (nameInput?.value || "").trim();
         if (!val || val.length < 2) {
-          window.showToast?.("Bitte geben Sie einen Projektnamen ein (mind. 2 Zeichen).", "warning");
+          this.showGuidedNameError();
           nameInput?.focus();
           return;
         }
+        this.clearGuidedNameError();
         this.state.data.projectName = val;
+      }
+
+      // Capture Problem Description on leaving Step 2
+      if (this.state.currentStep === 2) {
+        const probDesc = document.getElementById("ew-guided-problem-description");
+        this.state.data.problemDescription = (probDesc?.value || "").trim();
       }
 
       if (this.state.currentStep < this.state.totalSteps) {
@@ -343,12 +539,170 @@
       }
     },
 
+    showGuidedNameError() {
+      const err = document.getElementById("ew-guided-name-error");
+      const inp = document.getElementById("ew-guided-project-name");
+      if (err) err.style.display = "block";
+      if (inp) {
+        inp.style.borderColor = "#ef4444";
+        inp.style.boxShadow = "0 0 0 2px rgba(239, 68, 68, 0.25)";
+      }
+    },
+
+    clearGuidedNameError() {
+      const err = document.getElementById("ew-guided-name-error");
+      const inp = document.getElementById("ew-guided-project-name");
+      if (err) err.style.display = "none";
+      if (inp) {
+        inp.style.borderColor = "";
+        inp.style.boxShadow = "";
+      }
+    },
+
+    // Sprint 2: Snippet-Insertion for Leitfragen
+    insertSnippet(type) {
+      const textarea = document.getElementById("ew-guided-problem-description");
+      if (!textarea) return;
+
+      const snippets = {
+        problem: "### Kernproblem:\n[Beschreiben Sie hier den aktuellen Engpass, Maschinenausfall oder Schmerzpunkt]\n\n",
+        goals: "### Ziel-KPIs:\n• Latenzgrenze: < 20 ms\n• OEE-Steigerung: +3.0%\n• Kostenreduktion / ROI: < 12 Monate\n\n",
+        constraints: "### Randbedingungen & Governance:\n• Strikte On-Premises-Haltung (Kein Public Cloud Export)\n• BSI / IEC 62443 Konformität\n• Ausfallpuffer: 48h Offline-Betrieb\n\n",
+        systems: "### Bestandssysteme & Schnittstellen:\n• SPS / Steuerungen: Siemens Simatic S7-1500\n• Feldbus / Telemetrie: OPC UA & MQTT\n• Enterprise IT: SAP ERP\n\n"
+      };
+
+      const textToInsert = snippets[type] || "";
+      if (!textToInsert) return;
+
+      const start = textarea.selectionStart || textarea.value.length;
+      const end = textarea.selectionEnd || textarea.value.length;
+      const existing = textarea.value;
+
+      // Insert snippet at cursor or append
+      const prefix = existing.substring(0, start);
+      const suffix = existing.substring(end);
+      const needsLeadingNewline = prefix.length > 0 && !prefix.endsWith("\n\n");
+      const glue = needsLeadingNewline ? "\n\n" : "";
+
+      textarea.value = prefix + glue + textToInsert + suffix;
+      textarea.focus();
+
+      // Position cursor inside the bracketed placeholder if any
+      const newCursor = (prefix + glue + textToInsert).length;
+      textarea.setSelectionRange(newCursor, newCursor);
+
+      this.updateCharCounter();
+      this.saveDraftToStorage();
+    },
+
+    loadCurrentIndustryTemplate() {
+      const textarea = document.getElementById("ew-guided-problem-description");
+      if (!textarea) return;
+
+      const ind = this.state.data.industry || "industrial_ot";
+      const preset = this.industryPresets[ind] || this.industryPresets.cross_domain;
+
+      if (textarea.value.trim().length > 0) {
+        const replace = confirm("Möchten Sie das Textfeld mit der Vorlage überschreiben?");
+        if (!replace) return;
+      }
+
+      textarea.value = preset.template;
+      textarea.focus();
+      this.updateCharCounter();
+      this.saveDraftToStorage();
+      window.showToast?.(`Vorlage für '${preset.name}' geladen!`, "info");
+    },
+
+    clearProblemDescription() {
+      const textarea = document.getElementById("ew-guided-problem-description");
+      if (!textarea) return;
+      textarea.value = "";
+      textarea.focus();
+      this.updateCharCounter();
+      this.saveDraftToStorage();
+    },
+
+    updateCharCounter() {
+      const textarea = document.getElementById("ew-guided-problem-description");
+      const counter = document.getElementById("ew-char-counter");
+      if (!textarea || !counter) return;
+
+      const text = textarea.value.trim();
+      const chars = text.length;
+      const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
+
+      let qualityBadge = "";
+      if (chars === 0) {
+        qualityBadge = `<span style="color:var(--text-muted);">(Optional)</span>`;
+      } else if (chars < 40) {
+        qualityBadge = `<span style="color:#f59e0b;">Kurzer Scope</span>`;
+      } else {
+        qualityBadge = `<span style="color:#10b981;">Aussagekräftig für KI-Scoping ✅</span>`;
+      }
+
+      counter.innerHTML = `${chars} Zeichen • ${words} Wörter • ${qualityBadge}`;
+    },
+
+    // Sprint 2: Draft Auto-Save to LocalStorage
+    saveDraftToStorage() {
+      try {
+        const guiName = document.getElementById("ew-guided-project-name")?.value || "";
+        const expName = document.getElementById("ew-express-project-name")?.value || "";
+        const probDesc = document.getElementById("ew-guided-problem-description")?.value || "";
+
+        const draft = {
+          projectName: guiName || expName || this.state.data.projectName,
+          industry: this.state.data.industry,
+          problemDescription: probDesc,
+          timestamp: Date.now()
+        };
+        localStorage.setItem(STORAGE_KEY_DRAFT, JSON.stringify(draft));
+      } catch (e) {
+        // LocalStorage quota or access error ignore
+      }
+    },
+
+    loadDraftFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_DRAFT);
+        if (!raw) return;
+        const draft = JSON.parse(raw);
+        if (draft && typeof draft === "object") {
+          if (draft.projectName) {
+            this.state.data.projectName = draft.projectName;
+            const expInp = document.getElementById("ew-express-project-name");
+            if (expInp && !expInp.value) expInp.value = draft.projectName;
+            const guiInp = document.getElementById("ew-guided-project-name");
+            if (guiInp && !guiInp.value) guiInp.value = draft.projectName;
+          }
+          if (draft.industry) {
+            this.selectIndustry(draft.industry, false);
+          }
+          if (draft.problemDescription) {
+            this.state.data.problemDescription = draft.problemDescription;
+            const probDesc = document.getElementById("ew-guided-problem-description");
+            if (probDesc && !probDesc.value) probDesc.value = draft.problemDescription;
+          }
+          this.updateCharCounter();
+        }
+      } catch (e) {
+        // Corrupted draft ignore
+      }
+    },
+
+    clearDraftFromStorage() {
+      try {
+        localStorage.removeItem(STORAGE_KEY_DRAFT);
+      } catch (e) {}
+    },
+
     async submitExpress() {
       const input = document.getElementById("ew-express-project-name");
       const name = (input?.value || "").trim();
 
       if (!name || name.length < 2) {
-        window.showToast?.("Bitte geben Sie einen Projektnamen ein.", "warning");
+        window.showToast?.("Bitte geben Sie einen Projektnamen ein (mind. 2 Zeichen).", "warning");
         input?.focus();
         return;
       }
@@ -363,6 +717,7 @@
       try {
         const created = await window.API.createProject(name, industry, "Lead Evaluator");
         window.showToast?.(`Projekt '${name}' erfolgreich angelegt!`, "success");
+        this.clearDraftFromStorage();
         this.close();
 
         // Refresh project list and switch to the newly created project
@@ -400,6 +755,7 @@
       try {
         const created = await window.API.createProject(name, industry, "Lead Evaluator");
         window.showToast?.(`Projekt '${name}' erfolgreich initialisiert!`, "success");
+        this.clearDraftFromStorage();
         this.close();
 
         if (window.App && typeof window.App.loadProjects === "function") {

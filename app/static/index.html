@@ -1731,59 +1731,110 @@
             <div style="margin-top:16px;">
               <label class="ew-form-label" for="ew-guided-project-name">PROJEKTNAME / CASE-TITEL <span style="color:var(--danger); font-weight:bold;">*</span></label>
               <input type="text" id="ew-guided-project-name" class="ew-text-input" placeholder="z. B. Predictive Maintenance Pressenlinie 4" autocomplete="off">
+              <div id="ew-guided-name-error" class="ew-validation-msg" style="display:none; color:#ef4444; font-size:0.75rem; margin-top:4px; font-weight:600;">
+                ⚠️ Bitte geben Sie einen Projektnamen ein (mindestens 2 Zeichen).
+              </div>
             </div>
 
             <div style="margin-top:20px;">
               <label class="ew-form-label">BRANCHE WÄHLEN (STEUERT ARCHITEKTUR-DENKSCHULE &amp; AGENTEN)</label>
               <div class="ew-industry-grid" id="ew-guided-industry-grid">
-                <div class="ew-industry-tile active" data-industry="industrial_ot">
+                <div class="ew-industry-tile active" data-industry="industrial_ot" tabindex="0" role="button">
                   <div class="ew-tile-icon">🏭</div>
                   <div class="ew-tile-title">Industrie &amp; Fertigung</div>
                   <div class="ew-tile-desc">OT/IT, SPS, SCADA, Purdue (ISA-95)</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="energy_utilities">
+                <div class="ew-industry-tile" data-industry="energy_utilities" tabindex="0" role="button">
                   <div class="ew-tile-icon">⚡</div>
                   <div class="ew-tile-title">Energie &amp; Netze</div>
                   <div class="ew-tile-desc">Smart Grids, KRITIS, IEC 62443</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="logistics_sc">
+                <div class="ew-industry-tile" data-industry="logistics_sc" tabindex="0" role="button">
                   <div class="ew-tile-icon">🚛</div>
                   <div class="ew-tile-title">Logistik &amp; Supply Chain</div>
                   <div class="ew-tile-desc">Tracking, Flotten, Lagertechnik</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="cloud_saas">
+                <div class="ew-industry-tile" data-industry="cloud_saas" tabindex="0" role="button">
                   <div class="ew-tile-icon">☁️</div>
                   <div class="ew-tile-title">Cloud &amp; Enterprise IT</div>
                   <div class="ew-tile-desc">Microservices, Kafka, APIs</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="medtech_pharma">
+                <div class="ew-industry-tile" data-industry="medtech_pharma" tabindex="0" role="button">
                   <div class="ew-tile-icon">🏥</div>
                   <div class="ew-tile-title">MedTech &amp; Pharma</div>
                   <div class="ew-tile-desc">GxP, FDA Part 11, Validierung</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="smart_building">
+                <div class="ew-industry-tile" data-industry="smart_building" tabindex="0" role="button">
                   <div class="ew-tile-icon">🏢</div>
                   <div class="ew-tile-title">Smart Building &amp; IoT</div>
                   <div class="ew-tile-desc">BACnet, Gebäudeautomation</div>
                 </div>
-                <div class="ew-industry-tile" data-industry="cross_domain">
+                <div class="ew-industry-tile" data-industry="cross_domain" tabindex="0" role="button">
                   <div class="ew-tile-icon">🌐</div>
                   <div class="ew-tile-title">Universell / Offen</div>
                   <div class="ew-tile-desc">Cross-Domain Architektur</div>
                 </div>
               </div>
+
+              <!-- Dynamic Industry Preview Box -->
+              <div id="ew-industry-preview-box" class="ew-industry-preview-box" style="margin-top:14px; padding:10px 14px; background:rgba(6,182,212,0.06); border:1px solid rgba(6,182,212,0.2); border-radius:4px; font-size:0.76rem; display:flex; align-items:center; justify-content:space-between; gap:12px;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-weight:700; color:var(--cyan);" id="ew-preview-school">🏛️ Denkschule: Purdue Strict (ISA-95)</span>
+                  <span style="color:var(--text-muted); opacity:0.6;">•</span>
+                  <span style="color:var(--text-muted);" id="ew-preview-agents">Team: OT Security, TCO Analyst</span>
+                </div>
+                <span class="brand-badge" style="font-size:0.65rem; background:rgba(6,182,212,0.15); color:var(--cyan); border-color:rgba(6,182,212,0.3);">Vorselektiert</span>
+              </div>
             </div>
           </div>
 
-          <!-- STEP 2: Problemstellung (Vorbereitung für Sprint 2) -->
+          <!-- STEP 2: Problemstellung & Leitfragen (Sprint 2) -->
           <div id="ew-step-view-2" class="ew-step-view" style="display:none;">
             <div class="ew-step-header">
               <span class="ew-step-title">📝 Schritt 2: Was ist die zentrale Herausforderung?</span>
-              <span class="ew-step-subtitle">Beschreiben Sie das Kernproblem, Randbedingungen oder Ziele. Optional – kann auch im Workspace ausgefüllt werden.</span>
+              <span class="ew-step-subtitle">Beschreiben Sie das Kernproblem, Randbedingungen oder Ziele. Sie können Leitfragen anklicken oder eine Branchen-Vorlage laden.</span>
             </div>
-            <div style="margin-top:16px;">
-              <label class="ew-form-label" for="ew-guided-problem-description">FALLBESCHREIBUNG / PROBLEMSTELLUNG</label>
-              <textarea id="ew-guided-problem-description" class="ew-textarea-input" rows="7" placeholder="Beschreiben Sie hier die Ausgangslage, z.B.:&#10;• Was ist der aktuelle Engpass?&#10;• Welche Systeme sind involviert?&#10;• Welche Latenz- oder Budgetgrenzen existieren?"></textarea>
+
+            <!-- Toolbar with Prompt Assistance Chips & Template Loader -->
+            <div class="ew-editor-toolbar" style="margin-top:14px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px;">
+              <div style="display:flex; flex-wrap:wrap; align-items:center; gap:6px;">
+                <span style="font-size:0.72rem; color:var(--text-muted); font-family:var(--font-mono); font-weight:700;">LEITFRAGEN:</span>
+                <button type="button" class="ew-chip-btn" data-insert="problem" title="Fügt den Abschnitt 'Kernproblem' ein">
+                  📌 Kernproblem
+                </button>
+                <button type="button" class="ew-chip-btn" data-insert="goals" title="Fügt den Abschnitt 'Ziel-KPIs' ein">
+                  🎯 Ziel-KPIs
+                </button>
+                <button type="button" class="ew-chip-btn" data-insert="constraints" title="Fügt den Abschnitt 'Randbedingungen' ein">
+                  🔒 Randbedingungen
+                </button>
+                <button type="button" class="ew-chip-btn" data-insert="systems" title="Fügt den Abschnitt 'Bestandssysteme' ein">
+                  ⚙️ Altsysteme
+                </button>
+              </div>
+
+              <div style="display:flex; align-items:center; gap:6px;">
+                <button type="button" id="btn-ew-load-template" class="ew-chip-btn ew-chip-primary" title="Lädt eine vorgefertigte Struktur passend zur gewählten Branche">
+                  📋 Branchen-Vorlage laden
+                </button>
+                <button type="button" id="btn-ew-clear-description" class="ew-chip-btn" title="Textfeld leeren" style="color:#ef4444;">
+                  🗑️ Leeren
+                </button>
+              </div>
+            </div>
+
+            <!-- Textarea Editor -->
+            <div style="margin-top:10px;">
+              <label class="ew-form-label" for="ew-guided-problem-description">FALLBESCHREIBUNG / PROBLEMSTELLUNG (OPTIONAL)</label>
+              <textarea id="ew-guided-problem-description" class="ew-textarea-input" rows="8" placeholder="Beschreiben Sie hier die Ausgangslage... (Nutzen Sie oben die Leitfragen oder die Branchen-Vorlage)"></textarea>
+            </div>
+
+            <!-- Editor Metadata Bar (Char Counter & Autosave Indicator) -->
+            <div class="ew-editor-meta" style="margin-top:8px; display:flex; align-items:center; justify-content:space-between; font-size:0.73rem; color:var(--text-muted); font-family:var(--font-mono);">
+              <div id="ew-char-counter">0 Zeichen • 0 Wörter</div>
+              <div id="ew-autosave-indicator" style="display:flex; align-items:center; gap:4px; opacity:0.8;">
+                <span>💾</span> <span>Entwurf wird automatisch gespeichert</span>
+              </div>
             </div>
           </div>
 
