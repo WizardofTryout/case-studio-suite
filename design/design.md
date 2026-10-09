@@ -1,6 +1,6 @@
 # 📐 DESIGN.md — Technical Architecture Workspace (Case Copilot)
 
-> **Basis-Spezifikation:** Abgeleitet aus [`design/design.html`](file:///Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/design/design.html)  
+> **Basis-Spezifikation:** Abgeleitet aus `design/design.html`  
 > **Typus:** High-Precision Engineering Canvas, Blueprint & Technical Systems Studio  
 > **Aesthetik:** Industrial Brutalism × Bauhaus Precision × Modern High-Tech Studio
 

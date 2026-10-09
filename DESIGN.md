@@ -1,6 +1,6 @@
 # 📐 DESIGN.md — Technical Architecture Studio (Case Copilot / Case Studio)
 
-> **Basis-Spezifikation:** Vollständig synchronisiert mit [`design/design.md`](file:///Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/design/design.md) & [`design/design.html`](file:///Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/design/design.html)  
+> **Basis-Spezifikation:** Vollständig synchronisiert mit `design/design.md` & `design/design.html`  
 > **Typus:** High-Precision Engineering Canvas, Blueprint & Technical Systems Studio  
 > **Aesthetik:** Industrial Brutalism × Bauhaus Precision × Modern High-Tech Studio  
 > **Regelwerk:** Anti-Slop (R-01 bis R-37), WCAG 2.1 AA Kontrastgarantie, duale Oberflächenbühne.

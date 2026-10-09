@@ -16,6 +16,34 @@ secrets.yaml
 id_rsa*
 id_ed25519*
 
+# Anti-Slop Audit & Guidelines (Local only, never push to GitHub)
+anti-slop/
+antislop/
+*.antislop*
+
+# Private / Personal Documents, Conversations, Chats & Transcripts
+conversations/
+chats/
+transcripts/
+*.transcript*
+*transcript*.jsonl
+*.log
+logs/
+notes/
+scratch/
+personal/
+private/
+user_data/
+documents/
+uploads/
+docs/private/
+*.pdf
+*.docx
+*.doc
+*.xlsx
+*.csv
+*.tsv
+
 # Internal development plans, sprint notes & proprietary extensions
 features-add-ons/
 .claude/
@@ -23,6 +51,9 @@ features-add-ons/
 *-plan.md
 how-to-case-studio.md
 ARCHITECTURE.md
+.gitnexus/
+.vscode/
+.idea/
 
 
 # SQLite and data folder
