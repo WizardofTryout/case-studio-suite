@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Case Copilot | Technical Architecture Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=IBM+Plex+Mono:wght@400;500&display=swap');
+    :root {
+    --ground:#EFEFEE;
+    --stage:#E4E4E2;
+    --ink:#0D0D0F;
+    --secondary:#43444A;
+    --muted:#6E6F76;
+    --accent:#2F5BFF;
+    --accent-lift:#7C97FF;
+    --hairline:rgba(13,13,15,0.12);
+    --ease:cubic-bezier(0.16, 1, 0.3, 1)
+  }
+  html {
+    scroll-behavior:smooth;
+    background-color:var(--ground);
+    -webkit-font-smoothing:antialiased
+  }
+  body {
+    font-family:'Archivo',sans-serif;
+    color:var(--ink);
+    margin:0;
+    padding:0
+  }
+  .mono {
+    font-family:'IBM+Plex+Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.15em;
+    text-transform:uppercase
+  }
+  .pill {
+    border-radius:9999px;
+    padding:10px 24px;
+    transition:all 0.3s var(--ease)
+  }
+  .reveal {
+    opacity:0;
+    transform:translateY(20px);
+    transition:opacity 0.85s var(--ease),transform 0.85s var(--ease)
+  }
+  .reveal.in {
+    opacity:1;
+    transform:translateY(0)
+  }
+  .occlusion-word {
+    font-weight:900;
+    line-height:0.74;
+    letter-spacing:-0.055em;
+    white-space:nowrap;
+    user-select:none
+  }
+  .subject-shadow {
+    filter:drop-shadow(0 26px 34px rgba(13,13,15,0.20))
+  }
+  header {
+    background-color:rgba(239,239,238,0.82);
+    backdrop-filter:blur(14px);
+    z-index:100;
+    border-bottom:1px solid var(--hairline)
+  }
+  .trace-path {
+    stroke-dasharray:1000;
+    stroke-dashoffset:1000
+  }
+  .in .trace-path {
+    animation:draw 2s var(--ease) forwards
+  }
+  @keyframes draw {
+    to {
+    stroke-dashoffset:0
+  }
+  
+  }
+    </style>
+  </head>
+  <body>
+    <div class="min-h-screen selection:bg-[#2F5BFF] selection:text-white" data-sd-id="1">
+      <header class="fixed top-0 left-0 w-full h-16 flex items-center justify-between px-8 border-b border-black/10" data-sd-id="2">
+        <div class="flex items-center gap-1" data-sd-id="3">
+          <a id="nav-brand" href="#" class="text-[16px] font-[800] tracking-[-0.035em]" data-sd-id="4">CASE COPILOT
+            <span class="text-[#2F5BFF]" data-sd-id="5">.</span>
+          </a>
+        </div>
+        <nav class="flex items-center gap-8" data-sd-id="6">
+          <div class="hidden lg:flex gap-6" data-sd-id="7">
+            <a id="nav-link-explore" href="#" class="mono text-[11px] border-b border-transparent hover:border-[#2F5BFF] transition-colors" data-sd-id="8">Explore</a>
+            <a id="nav-link-arch" href="#" class="mono text-[11px] border-b border-transparent hover:border-[#2F5BFF] transition-colors" data-sd-id="9">Architect</a>
+            <a id="nav-link-trace" href="#" class="mono text-[11px] border-b border-transparent hover:border-[#2F5BFF] transition-colors" data-sd-id="10">Trace</a>
+            <a id="nav-link-insights" href="#" class="mono text-[11px] border-b border-transparent hover:border-[#2F5BFF] transition-colors" data-sd-id="11">Insights</a>
+            <a id="nav-link-deploy" href="#" class="mono text-[11px] border-b border-transparent hover:border-[#2F5BFF] transition-colors" data-sd-id="12">Deploy</a>
+          </div>
+          <button id="nav-cta" class="pill bg-[#0D0D0F] text-white mono px-6 py-2.5 text-[10px] hover:bg-[#2F5BFF]" data-sd-id="13">Start Architecting</button>
+        </nav>
+      </header>
+      <section id="hero" class="relative h-[100vh] bg-[#E4E4E2] flex items-center px-12 pt-16 overflow-hidden isolation-isolate" data-sd-id="14">
+        <div class="absolute top-24 left-12 mono text-[#6E6F76]" data-sd-id="15">01 // System Architecture</div>
+        <div class="grid grid-cols-12 w-full gap-8 z-20" data-sd-id="16">
+          <div class="col-span-12 lg:col-span-6 flex flex-col items-start gap-8" data-sd-id="17">
+            <h1 class="text-[clamp(34px,5.1vw,74px)] font-[900] leading-[0.88] tracking-[-0.045em]" data-sd-id="18">Unify Complex
+              <br>
+              <span class="text-[#2F5BFF]" data-sd-id="19">Enterprise Systems</span>
+            </h1>
+            <p class="max-w-[38ch] text-[#43444A] text-[18px] leading-relaxed" data-sd-id="20">The AI-driven workspace for engineering reviews, latency mapping, and high-fidelity solution planning.</p>
+            <div class="flex gap-4" data-sd-id="21">
+              <button class="pill bg-[#0D0D0F] text-white px-8 py-4 mono tracking-wider hover:bg-[#2F5BFF]" data-sd-id="22">Explore Canvas</button>
+              <button class="pill border border-[#0D0D0F] px-8 py-4 mono tracking-wider hover:bg-[#0D0D0F] hover:text-white" data-sd-id="23">View Demo</button>
+            </div>
+            <div class="mt-8 pt-6 border-t border-[#0D0D0F]/10 w-full flex flex-col gap-4" data-sd-id="24">
+              <div class="flex justify-between w-full mono text-[10px]" data-sd-id="25">
+                <span class="text-[#6E6F76]" data-sd-id="26">Node Count</span>
+                <span data-sd-id="27">847 Managed Services</span>
+              </div>
+              <div class="flex justify-between w-full mono text-[10px]" data-sd-id="28">
+                <span class="text-[#6E6F76]" data-sd-id="29">Target Latency</span>
+                <span data-sd-id="30">&lt;12ms Global Avg</span>
+              </div>
+              <div class="flex justify-between w-full mono text-[10px]" data-sd-id="31">
+                <span class="text-[#6E6F76]" data-sd-id="32">Trust Zones</span>
+                <span data-sd-id="33">42 Verified Boundaries</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="absolute bottom-0 left-0 w-[105%] flex justify-between px-8 z-10 translate-y-[0.10em] pointer-events-none opacity-100" data-sd-id="34">
+          <div class="occlusion-word text-[clamp(88px,20.5vw,304px)]" data-sd-id="35">C</div>
+          <div class="occlusion-word text-[clamp(88px,20.5vw,304px)]" data-sd-id="36">A</div>
+          <div class="occlusion-word text-[clamp(88px,20.5vw,304px)]" data-sd-id="37">S</div>
+          <div class="occlusion-word text-[clamp(88px,20.5vw,304px)]" data-sd-id="38">E</div></div>
+        <div class="absolute bottom-0 right-0 w-[min(58vw,940px)] z-20 translate-x-[4vw] pointer-events-none transition-transform duration-1000 ease-out subject-shadow" data-sd-id="39">
+          <svg id="hero-subject" viewBox="0 0 800 600" class="w-full h-auto" data-sd-id="40">
+            <defs>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="2" result="coloredBlur">
+                </feGaussianBlur>
+                <feMerge>
+                  <feMergeNode in="coloredBlur">
+                  </feMergeNode>
+                  <feMergeNode in="SourceGraphic">
+                  </feMergeNode>
+                </feMerge>
+              </filter>
+            </defs>
+            <rect x="200" y="100" width="400" height="400" fill="none" stroke="#0D0D0F" stroke-width="2"></rect>
+          <circle cx="400" cy="300" r="150" fill="none" stroke="#2F5BFF" stroke-width="1" opacity="0.5"></circle>
+        <g id="nodes">
+          <circle cx="300" cy="200" r="8" fill="#0D0D0F"></circle>
+        <circle cx="500" cy="200" r="8" fill="#0D0D0F"></circle>
+      <circle cx="400" cy="450" r="8" fill="#0D0D0F"></circle>
+    <path d="M300 200 Q400 300 500 200" stroke="#2F5BFF" stroke-width="2" fill="none" class="trace-path"></path>
+</g>
+<circle cx="400" cy="300" r="4" fill="#2F5BFF" filter="url(#glow)"></circle>
+</svg>
+</div>
+<div class="absolute bottom-0 left-0 w-[105%] flex justify-between px-8 z-30 translate-y-[0.10em] pointer-events-none" data-sd-id="41">
+  <div class="occlusion-word text-[clamp(88px,20.5vw,304px)] invisible" data-sd-id="42">C</div>
+  <div class="occlusion-word text-[clamp(88px,20.5vw,304px)] invisible" data-sd-id="43">A</div>
+  <div class="occlusion-word text-[clamp(88px,20.5vw,304px)] text-[#0D0D0F]" data-sd-id="44">S</div>
+  <div class="occlusion-word text-[clamp(88px,20.5vw,304px)] invisible" data-sd-id="45">E</div></div>
+</section>
+<section class="bg-[#0D0D0F] text-white py-32 px-12 flex flex-col lg:flex-row gap-16 min-h-[80vh] relative overflow-hidden" data-sd-id="46">
+  <div class="absolute top-12 left-12 mono text-[#6E6F76]" data-sd-id="47">02 // Latency Benchmarking</div>
+  <div class="lg:w-1/2 flex flex-col justify-center gap-8" data-sd-id="48">
+    <h2 class="text-[clamp(34px,4vw,64px)] font-[900] leading-tight tracking-tight" data-sd-id="49">Precision Signal
+      <span class="text-[#7C97FF]" data-sd-id="50">Analysis</span>
+    </h2>
+    <p class="max-w-[40ch] text-[#6E6F76] text-lg" data-sd-id="51">Interactive monitoring across distributed zones. Our engine maintains trace integrity even at extreme scale.</p>
+    <div class="flex items-baseline gap-4 mt-8" data-sd-id="52">
+      <span class="text-[clamp(56px,9vw,132px)] font-[900] tabular-nums tracking-tighter" data-sd-id="53">847</span>
+      <span class="mono text-[#7C97FF]" data-sd-id="54">Components</span>
+    </div>
+    <p class="mono text-[10px] text-[#43444A]" data-sd-id="55">Live session snapshot // Version 4.0.2</p>
+  </div>
+  <div class="lg:w-1/2 flex items-center justify-center" data-sd-id="56">
+    <svg id="comparison-chart" viewBox="0 0 500 300" class="w-full h-full" data-sd-id="57">
+      <path id="ref-trace" d="M0 150 Q50 100 100 150 T200 150 T300 150 T400 150 T500 150" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"></path>
+    <path id="signal-trace" d="" fill="none" stroke="#7C97FF" stroke-width="2"></path>
+</svg>
+</div>
+</section>
+<section class="bg-[#EFEFEE] py-32 px-12 grid grid-cols-12 gap-16 reveal" data-sd-id="58">
+  <div class="absolute top-12 right-12 mono text-[#6E6F76]" data-sd-id="59">03 // Technical Topology</div>
+  <div class="col-span-12 lg:col-span-5 flex flex-col gap-8" data-sd-id="60">
+    <h2 class="text-5xl font-[900] tracking-tighter leading-[0.9]" data-sd-id="61">Engineered for
+      <br>Visual Stability
+    </h2>
+    <p class="text-[#43444A] max-w-[36ch]" data-sd-id="62">Architecting enterprise solutions requires more than boxes and arrows. It requires a shared source of truth.</p>
+    <div class="w-full flex flex-col" data-sd-id="63">
+      <div class="py-4 border-t border-black/10 flex justify-between items-center" data-sd-id="64">
+        <span class="mono text-[#2F5BFF]" data-sd-id="65">Layer Density</span>
+        <span class="text-sm" data-sd-id="66">Multi-tier Canvas</span>
+        <span class="mono" data-sd-id="67">0.04</span>
+      </div>
+      <div class="py-4 border-t border-black/10 flex justify-between items-center" data-sd-id="68">
+        <span class="mono text-[#2F5BFF]" data-sd-id="69">Sync Rate</span>
+        <span class="text-sm" data-sd-id="70">Real-time Pipeline</span>
+        <span class="mono" data-sd-id="71">60Hz</span>
+      </div>
+      <div class="py-4 border-t border-black/10 flex justify-between items-center" data-sd-id="72">
+        <span class="mono text-[#2F5BFF]" data-sd-id="73">Isolation</span>
+        <span class="text-sm" data-sd-id="74">Boundaries Enforced</span>
+        <span class="mono" data-sd-id="75">Strict</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-span-12 lg:col-span-7" data-sd-id="76">
+    <div class="w-full aspect-video bg-white/50 border border-black/5 p-8 flex items-center justify-center" data-sd-id="77">
+      <svg viewBox="0 0 600 400" class="w-full h-full" data-sd-id="78">
+        <line x1="50" y1="200" x2="550" y2="200" stroke="#0D0D0F" stroke-width="0.5" opacity="0.2"></line>
+      <path d="M100 300 L300 100 L500 300" stroke="#0D0D0F" stroke-width="1.5" fill="none"></path>
+    <circle cx="300" cy="100" r="5" fill="#2F5BFF"></circle>
+  <text x="315" y="105" class="mono text-[9px]">Apex Controller</text>
+  <line x1="300" y1="100" x2="300" y2="50" stroke="#2F5BFF" stroke-dasharray="2 2"></line>
+</svg>
+</div>
+</div>
+</section>
+<section id="field-picker-section" class="py-32 px-12 transition-colors duration-700" data-sd-id="79">
+  <div class="flex flex-col gap-12" data-sd-id="80">
+    <div class="flex justify-between items-end" data-sd-id="81">
+      <h2 class="text-4xl font-[900] tracking-tight" data-sd-id="82">Workspace Variants</h2>
+      <div class="flex gap-2" data-sd-id="83">
+        <button onclick="swapTheme('light')" class="pill px-6 py-2 border border-black/10 mono text-[10px] hover:bg-black hover:text-white" data-sd-id="84">Light Stage</button>
+        <button onclick="swapTheme('dark')" class="pill px-6 py-2 bg-[#0D0D0F] text-white mono text-[10px] hover:bg-[#2F5BFF]" data-sd-id="85">Obsidian</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-0 border border-black/10" data-sd-id="86">
+      <div class="p-12 border-r border-black/10 flex flex-col gap-4" data-sd-id="87">
+        <span class="mono text-[#2F5BFF]" data-sd-id="88">Contrast</span>
+        <p class="text-lg" data-sd-id="89">High-visibility wireframes for review.</p>
+        <span class="text-xs text-[#6E6F76] uppercase tracking-widest" data-sd-id="90">Status: Active</span>
+      </div>
+      <div class="p-12 border-r border-black/10 flex flex-col gap-4" data-sd-id="91">
+        <span class="mono text-[#2F5BFF]" data-sd-id="92">Density</span>
+        <p class="text-lg" data-sd-id="93">Macro-level overview of nodes.</p>
+        <span class="text-xs text-[#6E6F76] uppercase tracking-widest" data-sd-id="94">Nodes: 14k Max</span>
+      </div>
+      <div class="p-12 flex flex-col gap-4" data-sd-id="95">
+        <span class="mono text-[#2F5BFF]" data-sd-id="96">Latency</span>
+        <p class="text-lg" data-sd-id="97">Trace heatmaps for bottlenecks.</p>
+        <span class="text-xs text-[#6E6F76] uppercase tracking-widest" data-sd-id="98">Delta: ±0.2ms</span>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="py-32 px-12 bg-[#E4E4E2]" data-sd-id="99">
+  <h2 class="mono mb-12 opacity-50" data-sd-id="100">04 // Full Specifications</h2>
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-x-16 gap-y-0" data-sd-id="101">
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="102">
+      <span class="text-[#43444A]" data-sd-id="103">Rendering Engine</span>
+      <span class="mono" data-sd-id="104">WebGL 2.0</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="105">
+      <span class="text-[#43444A]" data-sd-id="106">Data Protocol</span>
+      <span class="mono" data-sd-id="107">gRPC / Protobuf</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="108">
+      <span class="text-[#43444A]" data-sd-id="109">Auth Model</span>
+      <span class="mono" data-sd-id="110">OAuth2 + RBAC</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="111">
+      <span class="text-[#43444A]" data-sd-id="112">Storage Tier</span>
+      <span class="mono" data-sd-id="113">Distributed NVMe</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="114">
+      <span class="text-[#43444A]" data-sd-id="115">Integration</span>
+      <span class="mono" data-sd-id="116">K8s / Terraform</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="117">
+      <span class="text-[#43444A]" data-sd-id="118">Max Concurrency</span>
+      <span class="mono" data-sd-id="119">512 Editors</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="120">
+      <span class="text-[#43444A]" data-sd-id="121">Compliance</span>
+      <span class="mono" data-sd-id="122">SOC2 Type II</span>
+    </div>
+    <div class="py-4 border-t border-black/10 flex justify-between" data-sd-id="123">
+      <span class="text-[#43444A]" data-sd-id="124">Snapshot History</span>
+      <span class="mono" data-sd-id="125">Immutable Logs</span>
+    </div>
+  </div>
+</section>
+<section class="pt-40 pb-0 px-12 bg-[#EFEFEE] flex flex-col overflow-hidden" data-sd-id="126">
+  <div class="flex flex-col lg:flex-row justify-between items-end gap-8 mb-24" data-sd-id="127">
+    <div class="flex flex-col gap-4" data-sd-id="128">
+      <h2 class="text-[clamp(44px,6vw,92px)] font-[900] tracking-tighter leading-[0.8]" data-sd-id="129">Ready to Architect.</h2>
+      <p class="mono text-[#6E6F76]" data-sd-id="130">Begin the next phase of enterprise design</p>
+    </div>
+    <div class="flex gap-4" data-sd-id="131">
+      <button class="pill bg-[#0D0D0F] text-white px-10 py-5 mono hover:bg-[#2F5BFF]" data-sd-id="132">Get Started Now</button>
+    </div>
+  </div>
+  <div class="border-t border-black/10 py-6 flex justify-between mono text-[9px] text-[#6E6F76]" data-sd-id="133">
+    <span data-sd-id="134">© 2024 CASE COPILOT</span>
+    <span data-sd-id="135">v.4.9.0-BETA</span>
+    <span data-sd-id="136">SYSTEM STATUS: OPERATIONAL</span>
+    <span class="ml-auto" data-sd-id="137">BUILT FOR PERFORMANCE</span>
+  </div>
+  <div class="w-[105%] flex justify-between px-8 translate-y-[0.19em]" data-sd-id="138">
+    <div class="occlusion-word text-[clamp(84px,19.5vw,300px)] text-[#0D0D0F]" data-sd-id="139">C</div>
+    <div class="occlusion-word text-[clamp(84px,19.5vw,300px)] text-[#0D0D0F]" data-sd-id="140">A</div>
+    <div class="occlusion-word text-[clamp(84px,19.5vw,300px)] text-[#0D0D0F]" data-sd-id="141">S</div>
+    <div class="occlusion-word text-[clamp(84px,19.5vw,300px)] text-[#0D0D0F]" data-sd-id="142">E</div></div>
+</section>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', () =>  {
+    const elements = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) =>  {
+    entries.forEach(entry =>  {
+    if (entry.isIntersecting)  {
+    entry.target.classList.add('in');
+    observer.unobserve(entry.target);
+    
+  }
+  
+  }
+  );
+    
+  }
+  ,  {
+    rootMargin: '0px 0px -12% 0px', threshold: 0.08 
+  }
+  );
+    elements.forEach(el => observer.observe(el));
+    function generateTrace(selector, amp, freq, offset)  {
+    const path = document.querySelector(selector);
+    let d = 'M 0 150';
+    for (let x = 0;
+    x <= 500;
+    x += 5)  {
+    const y = 150 + Math.sin(x * freq + offset) * amp;
+    d += ` L $ {
+    x
+  }
+  $ {
+    y
+  }
+  `;
+    
+  }
+  path.setAttribute('d', d);
+    
+  }
+  generateTrace('#signal-trace', 25, 0.04, 0);
+    let scrollY = 0;
+    window.addEventListener('scroll', () =>  {
+    scrollY = window.pageYOffset;
+    requestAnimationFrame(() =>  {
+    const heroSubject = document.getElementById('hero-subject');
+    if (heroSubject)  {
+    const rotation = scrollY * 0.05;
+    const translate = scrollY * 0.2;
+    heroSubject.parentElement.style.transform = `translateY($ {
+    translate
+  }
+  px) rotate($ {
+    rotation
+  }
+  deg)`;
+    
+  }
+  
+  }
+  );
+    
+  }
+  ,  {
+    passive: true 
+  }
+  );
+    
+  }
+  );
+    function swapTheme(type)  {
+    const section = document.getElementById('field-picker-section');
+    if (type === 'dark')  {
+    section.style.backgroundColor = '#0D0D0F';
+    section.style.color = 'white';
+    
+  }
+  else  {
+    section.style.backgroundColor = '#EFEFEE';
+    section.style.color = '#0D0D0F';
+    
+  }
+  
+  }
+</script>
+</body>
+</html>

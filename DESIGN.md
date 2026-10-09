@@ -1,9 +1,9 @@
-# 📐 DESIGN.md — Case Studio Suite (Dual-Theme Design System)
+# 📐 DESIGN.md — Technical Architecture Studio (Case Copilot / Case Studio)
 
-**Produkt:** Case Studio Suite  
-**Zweck & Zielgruppe:** C-Level Enterprise Consulting, Solution Architecture & Decision Gate Reviews für Industrie 4.0, OT/IT-Konzerne und gehobenen Mittelstand (Siemens Advanta, Automotive, Pharma).  
-**Design-Richtung:** Warm Stationery & Printed Dossier (Light) / Inverted Carbon Stationery & Obsidian Console (Dark).  
-**Regelwerk:** Konform zu Anti-Slop (R-01 bis R-37), WCAG 2.1 AA Kontrastgarantie, strikte Typografie & Rectilinear Geometry (`border-radius: 0`).
+> **Basis-Spezifikation:** Vollständig synchronisiert mit [`design/design.md`](file:///Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/design/design.md) & [`design/design.html`](file:///Volumes/Spacestation/MCP/Antigravity-MCP-tools/Case-Studio/design/design.html)  
+> **Typus:** High-Precision Engineering Canvas, Blueprint & Technical Systems Studio  
+> **Aesthetik:** Industrial Brutalism × Bauhaus Precision × Modern High-Tech Studio  
+> **Regelwerk:** Anti-Slop (R-01 bis R-37), WCAG 2.1 AA Kontrastgarantie, duale Oberflächenbühne.
 
 ---
 
@@ -11,21 +11,20 @@
 
 | Dial | Wert (1–5) | Begründung & Wirkung |
 |---|---|---|
-| **ENERGY** | **2** | Disziplinierte, souveräne Executive-Haltung. Keine reißerischen Marketing-Effekte, sondern hochseriöser Prüfungs- und Dokumenten-Charakter. |
-| **RHYTHM** | **2** | Klarer, editorialer Rhythmus. Horizontale Hairlines, präzise Tabellen- und Spaltenteilung, keine verspielten Bento-Boxen. |
-| **MOTION** | **1** | Funktional und direkt. Zustandswechsel erfolgen unmittelbar oder innerhalb von maximal 120ms (linear). Keine weichen Schwebe-, Bounce- oder Endlos-Puls-Animationen. |
+| **ENERGY** | **3** | Fokussierte, dynamische Studio-Präsenz. Kraftvoller Kontrast zwischen sattem Cobalt-Blau (`#2F5BFF`) und planarem Obsidian (`#0D0D0F`), markante typografische Dominanz. |
+| **RHYTHM** | **4** | Rigides, technisches 12-Spalten-Raster. Null-Abstand-Karten mit geteilten Haarlinien (`border-black/10`), monolithische Tabellen und definierte Sektions-Nummerierungen (`01 //`, `02 //`). |
+| **MOTION** | **3** | Präzise physikalische Abfederung (`cubic-bezier(0.16, 1, 0.3, 1)`). Prozedurales Vektor-Signaltracing (Sinuswellen) und dezente Scroll-Parallaxe ohne weichgespültes Schweben. |
 
 ---
 
 ## 2. Visuelle Leitplanken & Strikte No-Gos
 
-### ❌ FORBIDDEN (Anti-Slop Verbote nach R-01, R-10, R-11, R-12, R-13):
-1. **Keine Gradienten als Hintergrundfüllung:** Verboten sind lila-blaue, zyan-violette oder regenbogenartige Verläufe auf Buttons, Headern, Karten oder Seitenhintergründen.
-2. **Keine Glow-Effekte:** Verboten sind diffuse Leucht-Schatten (`box-shadow: 0 0 15px var(--cyan-glow)`), Neon-Halos oder weichgezeichnete Hintergrund-Orbs.
-3. **Keine abgerundeten Karten & Pillen (`border-radius: 0` Pflicht):** Alle Buttons, Karten, Modals, Badges, Tabs, Inputs und Chips haben ausnahmslos scharfe Kanten (`border-radius: 0`).
-4. **Keine flächige Ausfüllung mit Akzentblau:** Das charakteristische Ink-Blue (`#2C4A8F` bzw. `#7B9CFF`) darf **ausschließlich** für Typografie, Haarlinien oder gezeichnete Trennregeln verwendet werden – niemals als vollflächiger Button- oder Box-Hintergrund.
-5. **Kein diffuser Glassmorphism-Nebel:** Keine flächendeckenden `backdrop-filter: blur(12px)` auf jeder Karte. Flächen sind planar und solide.
-6. **Keine weichen Drop-Shadows:** Trennung erfolgt über 1px Hairlines, nicht über schwebende Schatten.
+### ❌ FORBIDDEN (Anti-Slop Verbote nach R-01, R-10, R-12, R-13):
+1. **Keine 08/15 Schmuck-Farbverläufe (R-01):** Verboten sind psychedelische Violett-Cyan-Gradients oder animierte Regenbogenstreifen. Farbflächen sind plan und solide eingefärbt.
+2. **Keine diffusen Glow-Halos & Leuchtschatten (R-12, R-13):** Verboten sind diffuse Box-Glows (`box-shadow: 0 0 15px var(--cyan)`). Ebenentrennung erfolgt über 1px Haarlinien.
+3. **Kein flächendeckender Glassmorphismus-Nebel (R-10):** Kein Blur auf Inhaltskarten oder Daten-Tabellen. Transparenz mit Blur ist **ausschließlich** auf den fixierten Sticky-Header (`backdrop-filter: blur(14px)`) beschränkt.
+4. **Keine generische Systemschrift (R-22):** Keine undifferenzierte `system-ui`-Typografie. Headings nutzen die schwere, verdichtete `Archivo`, Telemetriedaten nutzen `IBM Plex Mono`.
+5. **Kein Zerstören von Primär-Pillen durch globale `border-radius: 0 !important` Brechstangen:** Primäre Action-Buttons (`.pill`) besitzen bewusst den geometrischen Stadium-Radius (`9999px`), während modulare Karten und Spezifikationstabellen scharfkantig und gerastert abschließen.
 
 ---
 
@@ -33,109 +32,102 @@
 
 | Rolle | Schriftart | Schnitte & Größen | Spezifikation & Charakter |
 |---|---|---|---|
-| **Display & Headings** | `Newsreader`, Georgia, serif | 400 (Regular), 600 (SemiBold) | `letter-spacing: -0.02em`. Klassischer, redaktioneller Buchdruck-Charakter. Hervorgehobene Phrasen nutzen `font-style: italic` im Ink-Blue. |
-| **Labels & Body-Text** | `Courier Prime`, ui-monospace, monospace | 400 (Regular), 700 (Bold) | `font-size: 11px - 12px`, `letter-spacing: 0.07em - 0.10em`, `line-height: 1.85 - 1.90`. Schreibmaschinen-Dossier-Ästhetik für maximale Lesbarkeit technischer Fakten. |
-| **Metadaten & Codes** | `Courier Prime`, monospace | 400 (Regular), 11px | Tabellarische Zahlen, SHA-256 Hashes, JSON-Keys, Protokollnamen. |
+| **Display & Headings** | `Archivo`, -apple-system, sans-serif | 700 (Bold), 800 (ExtraBold), 900 (Black) | `letter-spacing: -0.035em` bis `-0.055em`. Extrem kompaktes Leading (`0.74` bis `0.88`). Dominante, industrielle Editorial-Headings. |
+| **Telemetrie, Codes & Metadaten** | `IBM Plex Mono`, monospace | 400 (Regular), 500 (Medium) | `font-size: 10px - 11px`, `letter-spacing: 0.15em`, `text-transform: uppercase`. Präzise technische Telemetrie, Sektionsindizes, Tabellenschlüssel. |
+| **Fließtext & Erläuterungen** | `Archivo`, sans-serif | 400 (Regular), 500 (Medium) | `font-size: 14px - 16px`, `line-height: 1.6 - 1.7`, begrenzte Zeilenbreite (`max-w-[38ch]` bis `max-w-[42ch]`). |
 
 ---
 
 ## 4. Dual-Theme Spezifikation & Token-Matrix
 
-### 4.1 Light Theme: Warm Stationery Style (`[data-theme="light"]`)
-*Stimmung: Haptisches Büttenpapier, gedrucktes Gutachten, intellektuelle Tiefe, warmer Elfenbeinton.*
+### 4.1 Light Stage Mode (`[data-theme="light"]`)
+*Stimmung: Heller Werkstatt-Boden, technischer Blueprint-Tisch, tageslichttauglich, hohe visuelle Schärfe.*
 
 ```css
+:root[data-theme="light"],
 [data-theme="light"] {
   /* Surfaces */
-  --bg-ground: #EFE9DD;           /* Hauptpapier / Arbeitsfläche */
-  --bg-surface: #E5DED0;          /* Eingebettete Karten / Sekundärflächen */
-  --bg-input: #FAF7F0;            /* Eingabefelder / Textareas */
-  
+  --ground:         #EFEFEE;                 /* Hauptarbeitsfläche (Light Industrial Ground) */
+  --stage:          #E4E4E2;                 /* Erhabene Sektionsbühne / Hero */
+  --bg-card:        #E4E4E2;                 /* Modulkarten & Panels */
+  --bg-input:       #FFFFFF;                 /* Eingabefelder / Textareas */
+
   /* Ink & Typography */
-  --ink-primary: #141C2B;         /* Tiefes Buchdruck-Dunkelblau/Schwarz */
-  --ink-secondary: #4A5364;       /* Sekundärtexte / Notizen */
-  --ink-muted: #5C6470;           /* Erläuterungen (WCAG AA konform: 4.95:1) */
-  --ink-blue: #2C4A8F;            /* Das eine Signature-Ink-Blue (NUR Schrift/Linien) */
-  
-  /* Hairlines & Borders */
-  --hairline: rgba(20, 28, 43, 0.16);  /* 1px Haarlinie für Karten & Tabellen */
-  --hairline-strong: rgba(20, 28, 43, 0.32);
-  
-  /* Semantic Signals (NUR Typografie & 1px Rahmen, keine Glows) */
-  --signal-cyan: #0369A1;         /* Lead-Architekt / Phase-Aktoren (5.0:1) */
-  --signal-amber: #92400E;        /* Decision Gates / Warnungen (5.7:1) */
-  --signal-crimson: #B91C1C;      /* Critic / Risikoprüfung (5.35:1) */
-  --signal-emerald: #15803D;      /* Online / Geklärt / Audit Pass (5.2:1) */
-  
-  /* Strict Geometry */
-  --radius-none: 0px;
+  --ink:            #0D0D0F;                 /* Tiefschwarz für Display & Headings */
+  --secondary:      #43444A;                 /* Fließtext (Kontrast 7.6:1 ggü. Ground) */
+  --muted:          #6E6F76;                 /* Metadaten & Labels (Kontrast 4.7:1) */
+
+  /* Signal Accents */
+  --accent:         #2F5BFF;                 /* Signature Cobalt Blueprint (4.65:1 ggü. Ground) */
+  --accent-lift:    #7C97FF;                 /* Sekundäres Signalblau */
+
+  /* Hairlines & Geometry */
+  --hairline:       rgba(13, 13, 15, 0.12);  /* 1px Trennlinie */
+  --border-subtle:  rgba(13, 13, 15, 0.12);
+  --ease:           cubic-bezier(0.16, 1, 0.3, 1);
 }
 ```
 
 ---
 
-### 4.2 Dark Theme: Inverted Carbon Stationery (`[data-theme="dark"]` / Default)
-*Stimmung: Invertiertes schwarzes Durchschlagpapier, technisches Studio-Pult, reflexionsfreies Obsidian.*
+### 4.2 Obsidian Dark Mode (`[data-theme="dark"]` / Default)
+*Stimmung: Reflexionsfreie Obsidian-Konsole, reflexionsfreies Studio-Pult, High-Tech Telemetrie.*
 
 ```css
 :root,
 [data-theme="dark"] {
   /* Surfaces */
-  --bg-ground: #10141D;           /* Tiefes Kohlepapier / Carbon Ground */
-  --bg-surface: #171E2B;          /* Erhabene Module / Karten */
-  --bg-input: #0B0E14;            /* Terminal / Eingabefelder */
-  
+  --ground:         #0D0D0F;                 /* Tiefes Obsidian / Carbon Ground */
+  --stage:          #171E2B;                 /* Erhabene Module & Telemetrie-Bühne */
+  --bg-card:        #141923;                 /* Modulkarten */
+  --bg-input:       #0A0D14;                 /* Terminal / Eingabefelder */
+
   /* Ink & Typography */
-  --ink-primary: #EDE8DF;         /* Warmes Knochenweiß / Papier-Schrift */
-  --ink-secondary: #A9B1C0;       /* Gedämpftes Werkstatt-Weiß */
-  --ink-muted: #8A94A6;           /* Dezente Metadaten (WCAG AA konform: 6.02:1) */
-  --ink-blue: #7B9CFF;            /* Invertiertes Ink-Blue (NUR Schrift/Linien) */
-  
-  /* Hairlines & Borders */
-  --hairline: rgba(237, 232, 223, 0.14); /* Feine Kreidelinie / Haarlinie */
-  --hairline-strong: rgba(237, 232, 223, 0.28);
-  
-  /* Semantic Signals (Präzise Signal-Tinten, keine Neon-Halos) */
-  --signal-cyan: #00D4FF;         /* Lead-Architekt / Akzent (10.4:1) */
-  --signal-amber: #F59E0B;        /* Decision Gates / Warnungen (8.58:1) */
-  --signal-crimson: #FB7185;      /* Critic / Risikoprüfung (6.85:1) */
-  --signal-emerald: #34D399;      /* Online / Audit Pass (9.1:1) */
-  
-  /* Strict Geometry */
-  --radius-none: 0px;
+  --ink:            #FFFFFF;                 /* Reinweiß für Display & Headings */
+  --secondary:      #A9B1C0;                 /* Sekundärtext (Kontrast 8.8:1 ggü. Obsidian) */
+  --muted:          #6E6F76;                 /* Gedämpfte Metadaten (Kontrast 4.6:1) */
+
+  /* Signal Accents */
+  --accent:         #2F5BFF;                 /* Cobalt Signal */
+  --accent-lift:    #7C97FF;                 /* Periwinkle Lift (Kontrast 7.8:1 ggü. Obsidian) */
+
+  /* Hairlines & Geometry */
+  --hairline:       rgba(255, 255, 255, 0.10); /* 1px Lichtkante */
+  --border-subtle:  rgba(255, 255, 255, 0.10);
+  --ease:           cubic-bezier(0.16, 1, 0.3, 1);
 }
 ```
 
 ---
 
-## 5. WCAG 2.1 AA Kontrast-Nachweis (`contrast-check.py`)
+## 5. UI-Komponenten & Geometrie-Doktrin
 
-Alle im System definierten Text-Hintergrund-Paarungen wurden mit dem Anti-Slop Kontrast-Prüfer mathematisch verifiziert:
+1. **Stadium Pill Action Buttons (`.pill`):**
+   - Geometrie: `border-radius: 9999px`, Polsterung `10px 24px` oder `px-8 py-4`.
+   - Schrift: `IBM Plex Mono`, `10px - 11px`, Versalien, Tracking `0.10em`.
+   - Primary: `bg-[#0D0D0F] text-white hover:bg-[#2F5BFF]`.
+   - Secondary: `border border-current hover:bg-current hover:text-inverted`.
 
-| Theme | Paarung (Text auf Hintergrund) | Kontrastverhältnis | WCAG Normal (≥ 4.5:1) | WCAG Large/UI (≥ 3.0:1) |
-|---|---|---|---|---|
-| **Light** | Ink `#141C2B` auf Ground `#EFE9DD` | **14.11 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | Secondary Ink `#4A5364` auf Ground `#EFE9DD` | **6.40 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | Muted Ink `#5C6470` auf Ground `#EFE9DD` | **4.95 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | One Ink Blue `#2C4A8F` auf Ground `#EFE9DD` | **6.99 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | Signal Crimson `#B91C1C` auf Ground `#EFE9DD` | **5.35 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | Signal Amber `#92400E` auf Ground `#EFE9DD` | **5.70 : 1** | ✅ PASS | ✅ PASS |
-| **Light** | Signal Cyan `#0369A1` auf Ground `#EFE9DD` | **5.00 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Ink `#EDE8DF` auf Ground `#10141D` | **15.10 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Secondary Ink `#A9B1C0` auf Ground `#10141D` | **8.54 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Muted Ink `#8A94A6` auf Ground `#10141D` | **6.02 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Inverted Ink Blue `#7B9CFF` auf Ground `#10141D` | **7.06 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Signal Cyan `#00D4FF` auf Ground `#10141D` | **10.41 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Signal Amber `#F59E0B` auf Ground `#10141D` | **8.58 : 1** | ✅ PASS | ✅ PASS |
-| **Dark** | Signal Crimson `#FB7185` auf Ground `#10141D` | **6.85 : 1** | ✅ PASS | ✅ PASS |
+2. **Shared-Border Grid Cards:**
+   - Keine unverbundenen, schwebenden Einzelkarten.
+   - Karten teilen sich eine 1px Haarlinie (`border border-black/10`, Zellen mit `border-r border-black/10`).
+   - Null Außenabstand (`gap-0`).
+
+3. **Specification Ledger & Kennzahlen:**
+   - Horizontale Zeilen mit durchgezogener 1px Trennlinie (`border-t border-black/10`).
+   - Links: Parameter-Bezeichnung (`var(--secondary)`).
+   - Rechts: Technischer Wert in Versalien (`IBM Plex Mono`).
+
+4. **Sticky Navigation:**
+   - 64px Höhe, `backdrop-filter: blur(14px)`, `border-b: 1px solid var(--hairline)`.
+   - Monospace-Links mit präziser `border-b`-Fokuslinie bei Hover.
 
 ---
 
-## 6. Layout- & Interaktionsregeln
+## 6. Motion & Physikalische Übergänge
 
-1. **Elevation:** Flache Schichten getrennt durch `1px solid var(--hairline)`. Keine künstlichen Schattenwürfe (`box-shadow: none`).
-2. **Karten:** Fester Hintergrund (`var(--bg-surface)`), keine transparenten Mehrfach-Blur-Filter.
-3. **Buttons & Interaktion:**
-   - Primärer Button: Rahmen mit dezentem Füllkontrast, Text in Schreibmaschine/Serife, `border-radius: 0`.
-   - Hover-Zustand: Invertierung oder klare Linienverstärkung, keine weichen Farbwolken.
-4. **Theme Switch:** Bleibt über den bestehenden Button `#btn-theme-toggle` mit `[data-theme="light"]` / `[data-theme="dark"]` nahtlos intakt.
+- **Standard-Easing:** Alle CSS-Transitions nutzen `var(--ease)` (`cubic-bezier(0.16, 1, 0.3, 1)`).
+- **Laufzeiten:**
+  - Micro-Interactions (Hover, Focus): `200ms - 300ms`
+  - Scroll-Reveals & Sektions-Transitions: `700ms - 850ms`
+- **Signal-Tracing:** SVG-Pfade mit animiertem `stroke-dashoffset` für gezeichnete Topologie-Leitungen.
