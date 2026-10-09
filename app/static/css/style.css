@@ -101,39 +101,39 @@ option {
 html[data-theme="light"],
 [data-theme="light"] {
   color-scheme: light !important;
-  --ground: #EFEFEE;
-  --stage: #E4E4E2;
-  --bg-dark: #EFEFEE;
-  --bg-primary: #EFEFEE;
-  --bg-card: #E4E4E2;
-  --bg-card-hover: #DCDCDA;
+  --ground: #F8FAFC;
+  --stage: #FFFFFF;
+  --bg-dark: #F8FAFC;
+  --bg-primary: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F1F5F9;
   --bg-input: #FFFFFF;
-  --border-subtle: rgba(13, 13, 15, 0.12);
-  --border-active: rgba(47, 91, 255, 0.45);
-  --border-amber: rgba(146, 64, 14, 0.4);
+  --border-subtle: #E2E8F0;
+  --border-active: #2F5BFF;
+  --border-amber: rgba(245, 158, 11, 0.5);
   
-  --text-main: #0D0D0F;
-  --text-muted: #43444A;
-  --text-dim: #6E6F76;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+  --text-dim: #64748B;
   
   --accent: #2F5BFF;
-  --accent-lift: #7C97FF;
-  --ink: #0D0D0F;
-  --secondary: #43444A;
-  --muted: #6E6F76;
+  --accent-lift: #4F75FF;
+  --ink: #0F172A;
+  --secondary: #475569;
+  --muted: #64748B;
   
   --cyan: #2F5BFF;
   --cyan-glow: transparent;
   --violet: #2F5BFF;
   --violet-glow: transparent;
-  --emerald: #047857;
+  --emerald: #059669;
   --emerald-glow: transparent;
-  --amber: #92400E;
+  --amber: #D97706;
   --amber-glow: transparent;
-  --rose: #BE123C;
+  --rose: #E11D48;
   
   --ink-blue: #2F5BFF;
-  --hairline: rgba(13, 13, 15, 0.12);
+  --hairline: #E2E8F0;
 
   --radius-sm: 0px;
   --radius-md: 0px;
@@ -222,15 +222,15 @@ html[data-theme="light"],
 }
 
 [data-theme="light"] .nav-tab.active {
-  color: var(--ink-blue);
-  border-bottom-color: var(--ink-blue);
-  background: var(--bg-card-hover);
+  color: #FFFFFF !important;
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 
 [data-theme="light"] .glass-panel {
   background: var(--bg-card);
   border-color: var(--border-subtle);
-  box-shadow: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 [data-theme="light"] .phase-stepper {
@@ -244,14 +244,15 @@ html[data-theme="light"],
 
 [data-theme="light"] .phase-step-btn.active {
   background: var(--bg-card-hover);
-  color: var(--ink-blue);
+  color: var(--accent);
   box-shadow: none;
 }
 
 [data-theme="light"] .phase-banner {
-  background: var(--bg-card);
-  border-color: var(--border-subtle);
-  color: var(--ink-blue);
+  background: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  border-left: 3px solid var(--accent);
+  color: #1E40AF;
 }
 
 [data-theme="light"] .prompt-box {
@@ -347,42 +348,42 @@ html[data-theme="light"],
 
 [data-theme="light"] .decision-gate-card {
   background: #ffffff;
-  border-color: #fcd34d;
-  box-shadow: 0 4px 14px rgba(217, 119, 6, 0.08);
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 [data-theme="light"] .decision-gate-card.source-ai {
-  background: #f0f9ff;
+  background: #ffffff;
   border-color: #38bdf8;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.1);
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.08);
 }
 
 [data-theme="light"] .decision-gate-card.source-user {
-  background: #faf5ff;
+  background: #ffffff;
   border-color: #c084fc;
-  box-shadow: 0 4px 14px rgba(147, 51, 234, 0.1);
+  box-shadow: 0 1px 3px rgba(147, 51, 234, 0.08);
 }
 
 [data-theme="light"] .decision-gate-card.resolved {
-  background: #f0fdf4;
+  background: #ffffff;
   border-color: #86efac;
 }
 
 [data-theme="light"] .gate-question-box {
-  background: #fffbeb;
-  border-color: #fcd34d;
-  color: #78350f;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #0f172a;
 }
 
 [data-theme="light"] .decision-gate-card.source-ai .gate-question-box {
-  background: #f8fafc;
-  border-color: #7dd3fc;
+  background: #f0f9ff;
+  border-color: #bae6fd;
   color: #0369a1;
 }
 
 [data-theme="light"] .decision-gate-card.source-user .gate-question-box {
-  background: #fdf4ff;
-  border-color: #d8b4fe;
+  background: #faf5ff;
+  border-color: #e9d5ff;
   color: #6b21a8;
 }
 
@@ -710,8 +711,8 @@ body {
 }
 
 [data-theme="light"] .app-header {
-  background: rgba(239, 239, 238, 0.85) !important;
-  border-bottom: 1px solid var(--hairline) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
 }
 
 .header-left {

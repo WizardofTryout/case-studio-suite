@@ -47,23 +47,23 @@
 :root[data-theme="light"],
 [data-theme="light"] {
   /* Surfaces */
-  --ground:         #EFEFEE;                 /* Hauptarbeitsfläche (Light Industrial Ground) */
-  --stage:          #E4E4E2;                 /* Erhabene Sektionsbühne / Hero */
-  --bg-card:        #E4E4E2;                 /* Modulkarten & Panels */
+  --ground:         #F8FAFC;                 /* Strahlend klarer Slate-50 Grund */
+  --stage:          #FFFFFF;                 /* Reine, leuchtende Modulflächen & Karten */
+  --bg-card:        #FFFFFF;                 /* Modulkarten & Panels */
   --bg-input:       #FFFFFF;                 /* Eingabefelder / Textareas */
 
   /* Ink & Typography */
-  --ink:            #0D0D0F;                 /* Tiefschwarz für Display & Headings */
-  --secondary:      #43444A;                 /* Fließtext (Kontrast 7.6:1 ggü. Ground) */
-  --muted:          #6E6F76;                 /* Metadaten & Labels (Kontrast 4.7:1) */
+  --ink:            #0F172A;                 /* Tiefes Slate-900 für Display & Headings */
+  --secondary:      #475569;                 /* Fließtext (Kontrast 9.2:1 ggü. Ground) */
+  --muted:          #64748B;                 /* Metadaten & Labels (Kontrast 5.1:1) */
 
   /* Signal Accents */
-  --accent:         #2F5BFF;                 /* Signature Cobalt Blueprint (4.65:1 ggü. Ground) */
-  --accent-lift:    #7C97FF;                 /* Sekundäres Signalblau */
+  --accent:         #2F5BFF;                 /* Signature Cobalt Blueprint */
+  --accent-lift:    #4F75FF;                 /* Sekundäres Signalblau */
 
   /* Hairlines & Geometry */
-  --hairline:       rgba(13, 13, 15, 0.12);  /* 1px Trennlinie */
-  --border-subtle:  rgba(13, 13, 15, 0.12);
+  --hairline:       #E2E8F0;                 /* Saubere 1px Slate-Trennlinie */
+  --border-subtle:  #E2E8F0;
   --ease:           cubic-bezier(0.16, 1, 0.3, 1);
 }
 ```
