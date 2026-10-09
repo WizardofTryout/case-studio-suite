@@ -180,7 +180,35 @@
       "toast_blueprint_syncing": "Blueprint für Phase {phase} wird synchronisiert...",
       "toast_graph_empty": "Noch kein Graph vorhanden. Starte eine Synthese im Copilot.",
       "toast_graph_rendered": "🗺️ Neuer Architektur-Graph gerendert!",
-      "toast_gates_detected": "🚨 Master-Consultant Decision Gate(s) erkannt!"
+      "toast_gates_detected": "🚨 Master-Consultant Decision Gate(s) erkannt!",
+
+      // Entry Wizard (Sprint 1 - 4)
+      "ew_modal_title": "Neues Projekt anlegen (Onboarding Wizard)",
+      "ew_guided_mode_btn": "🧭 Geführter Modus (Wizard)",
+      "ew_express_mode_btn": "⚡ Schnell-Modus (Express)",
+      "ew_step1_pill": "1. Stammdaten",
+      "ew_step2_pill": "2. Problemstellung",
+      "ew_step3_pill": "3. Dokumente",
+      "ew_step4_pill": "4. Team & Governance",
+      "ew_step5_pill": "5. Start & Launch",
+      "ew_step5_title": "🚀 Schritt 5: Zusammenfassung & Fall-Start",
+      "ew_step5_subtitle": "Überprüfen Sie Ihre Konfiguration und wählen Sie, wie die Agenten in den Fall einsteigen sollen.",
+      "ew_sum_case_domain": "FALL & DOMÄNE",
+      "ew_sum_problem": "PROBLEMSTELLUNG",
+      "ew_sum_docs": "DOKUMENTE (DMS)",
+      "ew_sum_team": "AGENTEN-TEAM & GOVERNANCE",
+      "ew_sum_change_btn": "✏️ Ändern",
+      "ew_start_mode_label": "WIE MÖCHTEN SIE IN DEN WORKSPACE EINSTEIGEN?",
+      "ew_start_auto_title": "Projekt anlegen & Phase 1 starten",
+      "ew_start_auto_badge": "Empfohlen",
+      "ew_start_auto_desc": "Startet automatisch den Lead Architect & Copiloten in Phase 1 (Clarify) zur Analyse der Problemstellung und Dokumente.",
+      "ew_start_manual_title": "Workspace manuell öffnen",
+      "ew_start_manual_desc": "Legt das Projekt an und füllt den Prompt vor. Sie können sich erst in Ruhe im Dashboard umschauen und manuell starten.",
+      "ew_btn_launch_auto": "Projekt anlegen & Phase 1 starten 🚀",
+      "ew_btn_launch_manual": "Projekt anlegen & Workspace öffnen 📂",
+      "ew_btn_next": "Weiter ➔",
+      "ew_btn_prev": "◀ Zurück",
+      "ew_btn_cancel": "Abbrechen"
     },
 
     en: {
@@ -356,7 +384,35 @@
       "toast_blueprint_syncing": "Synchronizing blueprint for Phase {phase}...",
       "toast_graph_empty": "No graph present yet. Run a synthesis in Copilot first.",
       "toast_graph_rendered": "🗺️ New architecture graph rendered!",
-      "toast_gates_detected": "🚨 Master-Consultant Decision Gate(s) detected!"
+      "toast_gates_detected": "🚨 Master-Consultant Decision Gate(s) detected!",
+
+      // Entry Wizard (Sprint 1 - 4)
+      "ew_modal_title": "Create New Project (Onboarding Wizard)",
+      "ew_guided_mode_btn": "🧭 Guided Mode (Wizard)",
+      "ew_express_mode_btn": "⚡ Quick Mode (Express)",
+      "ew_step1_pill": "1. Basic Info",
+      "ew_step2_pill": "2. Problem Scope",
+      "ew_step3_pill": "3. Documents",
+      "ew_step4_pill": "4. Team & Governance",
+      "ew_step5_pill": "5. Start & Launch",
+      "ew_step5_title": "🚀 Step 5: Summary & Case Launch",
+      "ew_step5_subtitle": "Review your configuration and decide how the AI agents should launch into the case.",
+      "ew_sum_case_domain": "CASE & DOMAIN",
+      "ew_sum_problem": "PROBLEM STATEMENT",
+      "ew_sum_docs": "DOCUMENTS (DMS)",
+      "ew_sum_team": "SPECIALIST TEAM & GOVERNANCE",
+      "ew_sum_change_btn": "✏️ Edit",
+      "ew_start_mode_label": "HOW WOULD YOU LIKE TO ENTER THE WORKSPACE?",
+      "ew_start_auto_title": "Create Project & Launch Phase 1",
+      "ew_start_auto_badge": "Recommended",
+      "ew_start_auto_desc": "Automatically starts the Lead Architect & Copilot in Phase 1 (Clarify) to analyze the problem statement and documents.",
+      "ew_start_manual_title": "Open Workspace Manually",
+      "ew_start_manual_desc": "Creates the project and pre-fills the prompt. You can inspect the dashboard first and start manually.",
+      "ew_btn_launch_auto": "Create Project & Launch Phase 1 🚀",
+      "ew_btn_launch_manual": "Create Project & Open Workspace 📂",
+      "ew_btn_next": "Next ➔",
+      "ew_btn_prev": "◀ Back",
+      "ew_btn_cancel": "Cancel"
     }
   };
 

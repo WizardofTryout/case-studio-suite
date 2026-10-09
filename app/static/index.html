@@ -1985,18 +1985,91 @@
 
           </div>
 
-          <!-- STEP 5: Start & Kickoff (Vorbereitung für Sprint 4) -->
+          <!-- STEP 5: Start & Kickoff (Sprint 4) -->
           <div id="ew-step-view-5" class="ew-step-view" style="display:none;">
             <div class="ew-step-header">
-              <span class="ew-step-title">🚀 Schritt 5: Bereit zum Start!</span>
-              <span class="ew-step-subtitle">Ihr neuer Fall ist fertig konfiguriert. Wählen Sie, wie Sie in den Workspace einsteigen möchten.</span>
+              <span class="ew-step-title" data-i18n="ew_step5_title">🚀 Schritt 5: Zusammenfassung &amp; Fall-Start</span>
+              <span class="ew-step-subtitle" data-i18n="ew_step5_subtitle">Überprüfen Sie Ihre Konfiguration und wählen Sie, wie die Agenten in den Fall einsteigen sollen.</span>
             </div>
-            <div class="ew-banner-info" style="margin-top:20px;">
-              <div style="font-size:1.2rem; margin-right:8px;">✅</div>
-              <div style="font-size:0.85rem; line-height:1.4;">
-                Alle Parameter sind bereit. Nach Klick auf <strong>Projekt anlegen</strong> wird der Workspace sofort geladen.
+
+            <!-- Executive Summary Card Grid -->
+            <div class="ew-summary-container">
+              
+              <!-- Card 1: Stammdaten & Problem -->
+              <div class="ew-summary-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="ew-form-label" style="margin:0;" data-i18n="ew_sum_case_domain">FALL &amp; DOMÄNE</span>
+                  <button type="button" class="btn-text-subtle" onclick="window.EntryWizard.goToStep(1)" style="font-size:0.7rem; padding:0;" data-i18n="ew_sum_change_btn">✏️ Ändern</button>
+                </div>
+                <div style="font-weight:700; font-size:0.92rem; color:var(--text-main);" id="ew-sum-name">-</div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:0.78rem; color:var(--cyan);" id="ew-sum-industry">-</div>
+                <div style="margin-top:4px; border-top:1px dashed var(--border-subtle); padding-top:6px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="ew-form-label" style="margin:0; font-size:0.68rem;" data-i18n="ew_sum_problem">PROBLEMSTELLUNG</span>
+                    <button type="button" class="btn-text-subtle" onclick="window.EntryWizard.goToStep(2)" style="font-size:0.7rem; padding:0;">✏️</button>
+                  </div>
+                  <div id="ew-sum-problem" style="font-size:0.75rem; color:var(--text-muted); line-height:1.4; margin-top:4px; max-height:75px; overflow-y:auto; word-break:break-word;">
+                    Keine Beschreibung angegeben
+                  </div>
+                </div>
+              </div>
+
+              <!-- Card 2: Unterlagen & Agenten-Team -->
+              <div class="ew-summary-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <span class="ew-form-label" style="margin:0;" data-i18n="ew_sum_docs">DOKUMENTE (DMS)</span>
+                  <button type="button" class="btn-text-subtle" onclick="window.EntryWizard.goToStep(3)" style="font-size:0.7rem; padding:0;">✏️</button>
+                </div>
+                <div id="ew-sum-docs" style="font-size:0.78rem; color:var(--text-main);">0 Dokumente</div>
+
+                <div style="margin-top:4px; border-top:1px dashed var(--border-subtle); padding-top:6px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <span class="ew-form-label" style="margin:0; font-size:0.68rem;" data-i18n="ew_sum_team">AGENTEN-TEAM &amp; GOVERNANCE</span>
+                    <button type="button" class="btn-text-subtle" onclick="window.EntryWizard.goToStep(4)" style="font-size:0.7rem; padding:0;">✏️</button>
+                  </div>
+                  <div style="font-size:0.76rem; color:var(--text-main); font-weight:600; margin-top:4px;" id="ew-sum-school">-</div>
+                  <div style="font-size:0.72rem; color:var(--text-muted);" id="ew-sum-critic">-</div>
+                  <div style="font-size:0.72rem; color:var(--cyan); margin-top:2px;" id="ew-sum-specialists">-</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Start-Modus Auswahl (Dual-Action) -->
+            <div style="margin-top:16px;">
+              <label class="ew-form-label" data-i18n="ew_start_mode_label">WIE MÖCHTEN SIE IN DEN WORKSPACE EINSTEIGEN?</label>
+              <div class="ew-start-options-grid">
+                
+                <label class="ew-start-option-card active" id="ew-start-opt-auto">
+                  <input type="radio" name="ew_start_mode" value="auto" checked class="ew-start-radio">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span style="font-size:1.1rem;">🚀</span>
+                      <span style="font-weight:700; font-size:0.84rem; color:var(--text-main);" data-i18n="ew_start_auto_title">Projekt anlegen &amp; Phase 1 starten</span>
+                      <span class="brand-badge" style="font-size:0.62rem; background:rgba(6,182,212,0.15); color:var(--cyan);" data-i18n="ew_start_auto_badge">Empfohlen</span>
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.35;" data-i18n="ew_start_auto_desc">
+                      Startet automatisch den Lead Architect &amp; Copiloten in Phase 1 (Clarify) zur Analyse der Problemstellung und Dokumente.
+                    </div>
+                  </div>
+                </label>
+
+                <label class="ew-start-option-card" id="ew-start-opt-manual">
+                  <input type="radio" name="ew_start_mode" value="manual" class="ew-start-radio">
+                  <div>
+                    <div style="display:flex; align-items:center; gap:6px;">
+                      <span style="font-size:1.1rem;">👁️</span>
+                      <span style="font-weight:700; font-size:0.84rem; color:var(--text-main);" data-i18n="ew_start_manual_title">Workspace manuell öffnen</span>
+                    </div>
+                    <div style="font-size:0.72rem; color:var(--text-muted); margin-top:4px; line-height:1.35;" data-i18n="ew_start_manual_desc">
+                      Legt das Projekt an und füllt den Prompt vor. Sie können sich erst in Ruhe im Dashboard umschauen und manuell starten.
+                    </div>
+                  </div>
+                </label>
+
               </div>
             </div>
+
           </div>
 
         </div>

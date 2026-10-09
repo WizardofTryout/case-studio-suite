@@ -19,7 +19,7 @@
         leadSchoolPreset: "purdue_strict",
         criticStrictness: "balanced",
         selectedSpecialists: ["ot_security", "tco_analyst"],
-        autoStartPhase1: false,
+        autoStartPhase1: true,
         files: []
       }
     },
@@ -419,6 +419,31 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
         }
       });
 
+      // ================= SPRINT 4: Step 5 (Dual-Start Options) =================
+      document.querySelectorAll('input[name="ew_start_mode"]').forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          const isAuto = e.target.value === "auto";
+          this.state.data.autoStartPhase1 = isAuto;
+
+          const cardAuto = document.getElementById("ew-start-opt-auto");
+          const cardManual = document.getElementById("ew-start-opt-manual");
+          if (cardAuto) cardAuto.classList.toggle("active", isAuto);
+          if (cardManual) cardManual.classList.toggle("active", !isAuto);
+
+          this.updateLaunchButton();
+        });
+      });
+
+      document.querySelectorAll(".ew-start-option-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          const radio = card.querySelector('input[name="ew_start_mode"]');
+          if (radio && !radio.checked) {
+            radio.checked = true;
+            radio.dispatchEvent(new Event("change"));
+          }
+        });
+      });
+
       // Escape key to close
       document.addEventListener("keydown", (e) => {
         if (e.key === "Escape" && overlay && overlay.classList.contains("active")) {
@@ -461,7 +486,7 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
       this.state.data.leadSchoolPreset = "purdue_strict";
       this.state.data.criticStrictness = "balanced";
       this.state.data.selectedSpecialists = ["ot_security", "tco_analyst"];
-      this.state.data.autoStartPhase1 = false;
+      this.state.data.autoStartPhase1 = true;
       this.state.data.files = [];
 
       // Reset form fields
@@ -471,6 +496,12 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
       if (guiInp) guiInp.value = "";
       const probDesc = document.getElementById("ew-guided-problem-description");
       if (probDesc) probDesc.value = "";
+
+      // Reset Step 5 Dual-Start options
+      const autoRadio = document.querySelector('input[name="ew_start_mode"][value="auto"]');
+      if (autoRadio) autoRadio.checked = true;
+      document.getElementById("ew-start-opt-auto")?.classList.add("active");
+      document.getElementById("ew-start-opt-manual")?.classList.remove("active");
 
       this.clearGuidedNameError();
       this.selectIndustry("industrial_ot", true);
@@ -727,22 +758,110 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
       } else if (stepNumber === 2) {
         setTimeout(() => document.getElementById("ew-guided-problem-description")?.focus(), 80);
         this.updateCharCounter();
+      } else if (stepNumber === 5) {
+        this.renderStep5Summary();
       }
 
       // Update Footer Buttons
       const prevBtn = document.getElementById("btn-ew-prev-step");
-      const nextBtn = document.getElementById("btn-ew-next-step");
       if (prevBtn) {
         prevBtn.style.visibility = stepNumber === 1 ? "hidden" : "visible";
       }
-      if (nextBtn) {
-        if (stepNumber === this.state.totalSteps) {
-          nextBtn.innerHTML = "<span>Projekt anlegen &amp; Starten 🚀</span>";
-          nextBtn.className = "btn-ew-primary btn-ew-launch";
+      this.updateLaunchButton();
+    },
+
+    updateLaunchButton() {
+      const nextBtn = document.getElementById("btn-ew-next-step");
+      if (!nextBtn) return;
+      if (this.state.currentStep === this.state.totalSteps) {
+        if (this.state.data.autoStartPhase1) {
+          nextBtn.innerHTML = "<span>Projekt anlegen &amp; Phase 1 starten 🚀</span>";
+          nextBtn.className = "btn btn-primary btn-ew-launch";
         } else {
-          nextBtn.innerHTML = "<span>Weiter ➔</span>";
-          nextBtn.className = "btn-ew-primary";
+          nextBtn.innerHTML = "<span>Projekt anlegen &amp; Workspace öffnen 📂</span>";
+          nextBtn.className = "btn btn-primary";
         }
+      } else {
+        nextBtn.innerHTML = "<span>Weiter ➔</span>";
+        nextBtn.className = "btn btn-primary";
+      }
+    },
+
+    renderStep5Summary() {
+      // 1. Fall & Domäne
+      const sumName = document.getElementById("ew-sum-name");
+      const sumIndustry = document.getElementById("ew-sum-industry");
+      const sumProblem = document.getElementById("ew-sum-problem");
+      const sumDocs = document.getElementById("ew-sum-docs");
+      const sumSchool = document.getElementById("ew-sum-school");
+      const sumCritic = document.getElementById("ew-sum-critic");
+      const sumSpecialists = document.getElementById("ew-sum-specialists");
+
+      const projName = this.state.data.projectName || (document.getElementById("ew-guided-project-name")?.value || "").trim();
+      if (sumName) sumName.textContent = projName || "Unbenanntes Projekt";
+
+      const indKey = this.state.data.industry || "cross_domain";
+      const indPreset = this.industryPresets[indKey] || this.industryPresets.cross_domain;
+      if (sumIndustry) {
+        sumIndustry.textContent = `${indPreset.icon} ${indPreset.name}`;
+      }
+
+      // 2. Problemstellung
+      const probDesc = this.state.data.problemDescription || (document.getElementById("ew-guided-problem-description")?.value || "").trim();
+      if (sumProblem) {
+        if (!probDesc) {
+          sumProblem.innerHTML = `<span style="font-style:italic; color:var(--text-muted);">(Keine Beschreibung angegeben – kann im Workspace eingegeben werden)</span>`;
+        } else {
+          const preview = probDesc.length > 250 ? probDesc.substring(0, 250) + "..." : probDesc;
+          sumProblem.textContent = preview;
+        }
+      }
+
+      // 3. Dokumente (DMS)
+      const files = this.state.data.files || [];
+      if (sumDocs) {
+        if (files.length === 0) {
+          sumDocs.innerHTML = `<span style="color:var(--text-muted);">0 Dokumente (optional)</span>`;
+        } else {
+          const fileNames = files.map(f => f.name).join(", ");
+          sumDocs.innerHTML = `<strong>${files.length} Datei(en)</strong>: <span style="color:var(--text-muted); font-size:0.72rem;">${fileNames}</span>`;
+        }
+      }
+
+      // 4. Denkschule
+      const schoolMap = {
+        purdue_strict: "🏛️ Purdue Strict (ISA-95) – Strikte OT/IT-Zonierung",
+        cloud_native: "☁️ Cloud-Native Event-Driven – Kafka, K8s & Scalability",
+        minimal_tco: "💡 Minimal-TCO Lean – Schneller ROI & Bestandsnutzung",
+        zero_trust: "🔒 Zero-Trust & KRITIS – NIS-2 & BSI-Konformität",
+        balanced_pragmatic: "🌐 Balanced Pragmatic – Universell & Hybrid"
+      };
+      if (sumSchool) {
+        sumSchool.textContent = schoolMap[this.state.data.leadSchoolPreset] || "🏛️ Purdue Strict (ISA-95)";
+      }
+
+      // 5. Critic-Striktheit
+      const criticMap = {
+        pragmatic: "⚡ Critic: Pragmatisch & Konstruktiv (Fokus Machbarkeit)",
+        balanced: "⚖️ Critic: Ausgewogen & Realistisch (Standard)",
+        strict: "🛡️ Critic: Strict C-Level & Compliance (Keine Spekulation)"
+      };
+      if (sumCritic) {
+        sumCritic.textContent = criticMap[this.state.data.criticStrictness] || criticMap.balanced;
+      }
+
+      // 6. Spezialisten-Roster
+      const specMap = {
+        ot_security: "OT Security & DMZ",
+        tco_analyst: "TCO & CAPEX/OPEX",
+        cloud_integration: "Cloud Architect",
+        compliance_auditor: "Compliance & Audit",
+        latency_engineer: "Feldbus & Echtzeit"
+      };
+      const selectedSpecs = this.state.data.selectedSpecialists || [];
+      if (sumSpecialists) {
+        const mapped = selectedSpecs.map(s => specMap[s] || s);
+        sumSpecialists.textContent = mapped.length > 0 ? `Team: ${mapped.join(" • ")}` : "Standard-Team";
       }
     },
 
@@ -1032,6 +1151,18 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
               localStorage.setItem(`case_studio_prompt_${created.id}`, problemDesc);
             }
           }
+
+          // 4. Sprint 4: Dual-Start Kickoff
+          if (this.state.data.autoStartPhase1) {
+            window.showToast?.("Projekt angelegt. Phase 1 wird automatisch gestartet... 🚀", "info");
+            setTimeout(() => {
+              if (window.App && typeof window.App.runCopilot === "function") {
+                window.App.runCopilot();
+              }
+            }, 350);
+          } else {
+            window.showToast?.("Projekt angelegt. Workspace manuell geöffnet.", "info");
+          }
         }
       } catch (err) {
         console.error("EntryWizard: Guided create failed:", err);
@@ -1039,7 +1170,7 @@ Struktureller Technologiewechsel und Evaluierung von Architektur-Alternativen f�
       } finally {
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = "<span>Projekt anlegen &amp; Starten 🚀</span>";
+          this.updateLaunchButton();
         }
       }
     }
