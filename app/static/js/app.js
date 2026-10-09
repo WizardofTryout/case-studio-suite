@@ -5355,6 +5355,10 @@ const App = {
   // --- Modals & Utilities ---
 
   promptNewProject() {
+    if (window.EntryWizard && typeof window.EntryWizard.open === "function") {
+      window.EntryWizard.open("guided");
+      return;
+    }
     window.showPromptModal(
       "Neues Projekt anlegen",
       "Projektname:",

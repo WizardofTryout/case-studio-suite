@@ -1584,6 +1584,279 @@
     </div>
   </div>
 
+  <!-- ========================================== -->
+  <!-- 🧭 ENTRY WIZARD MODAL (Dual-Track Onboarding & Express) -->
+  <!-- ========================================== -->
+  <div id="entry-wizard-modal-overlay" class="modal-overlay">
+    <div class="modal-card entry-wizard-modal-card">
+      
+      <!-- Wizard Top Header with Mode Switcher -->
+      <div class="modal-header-row ew-header-row">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="ew-header-icon">🧭</div>
+          <div>
+            <div class="modal-title" style="display:flex; align-items:center; gap:8px;">
+              <span>Neuen Fall anlegen</span>
+              <span class="brand-badge" style="font-size:0.68rem;">Case Ingestion Gateway</span>
+            </div>
+            <div style="font-size:0.75rem; color:var(--text-muted); font-family:var(--font-mono); margin-top:2px;">
+              PROJEKT-INITIALISIERUNG &amp; MULTI-AGENTEN-SCOPING
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:12px;">
+          <!-- Track Selector Pill Buttons -->
+          <div class="ew-mode-toggle-group">
+            <button type="button" id="btn-ew-mode-guided-toggle" class="ew-mode-toggle-btn active" title="Schritt-für-Schritt durch die Fallanlage leiten">
+              <span>🧭 Geführt</span>
+            </button>
+            <button type="button" id="btn-ew-mode-express-toggle" class="ew-mode-toggle-btn" title="Schnell-Eingabe für erfahrene Nutzer">
+              <span>⚡ Express</span>
+            </button>
+          </div>
+          <button class="btn-close-modal" id="btn-ew-close" title="Schließen">&times;</button>
+        </div>
+      </div>
+
+      <!-- ================= EXPRESS CONTAINER ================= -->
+      <div id="ew-express-container" style="display:none; padding:18px 24px;">
+        <div class="ew-banner-info">
+          <div style="font-size:1.1rem; margin-right:8px;">⚡</div>
+          <div style="font-size:0.82rem; line-height:1.4;">
+            <strong>Express-Modus:</strong> Schnelle Erfassung für erfahrene Nutzer. Legt das Projekt sofort an und öffnet direkt den leeren, vorstrukturierten Workspace.
+          </div>
+        </div>
+
+        <div style="margin-top:18px;">
+          <label class="ew-form-label" for="ew-express-project-name">PROJEKTNAME / CASE-TITEL <span style="color:var(--danger); font-weight:bold;">*</span></label>
+          <input type="text" id="ew-express-project-name" class="ew-text-input" placeholder="z. B. Retrofit Stanzlinie B3 oder Cloud-Edge Migration..." autocomplete="off">
+        </div>
+
+        <div style="margin-top:18px;">
+          <label class="ew-form-label">BRANCHE / ANWENDUNGSBEREICH</label>
+          <div class="ew-industry-grid" id="ew-express-industry-grid">
+            <div class="ew-industry-tile active" data-industry="industrial_ot">
+              <div class="ew-tile-icon">🏭</div>
+              <div class="ew-tile-title">Industrie &amp; Fertigung</div>
+              <div class="ew-tile-desc">OT/IT, SPS, SCADA, Purdue (ISA-95)</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="energy_utilities">
+              <div class="ew-tile-icon">⚡</div>
+              <div class="ew-tile-title">Energie &amp; Netze</div>
+              <div class="ew-tile-desc">Smart Grids, KRITIS, IEC 62443</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="logistics_sc">
+              <div class="ew-tile-icon">🚛</div>
+              <div class="ew-tile-title">Logistik &amp; Supply Chain</div>
+              <div class="ew-tile-desc">Tracking, Flotten, Lagertechnik</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="cloud_saas">
+              <div class="ew-tile-icon">☁️</div>
+              <div class="ew-tile-title">Cloud &amp; Enterprise IT</div>
+              <div class="ew-tile-desc">Microservices, Kafka, APIs</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="medtech_pharma">
+              <div class="ew-tile-icon">🏥</div>
+              <div class="ew-tile-title">MedTech &amp; Pharma</div>
+              <div class="ew-tile-desc">GxP, FDA Part 11, Validierung</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="smart_building">
+              <div class="ew-tile-icon">🏢</div>
+              <div class="ew-tile-title">Smart Building &amp; IoT</div>
+              <div class="ew-tile-desc">BACnet, Gebäudeautomation</div>
+            </div>
+            <div class="ew-industry-tile" data-industry="cross_domain">
+              <div class="ew-tile-icon">🌐</div>
+              <div class="ew-tile-title">Universell / Offen</div>
+              <div class="ew-tile-desc">Cross-Domain Architektur</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ew-modal-footer" style="margin-top:24px; padding-top:16px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+          <button type="button" id="btn-ew-switch-to-guided" class="btn-text-subtle">
+            🧭 Zum geführten Onboarding-Wizard wechseln
+          </button>
+          <div style="display:flex; gap:10px;">
+            <button type="button" id="btn-ew-cancel-express" class="btn btn-secondary">Abbrechen</button>
+            <button type="button" id="btn-ew-express-submit" class="btn btn-primary" style="min-width:140px;">
+              Projekt starten ⚡
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= GUIDED CONTAINER ================= -->
+      <div id="ew-guided-container" style="display:block;">
+        
+        <!-- Stepper Bar -->
+        <div class="ew-stepper-bar">
+          <div class="ew-step-pill active" data-step="1">
+            <span class="step-num">1</span>
+            <span class="step-label">Stammdaten &amp; Branche</span>
+          </div>
+          <div class="ew-step-arrow">›</div>
+          <div class="ew-step-pill" data-step="2">
+            <span class="step-num">2</span>
+            <span class="step-label">Problemstellung</span>
+          </div>
+          <div class="ew-step-arrow">›</div>
+          <div class="ew-step-pill" data-step="3">
+            <span class="step-num">3</span>
+            <span class="step-label">Dokumente (DMS)</span>
+          </div>
+          <div class="ew-step-arrow">›</div>
+          <div class="ew-step-pill" data-step="4">
+            <span class="step-num">4</span>
+            <span class="step-label">Agenten-Team</span>
+          </div>
+          <div class="ew-step-arrow">›</div>
+          <div class="ew-step-pill" data-step="5">
+            <span class="step-num">5</span>
+            <span class="step-label">Start &amp; Kickoff</span>
+          </div>
+        </div>
+
+        <!-- Guided Body Views -->
+        <div class="ew-content-body" style="padding:20px 24px; max-height:60vh; overflow-y:auto;">
+          
+          <!-- STEP 1: Stammdaten & Branche -->
+          <div id="ew-step-view-1" class="ew-step-view active">
+            <div class="ew-step-header">
+              <span class="ew-step-title">🏷️ Schritt 1: Wie soll Ihr neuer Fall heißen?</span>
+              <span class="ew-step-subtitle">Geben Sie dem Fall einen Namen und wählen Sie die primäre Branche für maßgeschneiderte Architekturmuster.</span>
+            </div>
+
+            <div style="margin-top:16px;">
+              <label class="ew-form-label" for="ew-guided-project-name">PROJEKTNAME / CASE-TITEL <span style="color:var(--danger); font-weight:bold;">*</span></label>
+              <input type="text" id="ew-guided-project-name" class="ew-text-input" placeholder="z. B. Predictive Maintenance Pressenlinie 4" autocomplete="off">
+            </div>
+
+            <div style="margin-top:20px;">
+              <label class="ew-form-label">BRANCHE WÄHLEN (STEUERT ARCHITEKTUR-DENKSCHULE &amp; AGENTEN)</label>
+              <div class="ew-industry-grid" id="ew-guided-industry-grid">
+                <div class="ew-industry-tile active" data-industry="industrial_ot">
+                  <div class="ew-tile-icon">🏭</div>
+                  <div class="ew-tile-title">Industrie &amp; Fertigung</div>
+                  <div class="ew-tile-desc">OT/IT, SPS, SCADA, Purdue (ISA-95)</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="energy_utilities">
+                  <div class="ew-tile-icon">⚡</div>
+                  <div class="ew-tile-title">Energie &amp; Netze</div>
+                  <div class="ew-tile-desc">Smart Grids, KRITIS, IEC 62443</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="logistics_sc">
+                  <div class="ew-tile-icon">🚛</div>
+                  <div class="ew-tile-title">Logistik &amp; Supply Chain</div>
+                  <div class="ew-tile-desc">Tracking, Flotten, Lagertechnik</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="cloud_saas">
+                  <div class="ew-tile-icon">☁️</div>
+                  <div class="ew-tile-title">Cloud &amp; Enterprise IT</div>
+                  <div class="ew-tile-desc">Microservices, Kafka, APIs</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="medtech_pharma">
+                  <div class="ew-tile-icon">🏥</div>
+                  <div class="ew-tile-title">MedTech &amp; Pharma</div>
+                  <div class="ew-tile-desc">GxP, FDA Part 11, Validierung</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="smart_building">
+                  <div class="ew-tile-icon">🏢</div>
+                  <div class="ew-tile-title">Smart Building &amp; IoT</div>
+                  <div class="ew-tile-desc">BACnet, Gebäudeautomation</div>
+                </div>
+                <div class="ew-industry-tile" data-industry="cross_domain">
+                  <div class="ew-tile-icon">🌐</div>
+                  <div class="ew-tile-title">Universell / Offen</div>
+                  <div class="ew-tile-desc">Cross-Domain Architektur</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 2: Problemstellung (Vorbereitung für Sprint 2) -->
+          <div id="ew-step-view-2" class="ew-step-view" style="display:none;">
+            <div class="ew-step-header">
+              <span class="ew-step-title">📝 Schritt 2: Was ist die zentrale Herausforderung?</span>
+              <span class="ew-step-subtitle">Beschreiben Sie das Kernproblem, Randbedingungen oder Ziele. Optional – kann auch im Workspace ausgefüllt werden.</span>
+            </div>
+            <div style="margin-top:16px;">
+              <label class="ew-form-label" for="ew-guided-problem-description">FALLBESCHREIBUNG / PROBLEMSTELLUNG</label>
+              <textarea id="ew-guided-problem-description" class="ew-textarea-input" rows="7" placeholder="Beschreiben Sie hier die Ausgangslage, z.B.:&#10;• Was ist der aktuelle Engpass?&#10;• Welche Systeme sind involviert?&#10;• Welche Latenz- oder Budgetgrenzen existieren?"></textarea>
+            </div>
+          </div>
+
+          <!-- STEP 3: Dokumente DMS (Vorbereitung für Sprint 3) -->
+          <div id="ew-step-view-3" class="ew-step-view" style="display:none;">
+            <div class="ew-step-header">
+              <span class="ew-step-title">📎 Schritt 3: Spezifikationen &amp; Unterlagen (Optional)</span>
+              <span class="ew-step-subtitle">Laden Sie Pflichtenhefte, Lastenhefte oder Protokolle hoch. Kann jederzeit übersprungen werden.</span>
+            </div>
+            <div class="ew-upload-placeholder" style="margin-top:20px; padding:32px; border:2px dashed var(--border-subtle); text-align:center; background:rgba(255,255,255,0.02); border-radius:4px;">
+              <div style="font-size:2rem; margin-bottom:8px;">📁</div>
+              <div style="font-weight:600; color:var(--text-main); font-size:0.9rem;">Dokumente hier ablegen oder durchsuchen</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:4px; font-family:var(--font-mono);">PDF, Markdown, TXT oder DOCX (Optional)</div>
+            </div>
+          </div>
+
+          <!-- STEP 4: Agenten-Team (Vorbereitung für Sprint 3) -->
+          <div id="ew-step-view-4" class="ew-step-view" style="display:none;">
+            <div class="ew-step-header">
+              <span class="ew-step-title">🤖 Schritt 4: Ihr Multi-Agenten-Team</span>
+              <span class="ew-step-subtitle">Die Suite hat automatisch das optimale Team für Ihre Branche vorkonfiguriert.</span>
+            </div>
+            <div style="margin-top:16px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div style="padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:4px;">
+                <div style="font-weight:700; font-size:0.85rem; color:var(--cyan);">🏛️ Lead Architect</div>
+                <div style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Denkschule passend zur Branche vorselektiert.</div>
+              </div>
+              <div style="padding:12px; background:rgba(255,255,255,0.02); border:1px solid var(--border-subtle); border-radius:4px;">
+                <div style="font-weight:700; font-size:0.85rem; color:#f59e0b;">🛡️ Hallucination Critic</div>
+                <div style="font-size:0.76rem; color:var(--text-muted); margin-top:2px;">Prüft Fakten und stoppt Spekulationen.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STEP 5: Start & Kickoff (Vorbereitung für Sprint 4) -->
+          <div id="ew-step-view-5" class="ew-step-view" style="display:none;">
+            <div class="ew-step-header">
+              <span class="ew-step-title">🚀 Schritt 5: Bereit zum Start!</span>
+              <span class="ew-step-subtitle">Ihr neuer Fall ist fertig konfiguriert. Wählen Sie, wie Sie in den Workspace einsteigen möchten.</span>
+            </div>
+            <div class="ew-banner-info" style="margin-top:20px;">
+              <div style="font-size:1.2rem; margin-right:8px;">✅</div>
+              <div style="font-size:0.85rem; line-height:1.4;">
+                Alle Parameter sind bereit. Nach Klick auf <strong>Projekt anlegen</strong> wird der Workspace sofort geladen.
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Guided Modal Footer -->
+        <div class="ew-modal-footer" style="padding:16px 24px; border-top:1px solid var(--border-subtle); display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <button type="button" id="btn-ew-switch-to-express" class="btn-text-subtle">
+              ⚡ Schnell-Modus (Express)
+            </button>
+            <button type="button" id="btn-ew-cancel-guided" class="btn btn-secondary">Abbrechen</button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <button type="button" id="btn-ew-prev-step" class="btn btn-secondary" style="visibility:hidden;">
+              ◀ Zurück
+            </button>
+            <button type="button" id="btn-ew-next-step" class="btn btn-primary" style="min-width:140px;">
+              Weiter ➔
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
   <!-- Projects Overview & Management Modal -->
   <div id="projects-manager-modal-overlay" class="modal-overlay">
     <div class="modal-card projects-manager-modal-card" style="max-width:860px; width:92%;">
@@ -1868,6 +2141,7 @@
   <script src="/static/js/api.js?v=4.0.0"></script>
   <script src="/static/js/archify.js?v=4.0.0"></script>
   <script src="/static/js/graph.js?v=4.0.0"></script>
+  <script src="/static/js/entry-wizard.js?v=4.0.0"></script>
   <script src="/static/js/app.js?v=4.0.0"></script>
 </body>
 

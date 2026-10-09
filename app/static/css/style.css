@@ -6168,6 +6168,382 @@ svg .node.selected text {
   line-height: 1.5;
 }
 
+/* ==========================================================================
+   🧭 ENTRY WIZARD (Dual-Track Onboarding & Express Creation)
+   ========================================================================== */
+
+.entry-wizard-modal-card {
+  max-width: 860px !important;
+  width: 94vw !important;
+  max-height: 90vh !important;
+  border-radius: 4px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
+.ew-header-row {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.ew-header-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.ew-mode-toggle-group {
+  display: flex;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 3px;
+  gap: 3px;
+}
+
+.ew-mode-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ew-mode-toggle-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.ew-mode-toggle-btn.active {
+  background: var(--cyan);
+  color: #0b0f19;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.ew-banner-info {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(6, 182, 212, 0.08);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  border-radius: 4px;
+  color: var(--text-main);
+}
+
+.ew-form-label {
+  display: block;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.ew-text-input {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  padding: 10px 14px;
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  transition: all 0.15s ease;
+}
+
+.ew-text-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px var(--cyan-glow);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ew-textarea-input {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 4px;
+  padding: 12px 14px;
+  color: var(--text-main);
+  font-size: 0.88rem;
+  font-family: inherit;
+  line-height: 1.5;
+  box-sizing: border-box;
+  resize: vertical;
+  transition: all 0.15s ease;
+}
+
+.ew-textarea-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px var(--cyan-glow);
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.ew-industry-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+}
+
+.ew-industry-tile {
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.ew-industry-tile:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: var(--border-medium, rgba(255, 255, 255, 0.2));
+  transform: translateY(-1px);
+}
+
+.ew-industry-tile.active {
+  background: rgba(6, 182, 212, 0.08);
+  border-color: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan-glow);
+}
+
+.ew-tile-icon {
+  font-size: 1.4rem;
+  margin-bottom: 6px;
+  line-height: 1;
+}
+
+.ew-tile-title {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.25;
+}
+
+.ew-tile-desc {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+/* Stepper Bar */
+.ew-stepper-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.12);
+  overflow-x: auto;
+}
+
+.ew-step-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.ew-step-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text-main);
+}
+
+.ew-step-pill.active {
+  background: var(--cyan-glow);
+  border-color: var(--cyan);
+  color: var(--cyan);
+  font-weight: 700;
+}
+
+.ew-step-pill.completed {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+}
+
+.ew-step-pill .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 17px;
+  height: 17px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.3);
+  font-size: 0.66rem;
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+}
+
+.ew-step-arrow {
+  color: var(--text-muted);
+  opacity: 0.4;
+  font-size: 0.9rem;
+  user-select: none;
+}
+
+.ew-step-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.ew-step-title {
+  font-size: 0.96rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.ew-step-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.btn-text-subtle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 3px;
+  transition: color 0.15s ease;
+  font-family: inherit;
+}
+
+.btn-text-subtle:hover {
+  color: var(--text-main);
+}
+
+/* Light Theme Overrides */
+[data-theme="light"] .ew-header-row,
+body.light-theme .ew-header-row {
+  background: #F1F5F9;
+}
+
+[data-theme="light"] .ew-mode-toggle-group,
+body.light-theme .ew-mode-toggle-group {
+  background: #E2E8F0;
+  border-color: #CBD5E1;
+}
+
+[data-theme="light"] .ew-mode-toggle-btn.active,
+body.light-theme .ew-mode-toggle-btn.active {
+  background: #0F172A;
+  color: #FFFFFF;
+}
+
+[data-theme="light"] .ew-banner-info,
+body.light-theme .ew-banner-info {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1E3A8A;
+}
+
+[data-theme="light"] .ew-stepper-bar,
+body.light-theme .ew-stepper-bar {
+  background: #F8FAFC;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .ew-step-pill,
+body.light-theme .ew-step-pill {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #64748B;
+}
+
+[data-theme="light"] .ew-step-pill.active,
+body.light-theme .ew-step-pill.active {
+  background: #4F46E5;
+  border-color: #4F46E5;
+  color: #FFFFFF;
+}
+
+[data-theme="light"] .ew-step-pill.active .step-num,
+body.light-theme .ew-step-pill.active .step-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+[data-theme="light"] .ew-step-pill.completed,
+body.light-theme .ew-step-pill.completed {
+  background: #ECFDF5;
+  border-color: #10B981;
+  color: #065F46;
+}
+
+[data-theme="light"] .ew-text-input,
+body.light-theme .ew-text-input,
+[data-theme="light"] .ew-textarea-input,
+body.light-theme .ew-textarea-input {
+  background: #FFFFFF;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+[data-theme="light"] .ew-text-input:focus,
+body.light-theme .ew-text-input:focus,
+[data-theme="light"] .ew-textarea-input:focus,
+body.light-theme .ew-textarea-input:focus {
+  background: #FFFFFF;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+[data-theme="light"] .ew-industry-tile,
+body.light-theme .ew-industry-tile {
+  background: #FFFFFF;
+  border-color: #E2E8F0;
+}
+
+[data-theme="light"] .ew-industry-tile:hover,
+body.light-theme .ew-industry-tile:hover {
+  background: #F8FAFC;
+  border-color: #94A3B8;
+}
+
+[data-theme="light"] .ew-industry-tile.active,
+body.light-theme .ew-industry-tile.active {
+  background: #EEF2FF;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 1px #4F46E5;
+}
+
+
 
 
 
